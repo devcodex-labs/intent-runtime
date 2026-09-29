@@ -1,0 +1,55 @@
+{
+  "name": "@devcodex-labs/intent-runtime",
+  "version": "0.1.0",
+  "description": "A pure Node.js library for turning natural language or external inputs into standardized, structured, verifiable, extensible, and traceable intent records.",
+  "type": "module",
+  "license": "MIT",
+  "author": "devcodex-labs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devcodex-labs/intent-runtime.git"
+  },
+  "bugs": {
+    "url": "https://github.com/devcodex-labs/intent-runtime/issues"
+  },
+  "homepage": "https://github.com/devcodex-labs/intent-runtime#readme",
+  "keywords": [
+    "intent",
+    "runtime",
+    "schema",
+    "validation",
+    "traceability",
+    "natural-language"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\"",
+    "prepack": "npm run clean && npm run build",
+    "test": "npm run build && node --test test",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0"
+  }
+}
