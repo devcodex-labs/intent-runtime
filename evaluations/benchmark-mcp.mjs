@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {mkdirSync,writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
-import {resolve,join} from 'node:path';
+import {join} from 'node:path';
+import {evaluationOutput} from './output.mjs';
 import {performance} from 'node:perf_hooks';
 import {cpus,platform,arch} from 'node:os';
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
@@ -9,7 +10,7 @@ import {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js';
 import {SCHEMA_PRESETS} from './schemas.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
-const output=resolve(process.argv[2]??join(root,'evaluations/results',Date.now()+'-benchmark'));
+const output=evaluationOutput('benchmark',process.argv[2]);
 mkdirSync(output,{recursive:true});
 const count=100, warmups=5;
 const input='Query order 000123.';

@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { readFileSync, writeFileSync } from "node:fs";
-import { resolve, join } from "node:path";
+import { join } from "node:path";
+import { externalOutputPath } from "./output.mjs";
 import { createHash } from "node:crypto";
 import { loadCases } from "./cases.mjs";
 
-const folder = resolve(process.argv[2]);
+const folder = externalOutputPath(process.argv[2]);
 const summary = JSON.parse(readFileSync(join(folder, "summary.json"), "utf8"));
 const events = readFileSync(join(folder, "transcript.jsonl"), "utf8")
   .trim()

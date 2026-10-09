@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { readFileSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
+import { externalOutputPath } from "./output.mjs";
 import { createHash } from "node:crypto";
 import { loadCases } from "./cases.mjs";
 import { checkExpectations } from "./expected-result.mjs";
 
-const folder = resolve(process.argv[2]);
+const folder = externalOutputPath(process.argv[2]);
 const read = (name) => JSON.parse(readFileSync(join(folder, name), "utf8"));
 const summary = read("summary.json");
 const manifest = read("manifest.json");

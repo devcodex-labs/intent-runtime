@@ -1,6 +1,8 @@
 import { mkdir, appendFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { performance } from "node:perf_hooks";
+import { dirname } from "node:path";
+import { evaluationOutput } from "./output.mjs";
 import { loadCases } from "./cases.mjs";
 import { checkExpectations } from "./expected-result.mjs";
 import { SCHEMA_PRESETS } from "./schemas.mjs";
@@ -31,8 +33,8 @@ const files = args.includes("--all") ? ["semantics", "languages", "additional"]
 let cases = loadCases(files);
 if (selected) cases = cases.filter((item) => item.id === selected);
 if (!cases.length) throw new Error("No matching evaluation cases.");
-await mkdir("evaluations/results", { recursive: true });
-const output = "evaluations/results/" + new Date().toISOString().replace(/[:.]/g, "-") + "-" + provider + ".jsonl";
+const output = evaluationOutput(provider + ".jsonl");
+await mkdir(dirname(output), { recursive: true });
 const records = [];
 let unexpectedFailures = 0;
 for (const item of cases) {

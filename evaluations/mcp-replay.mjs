@@ -6,14 +6,15 @@ import {
   writeFileSync,
 } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { resolve, join } from "node:path";
+import { join } from "node:path";
+import { evaluationOutput, externalOutputPath } from "./output.mjs";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { loadCases } from "./cases.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const source = resolve(process.argv[2]);
-const output = resolve(process.argv[3] ?? join(source, "replay"));
+const source = externalOutputPath(process.argv[2]);
+const output = evaluationOutput("replay", process.argv[3]);
 const manifest = loadCases(process.argv[4]?.split(","));
 assert.deepEqual(
   JSON.parse(readFileSync(join(source, "manifest.json"), "utf8")).map((test) => test.key),

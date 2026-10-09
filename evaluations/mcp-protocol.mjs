@@ -1,15 +1,14 @@
 import assert from "node:assert/strict";
 import { mkdirSync, appendFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { resolve, join } from "node:path";
+import { join } from "node:path";
+import { evaluationOutput } from "./output.mjs";
 import { setTimeout as delay } from "node:timers/promises";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const output = resolve(
-  process.argv[2] ?? join(root, "evaluations/results/protocol"),
-);
+const output = evaluationOutput("protocol", process.argv[2]);
 mkdirSync(output, { recursive: true });
 const groups = [];
 let toolCalls = 0,

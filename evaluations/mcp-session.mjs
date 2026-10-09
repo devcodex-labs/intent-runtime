@@ -9,18 +9,12 @@ import {
 } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
-import { resolve, join } from "node:path";
+import { join } from "node:path";
+import { evaluationOutput } from "./output.mjs";
 import { loadCases, instanceName } from "./cases.mjs";
 import { SCHEMA_PRESETS } from "./schemas.mjs";
 const root = fileURLToPath(new URL("../", import.meta.url));
-const output = resolve(
-  process.argv[2] ??
-    join(
-      root,
-      "evaluations/results",
-      new Date().toISOString().replace(/[:.]/g, "-") + "-cloud-mcp",
-    ),
-);
+const output = evaluationOutput("cloud-mcp", process.argv[2]);
 mkdirSync(output, { recursive: true });
 const cases = loadCases(process.argv[3]?.split(","));
 const state = new Map(

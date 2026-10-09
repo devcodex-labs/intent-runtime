@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import {mkdirSync,appendFileSync,writeFileSync} from 'node:fs';
-import {resolve,join} from 'node:path';
+import {join} from 'node:path';
+import {evaluationOutput} from './output.mjs';
 import {fileURLToPath} from 'node:url';
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js';
 import {SCHEMA_PRESETS} from './schemas.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
-const output=resolve(process.argv[2]??join(root,'evaluations/results',Date.now()+'-semantic-guards'));
+const output=evaluationOutput('semantic-guards',process.argv[2]);
 mkdirSync(output,{recursive:true});
 const core={normalizedInput:'Query order 002.',primaryIntent:'Query order',requirements:[],prohibitions:[],intents:[{action:'query',target:'Order 002',requirements:[],blockers:{clarificationReason:null,questions:[],confirmationReason:null,conditionReason:null}}]};
 const badCore=structuredClone(core);badCore.normalizedInput='Delete order 002.';badCore.intents[0].action='delete';

@@ -139,9 +139,9 @@ npm run evaluate -- --additional
 npm run evaluate -- --all --repeat 5
 ~~~
 
-完整运行会主动调用所配置 API；每个变体通常 1 或 2 个阶段，每阶段最多修复一次。结果保存到 evaluations/results，不提交源码。所有语义判定为 pending，需要按 review-guidance.md 人工或独立 AI 复核；exit 0 不等于语义通过。
+完整运行会主动调用所配置 API；每个变体通常 1 或 2 个阶段，每阶段最多修复一次。结果保存到项目同级的 intent-runtime-results/runs，不进入项目或 Git；Windows 本地默认为 D:\Worker\intent-runtime-results\runs。可通过 INTENT_EVALUATION_DIR 指定其他外部目录。所有语义判定为 pending，需要按 review-guidance.md 人工或独立 AI 复核；exit 0 不等于语义通过。
 
-runner 记录 parse 总耗时以及每次 core/data/repair 模型请求耗时、完整任务、Prompt 摘要和模型回复。按这些记录计算真实模型路径的 p50/p95、修复率和独立语义评分；云端受控候选的毫秒基准不能替代它。原 95 条自评发现两项分类错误，补充 24 条的结果和三种语义校验边界见 [复查报告](coverage-accuracy-review-2026-10-09.md)。
+runner 记录 parse 总耗时以及每次 core/data/repair 模型请求耗时、完整任务、Prompt 摘要和模型回复。按这些记录计算真实模型路径的 p50/p95、修复率和独立语义评分；受控候选的毫秒基准不能替代它。评测报告和评分记录也保存在项目外。
 
 OpenAI 与 xAI 分别运行并记录模型名。桌面路径使用相同案例逐例交接并留存工具记录，API runner 不能替代桌面联调。
 
@@ -149,4 +149,4 @@ OpenAI 与 xAI 分别运行并记录模型名。桌面路径使用相同案例�
 
 ## 6. 当前待验证事项
 
-云端已用当前会话助手执行完整 95 条 MCP 清单并自评，另外执行协议/资源回归；详见 [云端完整测试报告](cloud-test-report-2026-10-09.md)。真实 API 模型能力、桌面客户端触发和原文交接、Windows 兼容及目标模型独立语义验收仍待本地验证。语言快照 File-Date 为 2025-08-25；若使用更新登记标签，可在本地运行 npm run registry:refresh，从 IANA 正式来源更新、审查差异，并重跑测试/构建/打包检查。
+真实 API 模型能力、桌面客户端触发和原文交接、Windows 兼容及目标模型独立语义验收须在实际目标环境验证。语言快照 File-Date 为 2025-08-25；若使用更新登记标签，可在本地运行 npm run registry:refresh，从 IANA 正式来源更新、审查差异，并重跑测试/构建/打包检查。
