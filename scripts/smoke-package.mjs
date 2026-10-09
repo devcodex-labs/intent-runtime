@@ -60,7 +60,7 @@ try {
     `import assert from 'node:assert/strict';import {Intent} from '@devcodex-labs/intent-runtime';import {createIntentBridge} from '@devcodex-labs/intent-runtime/bridge';
 const intent=new Intent({language:'EN-us'});const bridge=createIntentBridge({instances:{test:intent}});const session=bridge.connect();const task=session.prepare({instance:'test',input:'谢谢',fields:[]});assert.equal(task.kind,'task');
 const candidate={normalizedInput:'The user expresses thanks; no action requested.',primaryIntent:null,requirements:[],prohibitions:[],intents:[]};
-assert.equal(session.accept({jobId:task.jobId,stepToken:task.stepToken,candidateText:JSON.stringify(candidate)}).kind,'result');bridge.close();intent.dispose();
+assert.equal((await session.accept({jobId:task.jobId,stepToken:task.stepToken,candidateText:JSON.stringify(candidate)})).kind,'result');bridge.close();intent.dispose();
 let blocked=false;try{await import('@devcodex-labs/intent-runtime/dist/core/pipeline.js')}catch{blocked=true}assert.ok(blocked);
 `,
   );

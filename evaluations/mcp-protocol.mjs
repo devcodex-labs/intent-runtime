@@ -338,15 +338,12 @@ await group(
   },
 );
 await group(
-  "阶段重放超出字节预算释放任务",
+  "阶段重放超出字节预算保留活跃任务",
   { instance: { schema }, bridge: { maxReplayBytes: 1024 } },
   async (c) => {
     const t = task(await prepare(c));
     err(await accept(c, t, core), "LIMIT_EXCEEDED", "bridge");
-    err(
-      await c.call("intent_cancel", { jobId: t.jobId }),
-      "BRIDGE_JOB_NOT_FOUND",
-    );
+    err(await c.call("intent_cancel", { jobId: t.jobId }), "MODEL_ABORTED");
     task(await prepare(c));
   },
 );

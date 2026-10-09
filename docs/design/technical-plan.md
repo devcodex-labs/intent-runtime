@@ -1192,11 +1192,11 @@ MCP 初始化的 server instructions 提供 prepare → accept → 下一阶段/
 
 | 工具 | 参数 | 返回 |
 |---|---|---|
-| `intent_prepare` | `instance`、`input`、可选 `fields` / `context` | core 任务、jobId、stepToken、到期时间 |
+| `intent_prepare` | `instance`、`input`、可选 `fields` / `context` | core 任务、jobId、stepToken；启用过期时才有到期时间 |
 | `intent_accept` | jobId、stepToken、candidateText | 下一任务、最终 result 或明确 error |
 | `intent_cancel` | jobId、可选 outcome / detail | 取消或生成失败的明确结果 |
 
-createIntentBridge / serveIntentMcp 接受启动时的 instances，以及可选 maxJobs（默认 32）、jobTtlMs（默认 600000）、replayTtlMs（默认 60000）。MCP server 从自己的连接建立可信绑定，不让工具参数自报 connectionId。单个实例不存在反馈 INPUT_INVALID；容量超限反馈 LIMIT_EXCEEDED；job 不存在或属于其他连接反馈 BRIDGE_JOB_NOT_FOUND。
+createIntentBridge / serveIntentMcp 接受启动时的 instances，以及可选 maxJobs（默认 32）、jobTtlMs 和 replayTtlMs（默认均关闭，省略或 0）。活跃会话默认不按时间过期，可在同一连接内保留几天；完成记录按容量回收。显式设置 jobTtlMs 后启用闲置期限，有效推进后重新计时；replayTtlMs 是可选的完成回复保留期限。MCP server 从自己的连接建立可信绑定，不让工具参数自报 connectionId。单个实例不存在反馈 INPUT_INVALID；容量超限反馈 LIMIT_EXCEEDED；job 不存在或属于其他连接反馈 BRIDGE_JOB_NOT_FOUND。bridge.accept 返回 Promise，调用方必须 await；同令牌同候选的并发请求共享一次推进。容量不足时先回收已完成记录；未完成会话不静默淘汰，超预算提交保持其原令牌和阶段。
 
 字段省略对应普通 parse 的省略语义；`fields: []` 仍识别完整默认意图。工具入参只表示使用意图模块的运输合同，与 `parse({ input, fields, context })` 使用同一请求语义。
 
@@ -1212,7 +1212,7 @@ type BridgeReply =
       instructions: string;
       payload: string;
       format: ModelRequest["format"];
-      expiresAt: string;
+      expiresAt?: string;
     }
   | { kind: "result"; result: IntentResult }
   | { kind: "error"; error: SerializedIntentError };
@@ -2148,6 +2148,6 @@ V1 不要求 codex exec、独立 Codex 回合、Claude/Grok 宿主或其他客�
 
 以 docs/decisions/001-v1-contract.md 为本次合同决定。data 的格式、来源、类型与候选遗漏检查全部进入共用核心接收逻辑，产生接受、修复或终止决定；真实业务问题不进入猜值修复。每个所选字段都具有内部 fieldResults 结论，未提取可选字段也需说明无依据/不适用，不改变公共 IntentResult。
 
-maxCandidateDepth 默认 32、maxCandidateNodes 默认 20000，解析前扫描深度；证据默认至多 4096 项、issues 默认 256 项。桥接终态重放默认至多 128 项/8 MiB，额外受 replayTtlMs 限制；容量超限明确失败，不宣称保证被提前丢弃回复的幂等重放。
+maxCandidateDepth 默认 32、maxCandidateNodes 默认 20000，解析前扫描深度；证据默认至多 4096 项、issues 默认 256 项。桥接保留任务默认至多 128 项/8 MiB，默认没有时间清理；配置 replayTtlMs 才启用完成记录期限。容量超限先回收已完成记录，必要时明确拒绝新任务或提交并保护已有活跃会话；不宣称保证已被容量回收回复的幂等重放。连接关闭、显式取消或实例销毁按生命周期清理，不提供跨进程恢复。
 
 真实 API 及桌面客户端由用户按照 docs/local-testing.md 手动验证。当前发布状态为开发预览，未真实验证路径不得记成通过。

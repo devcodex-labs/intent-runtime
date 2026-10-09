@@ -114,7 +114,7 @@ export async function serveIntentMcp(
     else if (request.params.name === "intent_prepare")
       reply = connection.prepare(args as unknown as PrepareRequest);
     else if (request.params.name === "intent_accept")
-      reply = connection.accept(args as unknown as AcceptRequest);
+      reply = await connection.accept(args as unknown as AcceptRequest);
     else if (request.params.name === "intent_cancel")
       reply = connection.cancel(args as unknown as CancelRequest);
     else

@@ -26,7 +26,40 @@ function task(reply: BridgeReply) {
   if (reply.kind !== "task") throw new Error("Expected task");
   return reply;
 }
-it("isolates the fixed core contract from mutation of a public task Schema", () => {
+it("keeps default active sessions and completed replays across several days", async () => {
+  vi.useFakeTimers();
+  const { session } = setup();
+  const first = task(session.prepare({ instance: "orders", input: "x", fields: [] }));
+  expect(first).not.toHaveProperty("expiresAt");
+  vi.advanceTimersByTime(5 * 86400000);
+  const request = { jobId: first.jobId, stepToken: first.stepToken, candidateText: JSON.stringify(core()) };
+  const result = await session.accept(request);
+  expect(result.kind).toBe("result");
+  vi.advanceTimersByTime(5 * 86400000);
+  expect(await session.accept(request)).toEqual(result);
+});
+it("evicts completed records to admit new work without evicting active jobs", async () => {
+  const { session } = setup({ maxReplayEntries: 1 });
+  const first = task(session.prepare({ instance: "orders", input: "x", fields: [] }));
+  expect(session.prepare({ instance: "orders", input: "next", fields: [] })).toMatchObject({ kind: "error", error: { code: "LIMIT_EXCEEDED" } });
+  expect((await session.accept({ jobId: first.jobId, stepToken: first.stepToken, candidateText: JSON.stringify(core()) })).kind).toBe("result");
+  expect(session.prepare({ instance: "orders", input: "next", fields: [] }).kind).toBe("task");
+  expect(session.cancel({ jobId: first.jobId })).toMatchObject({ kind: "error", error: { code: "BRIDGE_JOB_NOT_FOUND" } });
+});
+it("rejects an over-budget submission without advancing or deleting its active job", async () => {
+  const { session } = setup({ maxReplayBytes: 1600 });
+  const first = task(session.prepare({ instance: "orders", input: "x", fields: [] }));
+  const large = core(); large.normalizedInput = "x".repeat(4000);
+  expect(await session.accept({ jobId: first.jobId, stepToken: first.stepToken, candidateText: JSON.stringify(large) })).toMatchObject({ kind: "error", error: { code: "LIMIT_EXCEEDED" } });
+  expect(await session.accept({ jobId: first.jobId, stepToken: first.stepToken, candidateText: JSON.stringify(core()) })).toMatchObject({ kind: "result" });
+});
+it("expires by deadline even when the cleanup timer cannot run", async () => {
+  const { session } = setup({ jobTtlMs: 10 });
+  const first = task(session.prepare({ instance: "orders", input: "x", fields: [] }));
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 40);
+  expect(await session.accept({ jobId: first.jobId, stepToken: first.stepToken, candidateText: JSON.stringify(core()) })).toMatchObject({ kind: "error", error: { code: "BRIDGE_JOB_EXPIRED" } });
+});
+it("isolates the fixed core contract from mutation of a public task Schema", async () => {
   const { session, bridge } = setup();
   const first = task(session.prepare({ instance: "orders", input: "x", fields: [] }));
   if (first.format.kind !== "json_schema") throw new Error("Expected Schema");
@@ -37,9 +70,9 @@ it("isolates the fixed core contract from mutation of a public task Schema", () 
   expect(JSON.stringify(second.format)).not.toContain("purchase");
   const candidate = core();
   candidate.intents[0]!.action = "purchase";
-  expect(secondSession.accept({ jobId: second.jobId, stepToken: second.stepToken, candidateText: JSON.stringify(candidate) }).kind).toBe("task");
+  expect((await secondSession.accept({ jobId: second.jobId, stepToken: second.stepToken, candidateText: JSON.stringify(candidate) })).kind).toBe("task");
 });
-it("round trips two stages and idempotently replays the same submission", () => {
+it("round trips two stages and idempotently replays the same submission", async () => {
   const { session } = setup();
   const first = task(session.prepare({ instance: "orders", input: "000123" }));
   const request = {
@@ -47,10 +80,10 @@ it("round trips two stages and idempotently replays the same submission", () => 
     stepToken: first.stepToken,
     candidateText: JSON.stringify(core()),
   };
-  const next = task(session.accept(request));
+  const next = task(await session.accept(request));
   expect(next.stage).toBe("data");
-  expect(session.accept(request)).toEqual(next);
-  expect(session.accept({ ...request, candidateText: "{}" })).toMatchObject({
+  expect(await session.accept(request)).toEqual(next);
+  expect(await session.accept({ ...request, candidateText: "{}" })).toMatchObject({
     kind: "error",
     error: { code: "BRIDGE_STEP_CONFLICT" },
   });
@@ -59,39 +92,39 @@ it("round trips two stages and idempotently replays the same submission", () => 
     stepToken: next.stepToken,
     candidateText: JSON.stringify(data()),
   };
-  const result = session.accept(last);
+  const result = await session.accept(last);
   expect(result).toMatchObject({
     kind: "result",
     result: { data: { orderId: "000123" } },
   });
-  expect(session.accept(last)).toEqual(result);
+  expect(await session.accept(last)).toEqual(result);
 });
-it("binds jobs to connection and never accepts a forged phase token", () => {
+it("binds jobs to connection and never accepts a forged phase token", async () => {
   const { bridge, session } = setup();
   const first = task(session.prepare({ instance: "orders", input: "000123" }));
   const other = bridge.connect();
   expect(
-    other.accept({
+    await other.accept({
       jobId: first.jobId,
       stepToken: first.stepToken,
       candidateText: "{}",
     }),
   ).toMatchObject({ kind: "error", error: { code: "BRIDGE_JOB_NOT_FOUND" } });
   expect(
-    session.accept({
+    await session.accept({
       jobId: first.jobId,
       stepToken: "forged",
       candidateText: "{}",
     }),
   ).toMatchObject({ kind: "error", error: { code: "BRIDGE_STEP_CONFLICT" } });
 });
-it("[] skips data and unknown instances/fields fail before a job", () => {
+it("[] skips data and unknown instances/fields fail before a job", async () => {
   const { session } = setup();
   const first = task(
     session.prepare({ instance: "orders", input: "000123", fields: [] }),
   );
   expect(
-    session.accept({
+    await session.accept({
       jobId: first.jobId,
       stepToken: first.stepToken,
       candidateText: JSON.stringify(core()),
@@ -105,11 +138,11 @@ it("[] skips data and unknown instances/fields fail before a job", () => {
     session.prepare({ instance: "orders", input: "x", fields: ["unknown"] }),
   ).toMatchObject({ kind: "error", error: { code: "UNKNOWN_FIELD" } });
 });
-it("repairs on a fresh token; then refuses further bad candidates", () => {
+it("repairs on a fresh token; then refuses further bad candidates", async () => {
   const { session } = setup();
   const first = task(session.prepare({ instance: "orders", input: "000123" }));
   const second = task(
-    session.accept({
+    await session.accept({
       jobId: first.jobId,
       stepToken: first.stepToken,
       candidateText: "{bad",
@@ -118,17 +151,17 @@ it("repairs on a fresh token; then refuses further bad candidates", () => {
   expect(second.stepToken).not.toBe(first.stepToken);
   expect(second.stage).toBe("core");
   expect(
-    session.accept({
+    await session.accept({
       jobId: second.jobId,
       stepToken: second.stepToken,
       candidateText: "{bad",
     }),
   ).toMatchObject({ kind: "error", error: { code: "MODEL_OUTPUT_INVALID" } });
 });
-it("data cancellation keeps the default result and maps refusal", () => {
+it("data cancellation keeps the default result and maps refusal", async () => {
   const { session } = setup();
   const first = task(session.prepare({ instance: "orders", input: "000123" }));
-  session.accept({
+  await session.accept({
     jobId: first.jobId,
     stepToken: first.stepToken,
     candidateText: JSON.stringify(core()),
@@ -144,13 +177,13 @@ it("data cancellation keeps the default result and maps refusal", () => {
     },
   });
 });
-it("expires jobs and removes terminal bodies after retention", () => {
+it("expires jobs and removes terminal bodies after retention", async () => {
   vi.useFakeTimers();
   const { session } = setup({ jobTtlMs: 10, replayTtlMs: 10 });
   const first = task(session.prepare({ instance: "orders", input: "000123" }));
   vi.advanceTimersByTime(11);
   expect(
-    session.accept({
+    await session.accept({
       jobId: first.jobId,
       stepToken: first.stepToken,
       candidateText: "{}",
@@ -162,7 +195,7 @@ it("expires jobs and removes terminal bodies after retention", () => {
     error: { code: "BRIDGE_JOB_NOT_FOUND" },
   });
 });
-it("enforces active capacity and terminates jobs on borrowed instance disposal", () => {
+it("enforces active capacity and terminates jobs on borrowed instance disposal", async () => {
   const { session, intent } = setup({ maxJobs: 1 });
   const first = task(session.prepare({ instance: "orders", input: "000123" }));
   expect(session.prepare({ instance: "orders", input: "x" })).toMatchObject({
@@ -171,21 +204,21 @@ it("enforces active capacity and terminates jobs on borrowed instance disposal",
   });
   intent.dispose();
   expect(
-    session.accept({
+    await session.accept({
       jobId: first.jobId,
       stepToken: first.stepToken,
       candidateText: "{}",
     }),
   ).toMatchObject({ kind: "error", error: { code: "INSTANCE_DISPOSED" } });
 });
-it("closing bridge does not dispose borrowed Intent instances", () => {
+it("closing bridge does not dispose borrowed Intent instances", async () => {
   const { intent, bridge } = setup();
   bridge.close();
   expect(() =>
     createIntentBridge({ instances: { orders: intent } }).close(),
   ).not.toThrow();
 });
-it("bounds active plus terminal retained jobs and frees them on disconnect", () => {
+it("bounds active plus terminal retained jobs and frees them on disconnect", async () => {
   const { session, bridge } = setup({ maxJobs: 4, maxReplayEntries: 1 });
   session.prepare({ instance: "orders", input: "000123", fields: [] });
   expect(session.prepare({ instance: "orders", input: "x" })).toMatchObject({
@@ -197,7 +230,7 @@ it("bounds active plus terminal retained jobs and frees them on disconnect", () 
     bridge.connect().prepare({ instance: "orders", input: "x", fields: [] }),
   ).toMatchObject({ kind: "task" });
 });
-it("rejects oversized retained materials before keeping a job", () => {
+it("rejects oversized retained materials before keeping a job", async () => {
   const { session } = setup({ maxReplayBytes: 16 });
   expect(
     session.prepare({ instance: "orders", input: "000123" }),
