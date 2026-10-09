@@ -1,6 +1,6 @@
 # Development
 
-Use the existing checkout; Node >=22.12.0 and npm are required.
+Use the existing checkout. Runtime compatibility starts at Node 20.0.0; use Node 24 for development tooling (some ESLint development dependencies declare a higher minimum patch version). Runtime and installation checks also run on the exact minimum Node version.
 
 ~~~bash
 npm ci
@@ -9,6 +9,7 @@ npm run lint
 npm test
 npm run build
 npm run smoke:package
+npm run smoke:installation
 ~~~
 
 Tests use controlled candidates and custom fetch transports. No keys, model billing or desktop client are needed for default checks. Build copies the reviewed language data; it never downloads registry data. smoke:package creates and removes an isolated temporary installation.

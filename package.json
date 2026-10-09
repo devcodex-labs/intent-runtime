@@ -51,6 +51,8 @@
     "docs/errors.md",
     "docs/compatibility.md",
     "docs/local-testing.md",
+    "docs/installation.md",
+    "scripts/postinstall.mjs",
     "integrations",
     "examples"
   ],
@@ -65,43 +67,44 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src tests && node scripts/check-imports.mjs",
     "smoke:package": "node scripts/smoke-package.mjs",
-    "registry:refresh": "node scripts/refresh-language-registry.mjs"
+    "smoke:installation": "node scripts/smoke-installation.mjs",
+    "registry:refresh": "node scripts/refresh-language-registry.mjs",
+    "postinstall": "node scripts/postinstall.mjs"
   },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=20.0.0"
   },
   "bin": {
-    "intent-runtime-mcp": "dist/transports/mcp/main.js"
+    "intent-runtime-mcp": "dist/transports/mcp/main.js",
+    "intent-runtime": "dist/installation/cli.js"
   },
   "dependencies": {
     "bcp-47": "2.1.1",
     "jsonc-parser": "3.3.1",
-    "schema-dsl": "3.0.4"
+    "schema-dsl": "3.0.4",
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "toml-eslint-parser": "0.10.0"
   },
   "peerDependencies": {
-    "@modelcontextprotocol/sdk": ">=1.32.1 <2",
-    "openai": ">=7.30.1 <8"
+    "openai": ">=6.49.0 <7"
   },
   "peerDependenciesMeta": {
     "openai": {
       "optional": true
-    },
-    "@modelcontextprotocol/sdk": {
-      "optional": true
     }
   },
   "devDependencies": {
-    "@modelcontextprotocol/sdk": "1.32.1",
-    "@types/node": "^22.19.0",
+    "@types/node": "20.19.0",
     "eslint": "9.39.4",
     "language-subtag-registry": "0.4.2",
-    "openai": "7.30.1",
+    "openai": "6.49.0",
     "typescript": "5.9.3",
     "typescript-eslint": "8.55.0",
-    "vitest": "4.0.18"
+    "vitest": "3.2.6",
+    "vite": "6.4.1"
   }
 }

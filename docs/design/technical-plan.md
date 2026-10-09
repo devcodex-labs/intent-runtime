@@ -1942,17 +1942,17 @@ MCP 启动程序的 --config 指向调用方自己管理的可信 .mjs 配置模
 
 ### 20.5 构建、依赖和版本
 
-本方案选择 TypeScript + Node.js 22.12.0 为最低运行基线，ESM 发布，TypeScript NodeNext 解析，严格类型检查，生成 declaration 和 source map。V1 不同时维护一套 CJS 构建；CJS 应用可按其 Node 版本使用动态 import。
+本方案选择 TypeScript + Node.js 20.0.0 为最低运行基线，ESM 发布，TypeScript NodeNext 解析，严格类型检查，生成 declaration 和 source map。V1 不同时维护一套 CJS 构建；CJS 应用可按其 Node 版本使用动态 import。
 
 | 类别 | 内容 | 管理规则 |
 |---|---|---|
 | 核心依赖 | schema-dsl/pure、jsonc-parser | schema-dsl 3.0.4 为已核实首个基线；通过实际校验锁定版本 |
 | API 可选 peer | openai | API 使用者安装；核心使用者不必安装；开发环境保留锁定测试版本 |
-| MCP 可选 peer | @modelcontextprotocol/sdk | MCP 使用者安装；bridge 本身无需安装 |
+| MCP 运行依赖 | @modelcontextprotocol/sdk | 随模块安装，以支持一条命令全局安装并自动配置；bridge 不导入 SDK |
 | 开发依赖 | TypeScript、ESLint、Vitest、Node 类型 | 只用于构建、检查和测试，不进入公共类型的宿主特有合同 |
 | 客户端验证环境 | Codex 桌面客户端与本地 Node / MCP 服务 | 记录客户端版本、操作系统、实际工具配置和触发流程 |
 
-不导入 schema-dsl 全局语言设置；不安装或调用 Codex CLI，不修改调用方用户配置。API 或 MCP 所需依赖缺失时提供对应安装诊断，不影响纯核心入口加载。
+不导入 schema-dsl 全局语言设置；不安装或调用 Codex CLI。核心入口导入不修改用户配置；直接全局安装通过客户端适配器自动注册 MCP 和使用指引，保留其他设置和用户业务配置。API 可选依赖缺失时提供对应安装诊断，不影响纯核心入口加载。自动安装与维护行为见 docs/installation.md。
 
 package.json 指定 engines、type、exports、bin、types 和 files；files 只发布 dist、README、CHANGELOG、LICENSE、必要使用文档及客户端集成样例。lockfile 提交；精确测试版本和受支持范围在 compatibility.md 中记录，不写“兼容所有版本”。
 
@@ -1969,7 +1969,7 @@ package.json 指定 engines、type、exports、bin、types 和 files；files 只
 | npm run registry:refresh | 维护时显式更新 IANA 登记快照及来源/摘要 | 数据差异经过审查；不在运行时或普通构建时联网 |
 | npm run smoke:package | npm pack 后在隔离目录安装并运行样例 | 验证发布包的 exports、可选依赖、MCP 启动程序、标准数据和声明可用 |
 
-CI 在 Windows 和 Linux 的最低 Node 22.12.0 及选定当前受支持版本运行 typecheck、lint、确定性测试、build 和打包安装检查。真实 API 测试单独触发，缺少凭据时明确 skipped；Codex 客户端当前模型联调另记录客户端实际工具往返，不能把 headless MCP 模拟提交或 skipped 记成客户端识别通过。
+CI 在 Windows、Linux 和 macOS 的最低 Node 20.0.0 及选定当前版本运行确定性测试、build 和打包安装检查；开发类型与 lint 检查使用 Node 24。真实 API 测试单独触发，缺少凭据时明确 skipped；Codex 客户端当前模型联调另记录客户端实际工具往返，不能把 headless MCP 模拟提交或 skipped 记成客户端识别通过。
 
 发布前完成实际 API 与 Codex 验证、语义审查和打包安装；更新 CHANGELOG、compatibility 及错误文档。README 中 API 示例必须通过公开 parse 对象入参运行；客户端示例必须按配置、触发、prepare/accept 和最终结果实际验证，不能只证明 src 内部调用可用。
 

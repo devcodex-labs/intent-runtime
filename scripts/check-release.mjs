@@ -1,4 +1,6 @@
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { resolve, relative, isAbsolute, dirname, sep } from "node:path";
 const metadata = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
 );
@@ -10,16 +12,15 @@ if (metadata.version.includes("-dev.")) {
   );
 }
 let evidence;
+const root = fileURLToPath(new URL("../", import.meta.url));
+const evidencePath = resolve(process.env.INTENT_RELEASE_EVIDENCE || resolve(dirname(root.replace(/[\\/]$/, "")), "intent-runtime-results", "release-acceptance.json"));
+const inside = relative(root, evidencePath);
+if (!inside || (!(inside === ".." || inside.startsWith(".." + sep)) && !isAbsolute(inside))) throw new Error("Release evidence must be stored outside the repository.");
 try {
-  evidence = JSON.parse(
-    readFileSync(
-      new URL("../evaluations/release-acceptance.json", import.meta.url),
-      "utf8",
-    ),
-  );
+  evidence = JSON.parse(readFileSync(evidencePath, "utf8"));
 } catch {
   throw new Error(
-    "Missing reviewed evaluations/release-acceptance.json; see docs/release.md.",
+    "Missing reviewed external release evidence. Set INTENT_RELEASE_EVIDENCE; see docs/release.md.",
   );
 }
 for (const path of [

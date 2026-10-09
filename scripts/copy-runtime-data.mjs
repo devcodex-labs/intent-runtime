@@ -6,3 +6,4 @@ for (const name of [
 ])
   await copyFile("src/language/data/" + name, "dist/language/data/" + name);
 await chmod("dist/transports/mcp/main.js", 0o755);
+await chmod("dist/installation/cli.js", 0o755);

@@ -52,8 +52,8 @@ try {
   );
   assert.equal(
     existsSync(path.join(temp, "node_modules/@modelcontextprotocol/sdk")),
-    false,
-    "Root should not install optional MCP SDK",
+    true,
+    "MCP SDK must be available after a single module installation",
   );
   writeFileSync(
     path.join(temp, "check.mjs"),
@@ -70,8 +70,7 @@ let blocked=false;try{await import('@devcodex-labs/intent-runtime/dist/core/pipe
     "--ignore-scripts",
     "--no-audit",
     "--no-fund",
-    "openai@7.30.1",
-    "@modelcontextprotocol/sdk@1.32.1",
+    "openai@6.49.0",
   ]);
   writeFileSync(
     path.join(temp, "api-check.mjs"),
@@ -96,7 +95,7 @@ const client=new Client({name:'package-check',version:'1'});try{await client.con
   );
   run(process.execPath, ["mcp-check.mjs"]);
   console.log(
-    "Installed package: root without optional SDKs, bridge, data snapshots, exports/declarations, API adapter and stdio MCP verified.",
+    "Installed package: core with bundled MCP dependency, bridge, data snapshots, exports/declarations, optional API adapter and stdio MCP verified.",
   );
 } finally {
   rmSync(temp, { recursive: true, force: true });

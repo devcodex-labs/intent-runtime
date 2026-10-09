@@ -93,7 +93,7 @@ export async function serveIntentMcp(
     {
       capabilities: { tools: {} },
       instructions:
-        "For intent recognition, call intent_prepare with the exact supplied input and related explicit context. After the tool ends, generate only its requested candidate and call intent_accept. Repeat for data/repair tasks; use only the final result. Cancel on refusal/incomplete. Never execute the business request during recognition; tools do not automatically intercept user messages.",
+        "For intent recognition, call intent_prepare with the exact supplied input and related explicit context. After the tool ends, generate only its requested candidate and call intent_accept. Repeat for data/repair tasks; use only the final result. Cancel on refusal/incomplete. Never execute the business request during recognition; tools do not automatically intercept user messages.\nConfigured instances: " + JSON.stringify(Object.keys(bridgeConfig.instances)) + "\n",
     },
   );
   server.setRequestHandler(ListToolsRequestSchema, async () => ({

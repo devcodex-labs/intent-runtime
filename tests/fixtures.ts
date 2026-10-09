@@ -65,7 +65,7 @@ export function fakeExecutor(
       isolatedTurn: true,
       supportsAbort: true,
     },
-    generate: vi.fn(async () => {
+    generate: vi.fn<(request: ModelRequest) => Promise<ModelReply>>(async () => {
       const value = candidates[index++];
       if (value instanceof Error) throw value;
       return {

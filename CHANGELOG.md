@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — global installation
+
+- Support Node.js >=20.0.0, including actual minimum-version package and stdio checks.
+- Automatically configure discovered local clients on direct global npm installation; Codex is the first adapter. Preserve business config, unrelated settings and user-edited instructions.
+- Add optional intent-runtime doctor, doctor --repair and clean commands, private ownership records, backups and failure recovery.
+- Install the MCP SDK with the module and use openai 6.49.0 as the optional API test baseline compatible with Node 20.
+- Verify global installation, reinstall, changed prefix, disabled lifecycle scripts, local/indirect installation isolation and cleanup with real packaged fixtures.
+
 ## 1.0.0-dev.0 — 2026-10-09
 
 - Implement the latest object-only Intent.parse request, default en, registered language validation and explicit context.

@@ -1,0 +1,230 @@
+import { appendFile, mkdir } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { isDeepStrictEqual } from "node:util";
+import { createRequire } from "node:module";
+import { context, paths, version, supportedNode, type InstallContext } from "./environment.js";
+import { codex, record, belongsToModule, configFromEntry, independentOriginal, type ClientAdapter } from "./codex.js";
+import { locked, Transaction, read, atomic, digest, diagnostic, InstallError } from "./files.js";
+import { state, type InstallationState, type Registration, type Check } from "./state.js";
+import type { ProbeResult } from "../transports/mcp/probe.js";
+
+export interface InstallOptions {
+  adapters?: ClientAdapter[];
+  probe?: (entry: Record<string, unknown>, ctx: InstallContext) => Promise<ProbeResult>;
+}
+export interface MaintenanceResult { status: string; checks: Check[]; warnings: string[]; statePath: string }
+const DEFAULT_CONFIG = "export default { instances: { default: {} } };\n";
+const adapters = (options: InstallOptions) => options.adapters ?? [codex];
+async function probe(entry: Record<string, unknown>, ctx: InstallContext, options: InstallOptions): Promise<ProbeResult> {
+  if (options.probe) return options.probe(entry, ctx);
+  if (typeof entry.command !== "string" || !Array.isArray(entry.args) || entry.args.some(a => typeof a !== "string") || typeof entry.cwd !== "string") throw new InstallError("MCP_ENTRY_INVALID", "Invalid MCP command, arguments or working directory.");
+  const env: Record<string, string> = {};
+  if (record(entry.env)) for (const [key, value] of Object.entries(entry.env)) if (typeof value === "string") env[key] = value;
+  if (Array.isArray(entry.env_vars)) for (const value of entry.env_vars) {
+    const key = typeof value === "string" ? value : record(value) && value.source !== "remote" && typeof value.name === "string" ? value.name : undefined;
+    if (key && ctx.env[key] !== undefined) env[key] = ctx.env[key]!;
+  }
+  try {
+    const { probeMcp } = await import("../transports/mcp/probe.js");
+    return await probeMcp(entry.command, entry.args as string[], entry.cwd, env);
+  } catch { throw new InstallError("MCP_PROBE_FAILED", "MCP handshake/task check failed. Check the Node executable, trusted config and runtime dependencies."); }
+}
+async function log(ctx: InstallContext, event: Record<string, unknown>) {
+  const path = paths(ctx).log;
+  await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+  await appendFile(path, JSON.stringify({ at: new Date().toISOString(), ...event }) + "\n", { mode: 0o600 });
+}
+function initial(ctx: InstallContext, previous?: InstallationState): InstallationState {
+  return {
+    schemaVersion: 1, status: "waiting_for_client", version: version(ctx), node: ctx.node, updatedAt: new Date().toISOString(),
+    configFile: previous?.configFile ?? paths(ctx).config, instances: previous?.instances ?? [],
+    registrations: previous?.registrations ?? [], skills: previous?.skills ?? [], checks: [], warnings: [],
+  };
+}
+async function choose(adapter: ClientAdapter, source: string, previous: InstallationState | undefined) {
+  const values = adapter.entries(source);
+  const protectedNames = new Set<string>();
+  for (const old of previous?.registrations ?? []) {
+    if (old.client !== adapter.id || !Object.hasOwn(values, old.name)) continue;
+    if (adapter.fingerprint(source, old.name) === old.fingerprint && isDeepStrictEqual(values[old.name], old.entry)) return { name: old.name, old, entry: old.entry };
+    protectedNames.add(old.name);
+  }
+  for (const name of ["intent-runtime", ...Object.keys(values).filter(n => n !== "intent-runtime")]) {
+    if (!protectedNames.has(name) && record(values[name]) && values[name].experimental_environment !== "remote" && await belongsToModule(values[name])) return { name, entry: values[name] as Record<string, unknown> };
+  }
+  let name = "intent-runtime", index = 2;
+  while (Object.hasOwn(values, name)) name = "intent-runtime-" + index++;
+  return { name, entry: undefined };
+}
+export async function install(ctx = context(), options: InstallOptions = {}): Promise<InstallationState> {
+  if (!supportedNode()) throw new InstallError("NODE_UNSUPPORTED", "Node.js >=20.0.0 is required.");
+  return locked(ctx, async () => {
+    const previous = await state(ctx);
+    const next = initial(ctx, previous);
+    const tx = new Transaction(paths(ctx).base);
+    const applied: Transaction[] = [];
+    const failures: { code: string; message: string }[] = [];
+    let committed = false;
+    try {
+      if (await read(paths(ctx).main) === undefined) throw new InstallError("BUILD_MISSING", "Packaged MCP entry is missing: " + paths(ctx).main);
+      const detected: ClientAdapter[] = [];
+      for (const adapter of adapters(options)) if (await adapter.detect(ctx)) detected.push(adapter);
+      if (!detected.length) {
+        next.warnings.push("No supported client detected. Install a supported client and reinstall this module or run doctor --repair.");
+        await tx.change(paths(ctx).state, JSON.stringify(next, null, 2) + "\n");
+        await log(ctx, { status: next.status });
+        return next;
+      }
+      const workflow = await read(join(ctx.root, "integrations", "codex", "workflow.md"));
+      if (!workflow) throw new InstallError("WORKFLOW_MISSING", "Packaged intent workflow is missing.");
+      for (const adapter of detected) {
+        const clientTx = new Transaction(paths(ctx).base);
+        const beforeClient = structuredClone(next);
+        try {
+          const clientFile = adapter.config(ctx);
+          const source = await read(clientFile) ?? "";
+          const selected = await choose(adapter, source, previous);
+          let configFile = selected.entry ? configFromEntry(selected.entry, clientFile) : undefined;
+          configFile ??= next.configFile;
+          if (await read(configFile) === undefined) {
+            if (configFile !== paths(ctx).config || previous?.configFile === configFile) throw new InstallError("TRUSTED_CONFIG_MISSING", "Existing trusted instance config is missing: " + configFile);
+            await clientTx.change(configFile, DEFAULT_CONFIG);
+          }
+          next.configFile = configFile;
+          const fields: Record<string, unknown> = { command: ctx.node, args: [paths(ctx).main, "--config", configFile], cwd: dirname(configFile), enabled: true };
+          if (selected.entry?.startup_timeout_sec === undefined) fields.startup_timeout_sec = 15;
+          const updated = adapter.write(source, selected.name, fields);
+          const entry = adapter.entries(updated)[selected.name];
+          if (!record(entry)) throw new InstallError("MCP_ENTRY_INVALID", "Generated MCP entry is invalid.");
+          await clientTx.change(clientFile, updated);
+          const checked = await probe(entry, ctx, options);
+          next.instances = checked.instances;
+          next.checks.push({ name: adapter.id + ".protocol", ok: true, detail: "initialize, tools/list, prepare and cancel completed; instances: " + checked.instances.join(", ") });
+          const registration: Registration = { client: adapter.id, path: clientFile, name: selected.name, entry, fingerprint: adapter.fingerprint(updated, selected.name) };
+          if (selected.old?.original) registration.original = selected.old.original;
+          else if (selected.entry && !selected.old) registration.original = selected.entry;
+          next.registrations = next.registrations.filter(r => !(r.client === adapter.id && r.path === clientFile && r.name === selected.name));
+          next.registrations.push(registration);
+          let skillName = "intent-runtime", suffix = 2;
+          const body = "MCP server: " + JSON.stringify(selected.name) + ". Configured instances: " + JSON.stringify(checked.instances) + ".\nUse default when available; use the sole instance when only one is configured; otherwise ask which business instance applies.\n\n" + workflow;
+          while (true) {
+            const instruction = adapter.instruction(ctx, skillName, body);
+            const oldContent = await read(instruction.path);
+            const managed = previous?.skills.find(s => s.path === instruction.path);
+            if (managed && oldContent !== undefined && digest(oldContent) !== managed.hash) {
+              next.warnings.push("User-edited instruction preserved: " + instruction.path);
+              break;
+            }
+            if (oldContent !== undefined && !managed) { skillName = "intent-runtime-" + suffix++; continue; }
+            await clientTx.change(instruction.path, instruction.content);
+            next.skills = next.skills.filter(s => s.path !== instruction.path);
+            next.skills.push({ path: instruction.path, name: skillName, hash: digest(instruction.content) });
+            break;
+          }
+          applied.push(clientTx);
+        } catch (error) {
+          await clientTx.rollback();
+          Object.assign(next, beforeClient);
+          const failure = diagnostic(error);
+          failures.push(failure);
+          next.checks.push({ name: adapter.id + ".configuration", ok: false, detail: failure.message });
+          next.warnings.push(adapter.id + ": " + failure.code + ": " + failure.message);
+        }
+      }
+      next.status = failures.length ? "failed" : "configured";
+      await tx.change(paths(ctx).state, JSON.stringify(next, null, 2) + "\n");
+      await log(ctx, { status: next.status, version: next.version, clients: detected.map(a => a.id), warnings: next.warnings });
+      committed = true;
+      if (failures.length) throw new InstallError(failures[0]!.code, failures[0]!.message);
+      return next;
+    } catch (error) {
+      if (!committed) {
+        await tx.rollback();
+        for (const clientTx of applied.reverse()) await clientTx.rollback();
+        const failed = initial(ctx, previous);
+        failed.status = "failed";
+        failed.checks.push({ name: "initialization", ok: false, detail: diagnostic(error).message });
+        await atomic(paths(ctx).state, JSON.stringify(failed, null, 2) + "\n").catch(() => {});
+      }
+      await log(ctx, { status: "failed", ...diagnostic(error), backup: tx.backup }).catch(() => {});
+      throw error;
+    }
+  });
+}
+export async function doctor(ctx = context(), options: InstallOptions = {}): Promise<MaintenanceResult> {
+  const result: MaintenanceResult = { status: "healthy", checks: [], warnings: [], statePath: paths(ctx).state };
+  result.checks.push({ name: "node", ok: supportedNode(), detail: process.version + "; required >=20.0.0" });
+  result.checks.push({ name: "package", ok: await read(paths(ctx).main) !== undefined, detail: version(ctx) + "; " + ctx.root });
+  const require = createRequire(join(ctx.root, "package.json"));
+  for (const dependency of ["@modelcontextprotocol/sdk/client/index.js", "schema-dsl/pure", "toml-eslint-parser"]) {
+    try { result.checks.push({ name: "dependency", ok: true, detail: require.resolve(dependency) }); }
+    catch { result.checks.push({ name: "dependency", ok: false, detail: "Runtime dependency missing: " + dependency }); }
+  }
+  let previous: InstallationState | undefined;
+  try { previous = await state(ctx); } catch (error) { const e = diagnostic(error); result.checks.push({ name: "state", ok: false, detail: e.message }); }
+  if (previous?.status === "failed") result.checks.push(...previous.checks.filter(c => !c.ok));
+  if (!previous || !previous.registrations.length) result.checks.push({ name: "registration", ok: false, detail: "No managed MCP registration; run doctor --repair after installing a supported client." });
+  for (const r of previous?.registrations ?? []) {
+    const adapter = adapters(options).find(a => a.id === r.client);
+    if (!adapter) { result.checks.push({ name: r.client, ok: false, detail: "Client adapter unavailable." }); continue; }
+    try {
+      const source = await read(r.path) ?? "";
+      const entry = adapter.entries(source)[r.name];
+      if (!record(entry)) throw new InstallError("REGISTRATION_MISSING", "MCP registration absent: " + r.path);
+      if (!isDeepStrictEqual(entry, r.entry) || adapter.fingerprint(source, r.name) !== r.fingerprint) result.warnings.push("Managed MCP registration has user changes: " + r.path + " / " + r.name);
+      if (entry.enabled === false) throw new InstallError("REGISTRATION_DISABLED", "MCP registration is disabled: " + r.name);
+      const checked = await probe(entry, ctx, options);
+      result.checks.push({ name: r.client + ".protocol", ok: true, detail: "Actual stdio check completed; instances: " + checked.instances.join(", ") });
+      try { result.warnings.push(...(await adapter.overrides?.(ctx, r.name) ?? [])); }
+      catch { result.warnings.push("Some higher-priority client configuration could not be inspected."); }
+    } catch (error) { result.checks.push({ name: r.client + ".protocol", ok: false, detail: diagnostic(error).message }); }
+  }
+  for (const skill of previous?.skills ?? []) {
+    const content = await read(skill.path);
+    result.checks.push({ name: "instruction", ok: content !== undefined, detail: skill.path });
+    if (content !== undefined && digest(content) !== skill.hash) result.warnings.push("User-edited instruction preserved: " + skill.path);
+  }
+  result.warnings.push(...(previous?.warnings ?? []));
+  if (result.checks.some(c => !c.ok)) result.status = "unhealthy";
+  return result;
+}
+export async function clean(ctx = context(), options: InstallOptions = {}): Promise<MaintenanceResult> {
+  return locked(ctx, async () => {
+    const previous = await state(ctx);
+    const result: MaintenanceResult = { status: "cleaned", checks: [], warnings: [], statePath: paths(ctx).state };
+    if (!previous) return result;
+    const next = initial(ctx, previous);
+    const tx = new Transaction(paths(ctx).base);
+    try {
+      for (const r of previous.registrations) {
+        const adapter = adapters(options).find(a => a.id === r.client);
+        if (!adapter) { result.warnings.push("Unknown client registration preserved: " + r.path); continue; }
+        const source = await read(r.path) ?? "";
+        const current = adapter.entries(source)[r.name];
+        if (current === undefined) { next.registrations = next.registrations.filter(v => v !== r); continue; }
+        if (!isDeepStrictEqual(current, r.entry) || adapter.fingerprint(source, r.name) !== r.fingerprint) { result.warnings.push("User-edited registration preserved: " + r.path + " / " + r.name); continue; }
+        let updated = adapter.remove(source, r.name);
+        if (r.original) {
+          if (await independentOriginal(r.original, ctx, r.path)) updated = adapter.write(updated, r.name, r.original);
+          else result.checks.push({ name: "original", ok: true, detail: "Original registration not restored: its independent executable/config is unavailable or depends on this global package." });
+        }
+        await tx.change(r.path, updated);
+        next.registrations = next.registrations.filter(v => v !== r);
+        result.checks.push({ name: "registration", ok: true, detail: r.path + " / " + r.name });
+      }
+      for (const skill of previous.skills) {
+        const content = await read(skill.path);
+        if (content !== undefined && digest(content) !== skill.hash) { result.warnings.push("User-edited instruction preserved: " + skill.path); continue; }
+        if (content !== undefined) await tx.change(skill.path, undefined);
+        next.skills = next.skills.filter(s => s !== skill);
+        result.checks.push({ name: "instruction", ok: true, detail: skill.path });
+      }
+      next.status = "cleaned";
+      next.warnings = result.warnings;
+      await tx.change(paths(ctx).state, JSON.stringify(next, null, 2) + "\n");
+      await log(ctx, { status: "cleaned", warnings: result.warnings });
+      if (result.warnings.length) result.status = "partial";
+      return result;
+    } catch (error) { await tx.rollback(); throw error; }
+  });
+}

@@ -4,7 +4,17 @@ A TypeScript / Node.js library for expressing the current effective user request
 
 **Development preview:** target V1 is implemented with deterministic contract tests. Real OpenAI/xAI models and Codex desktop semantics require local validation; this is not a release acceptance claim.
 
-Requires Node.js >=22.12.0. ESM only. The package identity is @devcodex-labs/intent-runtime; existing 0.1.0 prototype exports are not retained.
+Requires Node.js >=20.0.0. ESM only. The package identity is @devcodex-labs/intent-runtime; existing 0.1.0 prototype exports are not retained.
+
+## Global installation
+
+Once this preview is released to npm's default tag, install from any directory:
+
+~~~bash
+npm install -g @devcodex-labs/intent-runtime
+~~~
+
+Direct global installation automatically configures supported local clients (currently Codex), installs the recognition Skill and checks the actual MCP connection. Local or indirect dependency installation does not change client configuration. Optional maintenance: intent-runtime doctor, doctor --repair and clean. See [installation](docs/installation.md) for configuration preservation, lifecycle-script requirements and client reloads.
 
 ## Develop
 
@@ -15,6 +25,7 @@ npm run lint
 npm test
 npm run build
 npm run smoke:package
+npm run smoke:installation
 ~~~
 
 ## API usage
@@ -57,7 +68,7 @@ try {
 
 ## Codex desktop
 
-The MCP path uses the current desktop model through prepare/accept tools, not an independent Codex process. It does not need a model API key. Install the optional @modelcontextprotocol/sdk peer, configure the local stdio entry and explicitly activate the workflow.
+The MCP path uses the current desktop model through prepare/accept tools. It does not need a model API key. The MCP SDK is installed with the module. Global installation registers the user-level stdio entry and recognition Skill; source development can also configure the entry manually. Explicitly activate the workflow to validate actual model use.
 
 See [本地配置与手动测试](docs/local-testing.md), [Codex workflow](integrations/codex/workflow.md), [usage](docs/usage.md), [errors](docs/errors.md) and [compatibility](docs/compatibility.md).
 
@@ -70,6 +81,7 @@ See [本地配置与手动测试](docs/local-testing.md), [Codex workflow](integ
 | @devcodex-labs/intent-runtime/bridge | createIntentBridge |
 | @devcodex-labs/intent-runtime/mcp | serveIntentMcp |
 | intent-runtime-mcp --config path.mjs | Trusted config + stdio MCP service |
+| intent-runtime doctor / clean | Optional client diagnostics, repair and owned-configuration cleanup |
 
 Only dist, selected usage documents and integration examples are packaged. No credentials or evaluation outputs are published.
 
