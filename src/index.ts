@@ -1,33 +1,33 @@
-export {
-  appendTrace,
-  createTraceEntry
-} from "./trace.js";
-export {
-  createIntentId,
-  normalizeIntentRecord
-} from "./normalize.js";
-export {
-  assertValidIntentRecord,
-  validateIntentRecord
-} from "./validate.js";
-export {
-  createIntentRecord,
-  parseIntent
-} from "./parse.js";
+export { Intent } from "./intent.js";
+export { ACTIONS, STATUSES, DEFAULT_LIMITS } from "./contracts/public.js";
 export type {
-  IntentActor,
-  IntentConstraint,
-  IntentInputKind,
-  IntentParseOptions,
-  IntentPriority,
-  IntentRecord,
-  IntentRecordDraft,
-  IntentRecordVersion,
-  IntentSource,
-  IntentTarget,
-  IntentTraceEntry,
-  IntentTraceStage,
-  IntentValidationIssue,
-  IntentValidationResult,
-  IntentValidationSeverity
-} from "./types.js";
+  IntentAction,
+  IntentStatus,
+  JsonValue,
+  Clarification,
+  IntentItem,
+  IntentResult,
+  ContextMessage,
+  IntentContext,
+  IntentParseRequest,
+  IntentConfig,
+  IntentLimits,
+  ModelRequest,
+  ModelReply,
+  ModelExecutor,
+  ExecutorCapabilities,
+  JSONSchema,
+} from "./contracts/public.js";
+export {
+  IntentParseError,
+  IntentDataError,
+  ERROR_CODES,
+  DATA_ISSUE_CODES,
+} from "./errors.js";
+export type {
+  ErrorCode,
+  DataIssueCode,
+  ErrorStage,
+  IntentIssue,
+  SerializedIntentError,
+} from "./errors.js";

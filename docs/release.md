@@ -1,33 +1,13 @@
-# Release
+# Release gates
 
-This package publishes to npm when a tag matching `v*` is pushed.
+This is 1.0.0-dev.0, not an accepted production release. Before any npm publication:
 
-## Prerequisites
+1. Pass typecheck, lint, deterministic tests, build and isolated package smoke on supported Node/platform targets.
+2. Run real OpenAI/xAI and Codex desktop paths separately, following local-testing.md.
+3. Review numbered semantic/critical/multilingual cases and keep compatibility evidence.
+4. Review standard-data age, update if needed, then revalidate.
+5. Update CHANGELOG and version deliberately; publish only through a separately authorized release.
 
-- GitHub repository: `devcodex-labs/intent-runtime`
-- npm package: `@devcodex-labs/intent-runtime`
-- GitHub Actions secret: `NPM_TOKEN`
+This implementation does not publish a package or create a release. NPM credentials are unnecessary for development.
 
-## Release Steps
-
-1. Update `package.json` version.
-2. Run:
-
-```bash
-npm test
-npm pack --dry-run
-```
-
-3. Commit the release changes.
-4. Tag the commit:
-
-```bash
-git tag v0.1.0
-git push origin main --tags
-```
-
-5. GitHub Actions publishes the package with public scoped package access.
-
-## Notes
-
-The workflow does not store npm tokens in source. It expects GitHub Actions to provide `NODE_AUTH_TOKEN` from the `NPM_TOKEN` repository secret.
+The existing tag publication workflow now runs all deterministic gates and blocks development previews. For a reviewed release, provide evaluations/release-acceptance.json with openai, xai, codexDesktop, semantics, multilingual and languageRegistry records, each containing accepted: true, reviewedBy and evidence (the evidence path or link). These records document actual review; setting a flag does not perform a test. Configure the GitHub npm-release environment according to the project's release authorization process.

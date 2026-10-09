@@ -1,0 +1,6 @@
+{"id": "L-1", "language": "en", "input": "分析 order-service 登录失败，用中文交付结论，编号 000123 和标题 Release Notes 保持原样。", "schemaPreset": "none", "rubric": "说明使用配置语言，交付要求中文，精确值不翻译。", "semanticReview": "pending"}
+{"id": "L-2", "language": "zh-CN", "input": "分析 order-service 登录失败，用中文交付结论，编号 000123 和标题 Release Notes 保持原样。", "schemaPreset": "none", "rubric": "说明使用配置语言，交付要求中文，精确值不翻译。", "semanticReview": "pending"}
+{"id": "L-3", "language": "ja", "input": "分析 order-service 登录失败，用中文交付结论，编号 000123 和标题 Release Notes 保持原样。", "schemaPreset": "none", "rubric": "说明使用配置语言，交付要求中文，精确值不翻译。", "semanticReview": "pending"}
+{"id": "L-4", "language": "fr", "input": "分析 order-service 登录失败，用中文交付结论，编号 000123 和标题 Release Notes 保持原样。", "schemaPreset": "none", "rubric": "说明使用配置语言，交付要求中文，精确值不翻译。", "semanticReview": "pending"}
+{"id": "L-5", "language": "ar", "input": "分析 order-service 登录失败，用中文交付结论，编号 000123 和标题 Release Notes 保持原样。", "schemaPreset": "none", "rubric": "说明使用配置语言，交付要求中文，精确值不翻译。", "semanticReview": "pending"}
+{"id": "L-6", "language": "pt-BR", "input": "分析 order-service 登录失败，用中文交付结论，编号 000123 和标题 Release Notes 保持原样。", "schemaPreset": "none", "rubric": "说明使用配置语言，交付要求中文，精确值不翻译。", "semanticReview": "pending"}

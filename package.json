@@ -1,6 +1,6 @@
 {
   "name": "@devcodex-labs/intent-runtime",
-  "version": "0.1.0",
+  "version": "1.0.0-dev.0",
   "description": "A pure Node.js library for turning natural language or external inputs into standardized, structured, verifiable, extensible, and traceable intent records.",
   "type": "module",
   "license": "MIT",
@@ -26,6 +26,18 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./adapters/api": {
+      "types": "./dist/adapters/api/index.d.ts",
+      "import": "./dist/adapters/api/index.js"
+    },
+    "./bridge": {
+      "types": "./dist/bridge/index.d.ts",
+      "import": "./dist/bridge/index.js"
+    },
+    "./mcp": {
+      "types": "./dist/transports/mcp/index.d.ts",
+      "import": "./dist/transports/mcp/index.js"
     }
   },
   "main": "./dist/index.js",
@@ -33,23 +45,62 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md",
+    "docs/usage.md",
+    "docs/errors.md",
+    "docs/compatibility.md",
+    "docs/local-testing.md",
+    "integrations",
+    "examples"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-runtime-data.mjs",
     "clean": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\"",
     "prepack": "npm run clean && npm run build",
-    "test": "npm run build && node --test test",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "test": "vitest run tests",
+    "test:integration": "npm run build && node scripts/integration.mjs",
+    "evaluate": "npm run build && node evaluations/run.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src tests && node scripts/check-imports.mjs",
+    "smoke:package": "node scripts/smoke-package.mjs",
+    "registry:refresh": "node scripts/refresh-language-registry.mjs"
   },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.12.0"
+  },
+  "bin": {
+    "intent-runtime-mcp": "dist/transports/mcp/main.js"
+  },
+  "dependencies": {
+    "bcp-47": "2.1.1",
+    "jsonc-parser": "3.3.1",
+    "schema-dsl": "3.0.4"
+  },
+  "peerDependencies": {
+    "@modelcontextprotocol/sdk": ">=1.32.1 <2",
+    "openai": ">=7.30.1 <8"
+  },
+  "peerDependenciesMeta": {
+    "openai": {
+      "optional": true
+    },
+    "@modelcontextprotocol/sdk": {
+      "optional": true
+    }
   },
   "devDependencies": {
-    "typescript": "^5.9.0"
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "@types/node": "^22.19.0",
+    "eslint": "9.39.4",
+    "language-subtag-registry": "0.4.2",
+    "openai": "7.30.1",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.55.0",
+    "vitest": "4.0.18"
   }
 }
