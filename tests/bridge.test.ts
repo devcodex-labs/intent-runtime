@@ -58,7 +58,7 @@ it.each(["cancel", "close", "dispose"] as const)("does not resurrect data work a
   if (operation === "cancel") session.cancel({ jobId: next.jobId });
   else if (operation === "close") session.close();
   else intent.dispose();
-  expect(await pending).toMatchObject({ kind: "error", error: { code: operation === "cancel" ? "MODEL_ABORTED" : operation === "close" ? "BRIDGE_JOB_NOT_FOUND" : "INSTANCE_DISPOSED" } });
+  expect(await pending).toMatchObject({ kind: "error", error: { code: operation === "cancel" ? "MODEL_ABORTED" : operation === "close" ? "BRIDGE_JOB_NOT_FOUND" : "INSTANCE_DISPOSED", stage: operation === "close" ? "bridge" : "data" } });
   if (operation !== "dispose") expect(bridge.connect().prepare({ instance: "orders", input: "next", fields: [] }).kind).toBe("task");
 });
 it("does not replay an old successful stage after configured idle expiration", async () => {

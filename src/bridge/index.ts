@@ -196,8 +196,13 @@ export function createIntentBridge(config: BridgeConfig): { connect(): BridgeSes
               jobs.set(job.id, job);
               arm(job);
               state.controller.signal.addEventListener("abort", () => {
-                if (!job.terminal && jobs.has(job.id))
-                  terminal(job, errorReply(attachPartial(state, asIntentError(state.controller.signal.reason, state.stage))));
+                if (!job.terminal && jobs.has(job.id)) {
+                  const reason = asIntentError(state.controller.signal.reason, state.stage);
+                  const error = reason.code === "INSTANCE_DISPOSED"
+                    ? new IntentParseError(reason.code, state.stage, reason.message, reason.issues)
+                    : reason;
+                  terminal(job, errorReply(attachPartial(state, error)));
+                }
               }, { once: true });
               return reply;
             } catch (error) {
