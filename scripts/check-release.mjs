@@ -1,47 +1,25 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { resolve, relative, isAbsolute, dirname, sep } from "node:path";
-const metadata = JSON.parse(
-  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
-);
-// A development preview cannot accidentally become a public release through a
-// pushed tag. A release must replace this preview and supply reviewed evidence.
-if (metadata.version.includes("-dev.")) {
-  throw new Error(
-    "Development preview is not release-approved. Complete docs/release.md before publishing.",
-  );
-}
-let evidence;
-const root = fileURLToPath(new URL("../", import.meta.url));
-const evidencePath = resolve(process.env.INTENT_RELEASE_EVIDENCE || resolve(dirname(root.replace(/[\\/]$/, "")), "intent-runtime-results", "release-acceptance.json"));
-const inside = relative(root, evidencePath);
-if (!inside || (!(inside === ".." || inside.startsWith(".." + sep)) && !isAbsolute(inside))) throw new Error("Release evidence must be stored outside the repository.");
-try {
-  evidence = JSON.parse(readFileSync(evidencePath, "utf8"));
-} catch {
-  throw new Error(
-    "Missing reviewed external release evidence. Set INTENT_RELEASE_EVIDENCE; see docs/release.md.",
-  );
-}
-for (const path of [
-  "openai",
-  "xai",
-  "codexDesktop",
-  "semantics",
-  "multilingual",
-  "languageRegistry",
-]) {
-  const record = evidence[path];
-  if (
-    record?.accepted !== true ||
-    typeof record.reviewedBy !== "string" ||
-    !record.reviewedBy.trim() ||
-    typeof record.evidence !== "string" ||
-    !record.evidence.trim()
-  ) {
-    throw new Error(`Missing accepted evidence for ${path}.`);
-  }
-}
-console.log(
-  "Release evidence gate passed; authorization and npm-release protections apply separately.",
-);
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { resolve, relative, isAbsolute, sep, join } from "node:path";
+import { releaseHashes, validateReleaseEvidence, verifyReleaseCi } from "./release-evidence.mjs";
+const root = realpathSync(fileURLToPath(new URL("../", import.meta.url)));
+const metadata = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+if (!/^\d+\.\d+\.\d+$/.test(metadata.version)) throw new Error("Development preview is not release-approved. Complete docs/release.md before publishing.");
+const repository = "devcodex-labs/intent-runtime";
+const commit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+if (execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" }).trim()) throw new Error("Release checkout contains uncommitted changes.");
+if (process.env.GITHUB_REF_TYPE === "tag" && process.env.GITHUB_REF_NAME !== `v${metadata.version}`) throw new Error("Release tag does not match package version.");
+if (!process.env.INTENT_RELEASE_EVIDENCE) throw new Error("Set INTENT_RELEASE_EVIDENCE to reviewed external evidence; see docs/release.md.");
+const evidencePath = realpathSync(resolve(process.env.INTENT_RELEASE_EVIDENCE));
+const location = relative(root, evidencePath);
+if (!location || (location !== ".." && !location.startsWith(".." + sep) && !isAbsolute(location))) throw new Error("Release evidence must be stored outside the repository.");
+const raw = readFileSync(evidencePath);
+if (process.env.INTENT_RELEASE_EVIDENCE_SHA256 && createHash("sha256").update(raw).digest("hex") !== process.env.INTENT_RELEASE_EVIDENCE_SHA256) throw new Error("Release evidence digest does not match the approved artifact.");
+const evidence = JSON.parse(raw);
+const ids = name => readFileSync(join(root, `evaluations/cases/${name}.jsonl`), "utf8").trim().split(/\r?\n/).map(line => JSON.parse(line).id);
+const registryDate = JSON.parse(readFileSync(join(root, "src/language/data/iana-language-subtags.json"), "utf8")).fileDate;
+validateReleaseEvidence(evidence, { repository, commit, version: metadata.version, hashes: releaseHashes(root), caseIds: { semantics: [...ids("semantics"), ...ids("additional")], multilingual: ids("languages") }, registryDate });
+await verifyReleaseCi({ repository, commit, runId: evidence.ciRunId, token: process.env.GH_TOKEN });
+console.log("Exact commit, version, Prompt/dataset/registry hashes, seven reviews and all platform CI checks verified. Publication still requires release authorization.");

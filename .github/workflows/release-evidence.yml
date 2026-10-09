@@ -1,0 +1,44 @@
+name: Review Release Evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Exact main commit with a stable package version
+        required: true
+      evidence_json:
+        description: Reviewed acceptance manifest; never include credentials
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    environment: npm-release
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24.x"
+      - name: Write reviewed manifest outside the checkout
+        env:
+          REVIEWED_MANIFEST: ${{ inputs.evidence_json }}
+          INTENT_RELEASE_EVIDENCE: ${{ runner.temp }}/release-acceptance.json
+        run: node --input-type=module -e 'import fs from "node:fs"; fs.writeFileSync(process.env.INTENT_RELEASE_EVIDENCE, process.env.REVIEWED_MANIFEST);'
+      - name: Verify exact release inputs and successful platform CI
+        run: node scripts/check-release.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INTENT_RELEASE_EVIDENCE: ${{ runner.temp }}/release-acceptance.json
+      - name: Show manifest SHA-256 for approval
+        run: sha256sum "$RUNNER_TEMP/release-acceptance.json"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: release-acceptance
+          path: ${{ runner.temp }}/release-acceptance.json
+          retention-days: 30

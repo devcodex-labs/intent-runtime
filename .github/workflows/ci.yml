@@ -18,6 +18,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
+      - run: npm run smoke:release
   test:
     strategy:
       fail-fast: false
@@ -34,6 +35,8 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - run: npm run smoke:validation
+      - run: npm run smoke:release
       - run: node evaluations/mcp-protocol.mjs
       - run: npm run smoke:package
       - run: npm run smoke:installation

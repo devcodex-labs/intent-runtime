@@ -174,6 +174,7 @@ it("uses the real MCP SDK handshake and tools to round trip without a model API"
   const client = new Client({ name: "test-client", version: "1.0" });
   try {
     await client.connect(clientTransport);
+    expect(client.getServerVersion()?.version).toBe((await import("node:fs")).readFileSync(new URL("../package.json", import.meta.url), "utf8").match(/"version": "([^"]+)"/)?.[1]);
     expect((await client.listTools()).tools.map((tool) => tool.name)).toEqual([
       "intent_prepare",
       "intent_accept",

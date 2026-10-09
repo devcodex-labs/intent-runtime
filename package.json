@@ -69,6 +69,8 @@
     "smoke:package": "node scripts/smoke-package.mjs",
     "smoke:installation": "node scripts/smoke-installation.mjs",
     "smoke:maintenance": "node scripts/smoke-maintenance.mjs",
+    "smoke:validation": "node scripts/smoke-validation.mjs",
+    "smoke:release": "node scripts/smoke-release.mjs",
     "registry:refresh": "node scripts/refresh-language-registry.mjs",
     "postinstall": "node scripts/postinstall.mjs"
   },

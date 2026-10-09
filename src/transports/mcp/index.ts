@@ -14,6 +14,8 @@ import type {
 } from "../../bridge/index.js";
 import { isObject } from "../../internal/object.js";
 import { IntentParseError } from "../../errors.js";
+import { readFileSync } from "node:fs";
+const packageVersion = (JSON.parse(readFileSync(new URL("../../../package.json", import.meta.url), "utf8")) as { version: string }).version;
 const contextSchema = {
   anyOf: [
     { type: "string" },
@@ -89,7 +91,7 @@ export async function serveIntentMcp(
   const bridge = createIntentBridge(bridgeConfig);
   const connection = bridge.connect();
   const server = new Server(
-    { name: "intent-runtime", version: "1.0.0-dev.0" },
+    { name: "intent-runtime", version: packageVersion },
     {
       capabilities: { tools: {} },
       instructions:

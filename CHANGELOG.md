@@ -2,6 +2,11 @@
 
 ## Unreleased — global installation
 
+- Preserve exact configuration snapshots during installation/cleanup and serialize stale-lock recovery with a process-owned local guard. Verify package ownership before restoring MCP registrations.
+- Keep bridge sessions active by default through multi-day pauses. Evict completed records first under capacity pressure and preserve active tokens on oversized or over-budget submissions; await asynchronous accept calls.
+- Check dynamic and applicable composed Schema descriptions. Run native validation in bounded, interruptible workers with adversarial-regex, cancellation and installed-package coverage.
+- Bind release reviews to the exact commit, version, Prompt/datasets/registry hashes and successful platform matrix. Transfer reviewed evidence as a protected artifact and derive the MCP version from package metadata.
+
 - Support Node.js >=20.0.0, including actual minimum-version package and stdio checks.
 - Automatically configure discovered local clients on direct global npm installation; Codex is the first adapter. Preserve business config, unrelated settings and user-edited instructions.
 - Add optional intent-runtime doctor, doctor --repair and clean commands, private ownership records, backups and failure recovery.

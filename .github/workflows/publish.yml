@@ -11,6 +11,7 @@ jobs:
     environment: npm-release
     permissions:
       contents: read
+      actions: read
       id-token: write
     steps:
       - uses: actions/checkout@v6
@@ -22,12 +23,30 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
+      - run: npm run build
       - run: npm test
+      - run: npm run smoke:validation
+      - run: node evaluations/mcp-protocol.mjs
       - run: npm run smoke:package
       - run: npm run smoke:installation
       - run: npm run smoke:maintenance
-      - name: Require accepted semantic and compatibility evidence
+      - name: Require approved evidence artifact identifiers
+        env:
+          EVIDENCE_RUN_ID: ${{ vars.RELEASE_EVIDENCE_RUN_ID }}
+          EVIDENCE_SHA256: ${{ vars.RELEASE_EVIDENCE_SHA256 }}
+        run: node --input-type=module -e 'if (!/^\d+$/.test(process.env.EVIDENCE_RUN_ID || "") || !/^[a-f0-9]{64}$/.test(process.env.EVIDENCE_SHA256 || "")) throw new Error("Configure the reviewed evidence run and SHA-256 in npm-release.");'
+      - uses: actions/download-artifact@v7
+        with:
+          name: release-acceptance
+          run-id: ${{ vars.RELEASE_EVIDENCE_RUN_ID }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/intent-release-evidence
+      - name: Require accepted semantic and compatibility evidence for this commit
         run: node scripts/check-release.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INTENT_RELEASE_EVIDENCE: ${{ runner.temp }}/intent-release-evidence/release-acceptance.json
+          INTENT_RELEASE_EVIDENCE_SHA256: ${{ vars.RELEASE_EVIDENCE_SHA256 }}
       - run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
