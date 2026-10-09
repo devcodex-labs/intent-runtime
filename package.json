@@ -68,6 +68,7 @@
     "lint": "eslint src tests && node scripts/check-imports.mjs",
     "smoke:package": "node scripts/smoke-package.mjs",
     "smoke:installation": "node scripts/smoke-installation.mjs",
+    "smoke:maintenance": "node scripts/smoke-maintenance.mjs",
     "registry:refresh": "node scripts/refresh-language-registry.mjs",
     "postinstall": "node scripts/postinstall.mjs"
   },

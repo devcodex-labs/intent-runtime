@@ -7,9 +7,9 @@ const root = process.cwd();
 const temp = mkdtempSync(path.join(tmpdir(), "intent-global-中文 "));
 const checks = [];
 let passed = false;
-function run(args, env, cwd = temp, expected = 0) {
+function run(args, env, cwd = temp, expected = 0, timeoutMs = 30000) {
   try {
-    const output = execFileSync(process.execPath, args, { cwd, env: { ...process.env, ...env }, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 60000 });
+    const output = execFileSync(process.execPath, args, { cwd, env: { ...process.env, ...env }, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: timeoutMs });
     assert.equal(expected, 0, "Expected command failure");
     return output;
   } catch (error) {
@@ -19,7 +19,9 @@ function run(args, env, cwd = temp, expected = 0) {
 }
 function npm(args, env, cwd, expected) {
   assert.ok(process.env.npm_execpath, "Run through npm run smoke:installation");
-  return run([process.env.npm_execpath, ...args], env, cwd, expected);
+  // Cold dependency extraction on Windows can exceed a minute. This budget
+  // applies to npm only; actual MCP probes retain their bounded timeout.
+  return run([process.env.npm_execpath, ...args], env, cwd, expected, 180000);
 }
 function sandbox(name) {
   const home = path.join(temp, name, "user 中文 space");

@@ -37,3 +37,4 @@ jobs:
       - run: node evaluations/mcp-protocol.mjs
       - run: npm run smoke:package
       - run: npm run smoke:installation
+      - run: npm run smoke:maintenance

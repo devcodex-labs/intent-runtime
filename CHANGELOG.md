@@ -7,6 +7,8 @@
 - Add optional intent-runtime doctor, doctor --repair and clean commands, private ownership records, backups and failure recovery.
 - Install the MCP SDK with the module and use openai 6.49.0 as the optional API test baseline compatible with Node 20.
 - Verify global installation, reinstall, changed prefix, disabled lifecycle scripts, local/indirect installation isolation and cleanup with real packaged fixtures.
+- Recover interrupted installation/cleanup from a private journal; preserve conflicting user edits and release locks even when their initial write fails. Validate incomplete ownership records and allow retry after a failed first initialization without inventing replacements for established business config.
+- Add filesystem fault checks and real-process maintenance tests for contention, interruption, imported business config/env, version changes, stale Node paths and uninstall/reinstall. Isolate native discovery in filesystem tests and compare canonical installation paths across platforms.
 
 ## 1.0.0-dev.0 — 2026-10-09
 

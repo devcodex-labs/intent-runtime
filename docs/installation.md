@@ -21,6 +21,7 @@ npm install -g @devcodex-labs/intent-runtime
 | ~/.intent-runtime/intent.config.mjs | 新安装的通用 default 实例，无业务扩展 Schema，默认说明语言 en |
 | ~/.intent-runtime/state.json | 注册归属、安装状态、实际实例和检查结果 |
 | ~/.intent-runtime/backups/ 与 logs/ | 私有备份和诊断记录，不写入项目 |
+| ~/.intent-runtime/pending-operation.json | 安装/清理中断时的私有恢复记录，完成后移除 |
 | $CODEX_HOME/config.toml，默认 ~/.codex/config.toml | Codex 用户级 MCP 注册 |
 | ~/.agents/skills/intent-runtime/SKILL.md | 可由 Codex 发现的识别流程；同名冲突时使用稳定的替代名称 |
 
@@ -63,4 +64,8 @@ clean 仅清理能证明由本模块创建且未被用户修改的注册和 Skil
 - 安装脚本被禁用时不能自动初始化；可在允许脚本的环境重新安装，或使用 doctor --repair。
 - 损坏的 TOML、缺失的用户业务文件或用户修改不会用猜测值替换。先按诊断修正，再运行相同安装命令或修复工具。
 
+进程意外中断后，重装、doctor --repair 或 clean 会先恢复未完成操作，再继续执行。恢复只撤销内容仍与本模块写入一致的文件；发现用户随后修改时保留内容，返回 RECOVERY_CONFLICT 并保留恢复记录与备份供检查。不要盲目删除记录或覆盖业务配置。首次安装失败且通用配置尚未建立时可重试生成；已建立后丢失的业务配置仍须恢复原文件。
+
 源码验证使用 npm run smoke:installation，在隔离用户目录和全局 prefix 安装真实 tarball。它不会改开发者的真实客户端配置，也不调用模型 API。
+
+npm run smoke:maintenance 额外验证真实进程竞争、强制中断与恢复、配置导入/环境传递、包版本升级回退、Node 路径修复及卸载重装。测试使用可控夹具版本，不等于未来每个发布版本之间都已兼容；文件系统故障注入也不替代真实客户端或真实模型验收。

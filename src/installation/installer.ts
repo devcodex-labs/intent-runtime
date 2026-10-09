@@ -4,7 +4,7 @@ import { isDeepStrictEqual } from "node:util";
 import { createRequire } from "node:module";
 import { context, paths, version, supportedNode, type InstallContext } from "./environment.js";
 import { codex, record, belongsToModule, configFromEntry, independentOriginal, type ClientAdapter } from "./codex.js";
-import { locked, Transaction, read, atomic, digest, diagnostic, InstallError } from "./files.js";
+import { locked, Transaction, RecoveryJournal, read, atomic, digest, diagnostic, InstallError } from "./files.js";
 import { state, type InstallationState, type Registration, type Check } from "./state.js";
 import type { ProbeResult } from "../transports/mcp/probe.js";
 
@@ -38,6 +38,7 @@ function initial(ctx: InstallContext, previous?: InstallationState): Installatio
   return {
     schemaVersion: 1, status: "waiting_for_client", version: version(ctx), node: ctx.node, updatedAt: new Date().toISOString(),
     configFile: previous?.configFile ?? paths(ctx).config, instances: previous?.instances ?? [],
+    configEstablished: previous?.configEstablished ?? !!previous,
     registrations: previous?.registrations ?? [], skills: previous?.skills ?? [], checks: [], warnings: [],
   };
 }
@@ -59,10 +60,13 @@ async function choose(adapter: ClientAdapter, source: string, previous: Installa
 export async function install(ctx = context(), options: InstallOptions = {}): Promise<InstallationState> {
   if (!supportedNode()) throw new InstallError("NODE_UNSUPPORTED", "Node.js >=20.0.0 is required.");
   return locked(ctx, async () => {
+    const recovery = new RecoveryJournal(paths(ctx).base);
+    await recovery.recover();
     const previous = await state(ctx);
     const next = initial(ctx, previous);
-    const tx = new Transaction(paths(ctx).base);
-    const applied: Transaction[] = [];
+    const configEstablishedBefore = next.configEstablished || await read(next.configFile) !== undefined;
+    next.configEstablished = configEstablishedBefore;
+    const tx = new Transaction(paths(ctx).base, recovery);
     const failures: { code: string; message: string }[] = [];
     let committed = false;
     try {
@@ -73,12 +77,13 @@ export async function install(ctx = context(), options: InstallOptions = {}): Pr
         next.warnings.push("No supported client detected. Install a supported client and reinstall this module or run doctor --repair.");
         await tx.change(paths(ctx).state, JSON.stringify(next, null, 2) + "\n");
         await log(ctx, { status: next.status });
+        await recovery.commit();
         return next;
       }
       const workflow = await read(join(ctx.root, "integrations", "codex", "workflow.md"));
       if (!workflow) throw new InstallError("WORKFLOW_MISSING", "Packaged intent workflow is missing.");
       for (const adapter of detected) {
-        const clientTx = new Transaction(paths(ctx).base);
+        const clientTx = new Transaction(paths(ctx).base, recovery);
         const beforeClient = structuredClone(next);
         try {
           const clientFile = adapter.config(ctx);
@@ -87,7 +92,7 @@ export async function install(ctx = context(), options: InstallOptions = {}): Pr
           let configFile = selected.entry ? configFromEntry(selected.entry, clientFile) : undefined;
           configFile ??= next.configFile;
           if (await read(configFile) === undefined) {
-            if (configFile !== paths(ctx).config || previous?.configFile === configFile) throw new InstallError("TRUSTED_CONFIG_MISSING", "Existing trusted instance config is missing: " + configFile);
+            if (configFile !== paths(ctx).config || (previous?.configFile === configFile && previous.configEstablished !== false)) throw new InstallError("TRUSTED_CONFIG_MISSING", "Existing trusted instance config is missing: " + configFile);
             await clientTx.change(configFile, DEFAULT_CONFIG);
           }
           next.configFile = configFile;
@@ -99,6 +104,7 @@ export async function install(ctx = context(), options: InstallOptions = {}): Pr
           await clientTx.change(clientFile, updated);
           const checked = await probe(entry, ctx, options);
           next.instances = checked.instances;
+          next.configEstablished = true;
           next.checks.push({ name: adapter.id + ".protocol", ok: true, detail: "initialize, tools/list, prepare and cancel completed; instances: " + checked.instances.join(", ") });
           const registration: Registration = { client: adapter.id, path: clientFile, name: selected.name, entry, fingerprint: adapter.fingerprint(updated, selected.name) };
           if (selected.old?.original) registration.original = selected.old.original;
@@ -121,7 +127,6 @@ export async function install(ctx = context(), options: InstallOptions = {}): Pr
             next.skills.push({ path: instruction.path, name: skillName, hash: digest(instruction.content) });
             break;
           }
-          applied.push(clientTx);
         } catch (error) {
           await clientTx.rollback();
           Object.assign(next, beforeClient);
@@ -134,20 +139,25 @@ export async function install(ctx = context(), options: InstallOptions = {}): Pr
       next.status = failures.length ? "failed" : "configured";
       await tx.change(paths(ctx).state, JSON.stringify(next, null, 2) + "\n");
       await log(ctx, { status: next.status, version: next.version, clients: detected.map(a => a.id), warnings: next.warnings });
+      await recovery.commit();
       committed = true;
       if (failures.length) throw new InstallError(failures[0]!.code, failures[0]!.message);
       return next;
     } catch (error) {
+      let failure = error;
       if (!committed) {
-        await tx.rollback();
-        for (const clientTx of applied.reverse()) await clientTx.rollback();
-        const failed = initial(ctx, previous);
-        failed.status = "failed";
-        failed.checks.push({ name: "initialization", ok: false, detail: diagnostic(error).message });
-        await atomic(paths(ctx).state, JSON.stringify(failed, null, 2) + "\n").catch(() => {});
+        let restored = true;
+        try { await recovery.rollback(); } catch (restoreError) { failure = restoreError; restored = false; }
+        if (restored) {
+          const failed = initial(ctx, previous);
+          failed.configEstablished = configEstablishedBefore;
+          failed.status = "failed";
+          failed.checks.push({ name: "initialization", ok: false, detail: diagnostic(failure).message });
+          await atomic(paths(ctx).state, JSON.stringify(failed, null, 2) + "\n").catch(() => {});
+        }
       }
-      await log(ctx, { status: "failed", ...diagnostic(error), backup: tx.backup }).catch(() => {});
-      throw error;
+      await log(ctx, { status: "failed", ...diagnostic(failure), backup: tx.backup }).catch(() => {});
+      throw failure;
     }
   });
 }
@@ -159,6 +169,13 @@ export async function doctor(ctx = context(), options: InstallOptions = {}): Pro
   for (const dependency of ["@modelcontextprotocol/sdk/client/index.js", "schema-dsl/pure", "toml-eslint-parser"]) {
     try { result.checks.push({ name: "dependency", ok: true, detail: require.resolve(dependency) }); }
     catch { result.checks.push({ name: "dependency", ok: false, detail: "Runtime dependency missing: " + dependency }); }
+  }
+  const pending = await read(join(paths(ctx).base, "pending-operation.json"));
+  if (pending !== undefined) {
+    try {
+      if ((JSON.parse(pending) as { completed?: boolean }).completed === true) result.warnings.push("Completed maintenance record remains; doctor --repair can reclaim it.");
+      else result.checks.push({ name: "recovery", ok: false, detail: "Interrupted maintenance requires recovery; run doctor --repair." });
+    } catch { result.checks.push({ name: "recovery", ok: false, detail: "Invalid interrupted maintenance record; preserve it for review." }); }
   }
   let previous: InstallationState | undefined;
   try { previous = await state(ctx); } catch (error) { const e = diagnostic(error); result.checks.push({ name: "state", ok: false, detail: e.message }); }
@@ -190,11 +207,13 @@ export async function doctor(ctx = context(), options: InstallOptions = {}): Pro
 }
 export async function clean(ctx = context(), options: InstallOptions = {}): Promise<MaintenanceResult> {
   return locked(ctx, async () => {
+    const recovery = new RecoveryJournal(paths(ctx).base);
+    await recovery.recover();
     const previous = await state(ctx);
     const result: MaintenanceResult = { status: "cleaned", checks: [], warnings: [], statePath: paths(ctx).state };
     if (!previous) return result;
     const next = initial(ctx, previous);
-    const tx = new Transaction(paths(ctx).base);
+    const tx = new Transaction(paths(ctx).base, recovery);
     try {
       for (const r of previous.registrations) {
         const adapter = adapters(options).find(a => a.id === r.client);
@@ -223,8 +242,9 @@ export async function clean(ctx = context(), options: InstallOptions = {}): Prom
       next.warnings = result.warnings;
       await tx.change(paths(ctx).state, JSON.stringify(next, null, 2) + "\n");
       await log(ctx, { status: "cleaned", warnings: result.warnings });
+      await recovery.commit();
       if (result.warnings.length) result.status = "partial";
       return result;
-    } catch (error) { await tx.rollback(); throw error; }
+    } catch (error) { await recovery.rollback(); throw error; }
   });
 }

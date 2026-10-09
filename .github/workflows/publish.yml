@@ -25,6 +25,7 @@ jobs:
       - run: npm test
       - run: npm run smoke:package
       - run: npm run smoke:installation
+      - run: npm run smoke:maintenance
       - name: Require accepted semantic and compatibility evidence
         run: node scripts/check-release.mjs
       - run: npm publish --access public --provenance

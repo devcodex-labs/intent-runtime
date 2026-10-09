@@ -89,11 +89,15 @@ it("recognizes the existing host when a new CODEX_HOME has not been created", as
   expect((await install(ctx, options)).status).toBe("configured");
   expect(await read(paths(ctx).codex)).toBeDefined();
 });
-it.skipIf(process.platform === "win32")("preserves a symlinked client configuration during updates", async () => {
+it("preserves a symlinked client configuration during updates", async ({ skip }) => {
   const { base, ctx, options } = await fixture();
   const target = join(base, "dotfiles.toml");
   await writeFile(target, '# linked config\nmodel="existing"\n');
-  await symlink(target, paths(ctx).codex);
+  try { await symlink(target, paths(ctx).codex, "file"); }
+  catch (error) {
+    if (process.platform === "win32" && (error as NodeJS.ErrnoException).code === "EPERM") skip();
+    throw error;
+  }
   await install(ctx, options);
   expect((await lstat(paths(ctx).codex)).isSymbolicLink()).toBe(true);
   expect(servers(await readFile(target, "utf8"))["intent-runtime"]).toBeDefined();
