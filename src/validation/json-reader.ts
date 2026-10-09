@@ -25,8 +25,8 @@ export function readJson(
   if (bytes(text) > limits.maxOutputBytes)
     fail("LIMIT_EXCEEDED", stage, "Candidate exceeds maxOutputBytes.");
   const scanner = createScanner(text, false);
-  let depth = 0,
-    count = 0;
+  const containers: SyntaxKind[] = [];
+  let count = 0;
   for (
     let kind = scanner.scan();
     kind !== SyntaxKind.EOF;
@@ -36,14 +36,20 @@ export function readJson(
       kind === SyntaxKind.OpenBraceToken ||
       kind === SyntaxKind.OpenBracketToken
     ) {
-      depth++;
-      if (depth > limits.maxCandidateDepth)
+      containers.push(
+        kind === SyntaxKind.OpenBraceToken
+          ? SyntaxKind.CloseBraceToken
+          : SyntaxKind.CloseBracketToken,
+      );
+      if (containers.length > limits.maxCandidateDepth)
         fail("LIMIT_EXCEEDED", stage, "Candidate exceeds maxCandidateDepth.");
     } else if (
       kind === SyntaxKind.CloseBraceToken ||
       kind === SyntaxKind.CloseBracketToken
-    )
-      depth--;
+    ) {
+      if (containers.pop() !== kind)
+        fail("MODEL_OUTPUT_INVALID", stage, "Unbalanced candidate containers.");
+    }
     if (++count > limits.maxCandidateNodes * 4)
       fail(
         "LIMIT_EXCEEDED",
@@ -51,6 +57,8 @@ export function readJson(
         "Candidate exceeds token complexity limit.",
       );
   }
+  if (containers.length)
+    fail("MODEL_OUTPUT_INVALID", stage, "Unbalanced candidate containers.");
   const errors: import("jsonc-parser").ParseError[] = [];
   const tree = parseTree(text, errors, {
     disallowComments: true,

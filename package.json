@@ -50,6 +50,7 @@
     "docs/usage.md",
     "docs/errors.md",
     "docs/compatibility.md",
+    "docs/cloud-test-report-2026-10-09.md",
     "docs/local-testing.md",
     "integrations",
     "examples"
@@ -60,6 +61,7 @@
     "prepack": "npm run clean && npm run build",
     "test": "vitest run tests",
     "test:integration": "npm run build && node scripts/integration.mjs",
+    "test:mcp": "npm run build && node evaluations/mcp-protocol.mjs",
     "evaluate": "npm run build && node evaluations/run.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src tests && node scripts/check-imports.mjs",

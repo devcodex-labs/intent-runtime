@@ -475,4 +475,18 @@ describe("strict JSON and resource boundaries", () => {
       readJson(candidate, { ...DEFAULT_LIMITS }, "data"),
     ).toThrowError(expect.objectContaining({ code: "LIMIT_EXCEEDED" }));
   });
+  it.each([
+    { name: "missing value", prefix: '{"a":' + "]".repeat(10000) + ',"x":' },
+    { name: "extra closers", prefix: '{"a":0' + "]".repeat(10000) + ',"x":' },
+    { name: "mismatched container", prefix: '{"a":{],"x":' },
+  ])(
+    "rejects mismatched closers before recursive parser recovery ($name)",
+    ({ prefix }) => {
+      const candidate =
+        prefix + "[".repeat(10000) + "0" + "]".repeat(10000) + "}";
+      expect(() =>
+        readJson(candidate, { ...DEFAULT_LIMITS }, "data"),
+      ).toThrowError(expect.objectContaining({ code: "MODEL_OUTPUT_INVALID" }));
+    },
+  );
 });

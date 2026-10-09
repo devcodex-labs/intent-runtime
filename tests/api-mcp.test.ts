@@ -2,11 +2,15 @@ import { expect, it, vi } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { Intent } from "../src/index.js";
-import { createApiExecutor } from "../src/adapters/api/index.js";
+import {
+  createApiExecutor,
+  readCompletedResponse,
+} from "../src/adapters/api/index.js";
+import type { ModelRequest } from "../src/index.js";
 import type { ApiExecutorConfig } from "../src/adapters/api/index.js";
 import { serveIntentMcp } from "../src/transports/mcp/index.js";
 import type { BridgeReply } from "../src/bridge/index.js";
-import { core, data, orderSchema } from "./fixtures.js";
+import { core, data, fakeExecutor, orderSchema } from "./fixtures.js";
 it.each([{ fetch: "invalid" }, { extra: true }])(
   "rejects malformed API configuration before invoking the SDK (%j)",
   (extra) => {
@@ -219,6 +223,213 @@ it("uses the real MCP SDK handshake and tools to round trip without a model API"
   } finally {
     await client.close();
     await service.close();
+    intent.dispose();
+  }
+});
+
+const responseRequest: ModelRequest = {
+  stage: "data",
+  instructions: "Fixture instructions",
+  payload: "{}",
+  format: { kind: "json_object" },
+  signal: new AbortController().signal,
+};
+it.each([
+  ["absent response", null, "MODEL_OUTPUT_INVALID"],
+  ["failed response", { status: "failed" }, "MODEL_REQUEST_FAILED"],
+  ["missing output", { status: "completed" }, "MODEL_OUTPUT_INVALID"],
+  [
+    "malformed output item",
+    { status: "completed", output: [null] },
+    "MODEL_OUTPUT_INVALID",
+  ],
+  [
+    "tool output",
+    {
+      status: "completed",
+      output: [{ type: "function_call", name: "delete_database" }],
+    },
+    "MODEL_OUTPUT_INVALID",
+  ],
+  [
+    "non-assistant message",
+    {
+      status: "completed",
+      output: [{ type: "message", role: "user", content: [] }],
+    },
+    "MODEL_OUTPUT_INVALID",
+  ],
+  [
+    "missing content",
+    { status: "completed", output: [{ type: "message", role: "assistant" }] },
+    "MODEL_OUTPUT_INVALID",
+  ],
+  [
+    "malformed content",
+    {
+      status: "completed",
+      output: [{ type: "message", role: "assistant", content: [null] }],
+    },
+    "MODEL_OUTPUT_INVALID",
+  ],
+  [
+    "unexpected content",
+    {
+      status: "completed",
+      output: [
+        { type: "message", role: "assistant", content: [{ type: "image" }] },
+      ],
+    },
+    "MODEL_OUTPUT_INVALID",
+  ],
+  ["empty final message", { status: "completed", output: [{ type: "message", role: "assistant", content: [{ type: "output_text", text: " " }] }] }, "MODEL_OUTPUT_INVALID"],
+  [
+    "no final message",
+    { status: "completed", output: [{ type: "reasoning" }] },
+    "MODEL_OUTPUT_INVALID",
+  ],
+  [
+    "two final messages",
+    {
+      status: "completed",
+      output: [...completed(core()).output, ...completed(data()).output],
+    },
+    "MODEL_OUTPUT_INVALID",
+  ],
+] as const)("rejects provider %s", (_, response, code) => {
+  expect(() => readCompletedResponse(response, responseRequest)).toThrowError(
+    expect.objectContaining({ code, stage: "data" }),
+  );
+});
+it("ignores provider reasoning and concatenates text chunks in one final message", () => {
+  expect(
+    readCompletedResponse(
+      {
+        status: "completed",
+        output: [
+          { type: "reasoning", summary: [] },
+          {
+            type: "message",
+            role: "assistant",
+            content: [
+              { type: "output_text", text: '{"data":' },
+              { type: "output_text", text: "{}}" },
+            ],
+          },
+        ],
+      },
+      responseRequest,
+    ),
+  ).toEqual({ outcome: "complete", text: '{"data":{}}' });
+});
+it.each(["openai", "xai"] as const)(
+  "refuses %s targets explicitly lacking strict Schema before network access",
+  async (provider) => {
+    const transport = vi.fn<typeof fetch>();
+    const intent = new Intent({
+      executor: createApiExecutor({
+        provider,
+        apiKey: "fixture",
+        model: "fixture",
+        nativeJsonSchema: false,
+        fetch: transport,
+      }),
+    });
+    try {
+      await expect(intent.parse({ input: "x" })).rejects.toMatchObject({
+        code: "HOST_CAPABILITY_UNSUPPORTED",
+        stage: "core",
+      });
+      expect(transport).not.toHaveBeenCalled();
+    } finally {
+      intent.dispose();
+    }
+  },
+);
+it("refuses executors that cannot abort", () => {
+  const executor = fakeExecutor();
+  expect(
+    () =>
+      new Intent({
+        executor: {
+          ...executor,
+          capabilities: { ...executor.capabilities, supportsAbort: false },
+        },
+      }),
+  ).toThrowError(
+    expect.objectContaining({
+      code: "HOST_CAPABILITY_UNSUPPORTED",
+      stage: "config",
+    }),
+  );
+});
+it.each([
+  [401, "MODEL_AUTH_FAILED"],
+  [403, "MODEL_AUTH_FAILED"],
+  [429, "MODEL_RATE_LIMITED"],
+  [500, "MODEL_REQUEST_FAILED"],
+] as const)(
+  "retains checked core when data HTTP %i fails",
+  async (status, code) => {
+    let calls = 0;
+    const transport: typeof fetch = async () => {
+      calls++;
+      return calls === 1
+        ? new Response(JSON.stringify(completed(core())), {
+            headers: { "content-type": "application/json" },
+          })
+        : new Response(
+            JSON.stringify({
+              error: { message: "sensitive provider details" },
+            }),
+            { status, headers: { "content-type": "application/json" } },
+          );
+    };
+    const intent = new Intent({
+      schema: orderSchema,
+      executor: createApiExecutor({
+        provider: "openai",
+        apiKey: "fixture",
+        model: "fixture",
+        fetch: transport,
+      }),
+    });
+    try {
+      await expect(intent.parse({ input: "000123" })).rejects.toMatchObject({
+        code,
+        stage: "data",
+        partialResult: {
+          data: {},
+          intents: [{ action: "query", status: "ready" }],
+        },
+        message: expect.not.stringContaining("sensitive"),
+      });
+      expect(calls).toBe(2);
+    } finally {
+      intent.dispose();
+    }
+  },
+);
+it("maps network failure without retries or provider diagnostics", async () => {
+  const transport = vi.fn<typeof fetch>(async () => {
+    throw new Error("sensitive network diagnostic");
+  });
+  const intent = new Intent({
+    executor: createApiExecutor({
+      provider: "xai",
+      apiKey: "fixture",
+      model: "fixture",
+      fetch: transport,
+    }),
+  });
+  try {
+    await expect(intent.parse({ input: "x" })).rejects.toMatchObject({
+      code: "MODEL_REQUEST_FAILED",
+      stage: "core",
+      message: expect.not.stringContaining("sensitive"),
+    });
+    expect(transport).toHaveBeenCalledTimes(1);
+  } finally {
     intent.dispose();
   }
 });

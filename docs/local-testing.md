@@ -12,6 +12,7 @@ npm ci
 npm run typecheck
 npm run lint
 npm test
+npm run test:mcp
 npm run build
 npm run smoke:package
 ~~~
@@ -81,9 +82,9 @@ Windows config.toml 示例：
 [mcp_servers.intent-runtime]
 command = 'C:\Program Files\nodejs\node.exe'
 args = [
-  'D:\Projects\intent-runtime\dist\transports\mcp\main.js',
+  'D:\Worker\intent-runtime\dist\transports\mcp\main.js',
   '--config',
-  'D:\Projects\intent-runtime\examples\codex\intent.config.mjs'
+  'D:\Worker\intent-runtime\examples\codex\intent.config.mjs'
 ]
 ~~~
 
@@ -143,4 +144,4 @@ OpenAI 与 xAI 分别运行并记录模型名。桌面路径使用相同案例�
 
 ## 6. 当前待验证事项
 
-真实 API 模型能力、桌面客户端触发和原文交接、多语言及 81 组效果尚未验证。语言快照 File-Date 为 2025-08-25；若使用更新登记标签，可在本地运行 npm run registry:refresh，从 IANA 正式来源更新、审查差异，并重跑测试/构建/打包检查。
+云端已用当前会话助手执行完整 95 条 MCP 清单并自评，另外执行协议/资源回归；详见 [云端完整测试报告](cloud-test-report-2026-10-09.md)。真实 API 模型能力、桌面客户端触发和原文交接、Windows 兼容及目标模型独立语义验收仍待本地验证。语言快照 File-Date 为 2025-08-25；若使用更新登记标签，可在本地运行 npm run registry:refresh，从 IANA 正式来源更新、审查差异，并重跑测试/构建/打包检查。
