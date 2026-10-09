@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, realpathSync, existsSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 const root = process.cwd();
@@ -49,7 +49,7 @@ try {
   assert.equal(current.status, "configured");
   assert.deepEqual(current.instances, ["default"]);
   assert.equal(current.registrations[0].entry.command, process.execPath);
-  assert.ok(current.registrations[0].entry.args[0].startsWith(installed(standard.prefix)));
+  assert.equal(realpathSync(current.registrations[0].entry.args[0]), realpathSync(path.join(installed(standard.prefix), "dist", "transports", "mcp", "main.js")));
   assert.equal(doctor(standard.prefix, standard.env).status, "healthy");
   assert.ok(readFileSync(path.join(standard.codex, "config.toml"), "utf8").includes('# keep comment\nmodel="existing"'));
   checks.push("one global install: dependencies, user registration, Skill, SDK handshake and doctor");
@@ -64,7 +64,7 @@ try {
   const newPrefix = path.join(temp, "moved prefix");
   npm(["install", "-g", "--prefix", newPrefix, "--engine-strict", "--no-audit", "--no-fund", tar], standard.env);
   current = metadata(standard.home);
-  assert.ok(current.registrations[0].entry.args[0].startsWith(installed(newPrefix)));
+  assert.equal(realpathSync(current.registrations[0].entry.args[0]), realpathSync(path.join(installed(newPrefix), "dist", "transports", "mcp", "main.js")));
   assert.equal(current.registrations.length, 1);
   assert.equal(doctor(newPrefix, standard.env).status, "healthy");
   checks.push("changed global prefix: executable updated and custom business instance retained");

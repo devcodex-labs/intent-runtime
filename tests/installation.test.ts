@@ -1,7 +1,7 @@
 import { afterEach, expect, it } from "vitest";
-import { mkdtemp, mkdir, writeFile, readFile, rm, symlink, lstat } from "node:fs/promises";
+import { access, mkdtemp, mkdir, writeFile, readFile, rm, symlink, lstat } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { context, paths, directGlobal, supportedNode } from "../src/installation/environment.js";
 import { install, doctor, clean, type InstallOptions } from "../src/installation/installer.js";
 import { codex, type ClientAdapter } from "../src/installation/codex.js";
@@ -25,7 +25,16 @@ async function fixture(client = true) {
   await writeFile(paths(ctx).main, "// fixture executable; protocol is mocked only in these filesystem tests");
   await writeFile(join(root, "integrations", "codex", "workflow.md"), "Submit the exact input; use real prepare/accept tokens; preserve errors.");
   if (client) await mkdir(join(home, ".codex"), { recursive: true });
-  const options: InstallOptions = { probe: async entry => {
+  // Native desktop discovery is an integration concern. In filesystem tests,
+  // determine presence from this fixture only, without launching PowerShell
+  // or finding an application installed on the runner.
+  const adapter: ClientAdapter = { ...codex, detect: async candidate => {
+    for (const directory of [dirname(paths(candidate).codex), join(candidate.home, ".codex")]) {
+      try { await access(directory); return true; } catch { /* fixture absent */ }
+    }
+    return false;
+  } };
+  const options: InstallOptions = { adapters: [adapter], probe: async entry => {
     const args = entry.args as string[];
     const text = await readFile(args[args.indexOf("--config") + 1]!, "utf8");
     return { instances: text.includes("orders") ? ["orders"] : ["default"], tools: ["intent_prepare", "intent_accept", "intent_cancel"] };
