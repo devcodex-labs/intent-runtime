@@ -1,4 +1,4 @@
-import { access } from "node:fs/promises";
+import { access, realpath } from "node:fs/promises";
 import { join, dirname, resolve, isAbsolute, delimiter } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -74,14 +74,45 @@ export const codex: ClientAdapter = {
   },
 };
 export function record(value: unknown): value is Record<string, unknown> { return value !== null && typeof value === "object" && !Array.isArray(value); }
-export async function belongsToModule(entry: unknown): Promise<boolean> {
-  if (!record(entry) || typeof entry.command !== "string" || !Array.isArray(entry.args)) return false;
-  const name = entry.command.replaceAll("\\", "/").split("/").pop();
-  if (name === "intent-runtime-mcp" || name === "intent-runtime-mcp.cmd" || name === "intent-runtime-mcp.exe") return true;
-  const main = entry.args[0];
-  if (typeof main !== "string" || !main.replaceAll("\\", "/").endsWith("/dist/transports/mcp/main.js")) return false;
-  try { return (JSON.parse(await read(resolve(dirname(main), "../../..", "package.json")) ?? "{}") as { name?: string }).name === "@devcodex-labs/intent-runtime"; }
-  catch { return false; }
+async function verifiedMain(main: string): Promise<string | undefined> {
+  try {
+    const actual = await realpath(main);
+    if (!actual.replaceAll("\\", "/").endsWith("/dist/transports/mcp/main.js")) return undefined;
+    const metadata = JSON.parse(await read(resolve(dirname(actual), "../../..", "package.json")) ?? "{}") as { name?: string };
+    return metadata.name === "@devcodex-labs/intent-runtime" ? actual : undefined;
+  } catch { return undefined; }
+}
+async function moduleMain(entry: unknown, ctx?: InstallContext): Promise<string | undefined> {
+  if (!record(entry) || typeof entry.command !== "string" || !Array.isArray(entry.args)) return undefined;
+  const executable = entry.command;
+  const name = executable.replaceAll("\\", "/").split("/").pop();
+  const cwd = typeof entry.cwd === "string" && isAbsolute(entry.cwd) ? entry.cwd : undefined;
+  if (name === "node" || name === "node.exe") {
+    const main = entry.args[0];
+    if (typeof main !== "string" || (!isAbsolute(main) && !cwd)) return undefined;
+    return verifiedMain(isAbsolute(main) ? main : resolve(cwd!, main));
+  }
+  if (!["intent-runtime-mcp", "intent-runtime-mcp.cmd", "intent-runtime-mcp.exe"].includes(name ?? "")) return undefined;
+  const candidates = isAbsolute(executable) ? [executable]
+    : executable.includes("/") || executable.includes("\\") ? cwd ? [resolve(cwd, executable)] : []
+    : ((record(entry.env) && typeof entry.env.PATH === "string" ? entry.env.PATH : ctx?.env.PATH ?? process.env.PATH) ?? "").split(delimiter).filter(isAbsolute).flatMap(dir => (ctx?.platform ?? process.platform) === "win32" && !executable.endsWith(".cmd") && !executable.endsWith(".exe") ? [join(dir, executable + ".cmd"), join(dir, executable + ".exe")] : [join(dir, executable)]);
+  for (const command of candidates) {
+    if (!await exists(command)) continue;
+    const direct = await verifiedMain(command);
+    if (direct) return direct;
+    if (command.endsWith(".cmd")) {
+      // Read a standard npm shim; never execute a foreign program to identify it.
+      const shim = await read(command) ?? "";
+      const match = /"%(?:dp0%|~dp0)[\\/]([^"\r\n]+[\\/]dist[\\/]transports[\\/]mcp[\\/]main\.js)"\s+%\*/i.exec(shim);
+      if (match) return verifiedMain(resolve(dirname(command), match[1]!.replaceAll("\\", "/")));
+    }
+    // PATH resolution stops at the first existing executable.
+    return undefined;
+  }
+  return undefined;
+}
+export async function belongsToModule(entry: unknown, ctx?: InstallContext): Promise<boolean> {
+  return await moduleMain(entry, ctx) !== undefined;
 }
 export function configFromEntry(entry: Record<string, unknown>, clientFile: string): string | undefined {
   if (!Array.isArray(entry.args)) return undefined;
@@ -93,9 +124,10 @@ export function configFromEntry(entry: Record<string, unknown>, clientFile: stri
   return resolve(entry.cwd, config);
 }
 export async function independentOriginal(entry: Record<string, unknown>, ctx: InstallContext, clientFile: string): Promise<boolean> {
-  if (!await belongsToModule(entry) || typeof entry.command !== "string" || !isAbsolute(entry.command) || !Array.isArray(entry.args) || typeof entry.args[0] !== "string") return false;
-  const main = entry.args[0];
-  if (!isAbsolute(main) || resolve(main) === resolve(paths(ctx).main)) return false;
+  const main = await moduleMain(entry, ctx);
+  if (!main || typeof entry.command !== "string" || !isAbsolute(entry.command)) return false;
+  const currentMain = await realpath(paths(ctx).main).catch(() => paths(ctx).main);
+  if (main === currentMain) return false;
   const config = configFromEntry(entry, clientFile);
   return !!config && await exists(entry.command) && await exists(main) && await exists(config);
 }

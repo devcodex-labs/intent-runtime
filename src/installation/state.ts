@@ -27,8 +27,8 @@ export interface InstallationState {
   checks: Check[];
   warnings: string[];
 }
-export async function state(ctx: InstallContext): Promise<InstallationState | undefined> {
-  const text = await read(paths(ctx).state);
+export async function state(ctx: InstallContext, snapshot?: { text: string | undefined }): Promise<InstallationState | undefined> {
+  const text = snapshot ? snapshot.text : await read(paths(ctx).state);
   if (text === undefined) return undefined;
   try {
     const value = JSON.parse(text) as InstallationState;

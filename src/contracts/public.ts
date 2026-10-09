@@ -1,6 +1,6 @@
 import type { JSONSchema } from "schema-dsl/pure";
 export type { JSONSchema };
-export const ACTIONS = [
+export const ACTIONS = Object.freeze([
   "query",
   "analyze",
   "generate",
@@ -8,13 +8,13 @@ export const ACTIONS = [
   "delete",
   "execute",
   "other",
-] as const;
-export const STATUSES = [
+] as const);
+export const STATUSES = Object.freeze([
   "ready",
   "needs_clarification",
   "awaiting_confirmation",
   "conditional",
-] as const;
+] as const);
 export type IntentAction = (typeof ACTIONS)[number];
 export type IntentStatus = (typeof STATUSES)[number];
 export type JsonValue =

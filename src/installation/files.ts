@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile, rename, unlink, stat, lstat, realpath, open } from "node:fs/promises";
 import { dirname, isAbsolute, join } from "node:path";
 import { createHash, randomUUID } from "node:crypto";
+import { createServer } from "node:net";
 import type { InstallContext } from "./environment.js";
 import { paths } from "./environment.js";
 
@@ -89,8 +90,9 @@ export class Transaction {
   readonly backup: string;
   private readonly owner = randomUUID();
   constructor(base: string, private readonly recovery?: RecoveryJournal) { this.backup = join(base, "backups", Date.now() + "-" + randomUUID()); }
-  async change(path: string, after: string | undefined): Promise<void> {
+  async change(path: string, after: string | undefined, check?: { expected: string | undefined }): Promise<void> {
     const before = await read(path);
+    if (check && before !== check.expected) throw new InstallError("CONFIG_CHANGED", "Configuration changed since the update was calculated: " + path);
     if (before === after) return;
     await mkdir(this.backup, { recursive: true, mode: 0o700 });
     await writeFile(join(this.backup, this.changes.length + ".json"), JSON.stringify({ path, content: before ?? null }), { flag: "wx", mode: 0o600 });
@@ -119,6 +121,22 @@ export class Transaction {
 export async function locked<T>(ctx: InstallContext, action: () => Promise<T>): Promise<T> {
   const p = paths(ctx);
   await mkdir(p.base, { recursive: true, mode: 0o700 });
+  // A kernel-owned resource serializes stale-file reclamation as well as the
+  // transaction. Unlike another lock file, it is released on process death.
+  // Canonicalize aliases; a busy port fails closed, never select another port.
+  const canonical = await realpath(p.base);
+  const identityKey = process.platform === "win32" ? canonical.toLowerCase() : canonical;
+  const port = 20000 + createHash("sha256").update(identityKey).digest().readUInt32BE(0) % 20000;
+  const guard = createServer(socket => socket.destroy());
+  await new Promise<void>((resolve, reject) => {
+    guard.once("error", error => reject(new InstallError((error as NodeJS.ErrnoException).code === "EADDRINUSE" ? "INSTALL_BUSY" : "LOCK_UNAVAILABLE", "Cannot acquire local maintenance guard; no files were changed.")));
+    guard.listen({ host: "127.0.0.1", port, exclusive: true }, resolve);
+  });
+  try { return await lockedFile(ctx, action); }
+  finally { await new Promise<void>(resolve => guard.close(() => resolve())); }
+}
+async function lockedFile<T>(ctx: InstallContext, action: () => Promise<T>): Promise<T> {
+  const p = paths(ctx);
   const token = JSON.stringify({ pid: process.pid, id: randomUUID() });
   let handle;
   for (let attempt = 0; attempt < 2; attempt++) {

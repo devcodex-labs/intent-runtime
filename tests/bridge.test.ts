@@ -26,6 +26,19 @@ function task(reply: BridgeReply) {
   if (reply.kind !== "task") throw new Error("Expected task");
   return reply;
 }
+it("isolates the fixed core contract from mutation of a public task Schema", () => {
+  const { session, bridge } = setup();
+  const first = task(session.prepare({ instance: "orders", input: "x", fields: [] }));
+  if (first.format.kind !== "json_schema") throw new Error("Expected Schema");
+  const schema = first.format.schema as unknown as { properties: { intents: { items: { properties: { action: { enum: unknown[] } } } } } };
+  schema.properties.intents.items.properties.action.enum.push("purchase");
+  const secondSession = bridge.connect();
+  const second = task(secondSession.prepare({ instance: "orders", input: "x", fields: [] }));
+  expect(JSON.stringify(second.format)).not.toContain("purchase");
+  const candidate = core();
+  candidate.intents[0]!.action = "purchase";
+  expect(secondSession.accept({ jobId: second.jobId, stepToken: second.stepToken, candidateText: JSON.stringify(candidate) }).kind).toBe("task");
+});
 it("round trips two stages and idempotently replays the same submission", () => {
   const { session } = setup();
   const first = task(session.prepare({ instance: "orders", input: "000123" }));

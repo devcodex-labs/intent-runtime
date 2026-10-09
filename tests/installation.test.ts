@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { context, paths, directGlobal, supportedNode } from "../src/installation/environment.js";
 import { install, doctor, clean, type InstallOptions } from "../src/installation/installer.js";
-import { codex, type ClientAdapter } from "../src/installation/codex.js";
+import { codex, belongsToModule, type ClientAdapter } from "../src/installation/codex.js";
 import { servers, upsert, remove } from "../src/installation/toml.js";
 import { read } from "../src/installation/files.js";
 
@@ -45,6 +45,46 @@ it("accepts precisely the new minimum major version", () => {
   expect(supportedNode("20.0.0")).toBe(true);
   expect(supportedNode("19.9.0")).toBe(false);
   expect(supportedNode("24.0.0")).toBe(true);
+});
+it("does not adopt an unrelated executable with the public binary name", async () => {
+  const { base, ctx, options } = await fixture();
+  const foreign = join(base, "intent-runtime-mcp");
+  await writeFile(foreign, "unrelated program");
+  const entry = { command: foreign, args: [] };
+  await writeFile(paths(ctx).codex, upsert("", "intent-runtime", entry));
+  expect(await belongsToModule(entry)).toBe(false);
+  expect((await install(ctx, options)).registrations[0]!.name).toBe("intent-runtime-2");
+  expect(servers(await readFile(paths(ctx).codex, "utf8"))["intent-runtime"]).toEqual(entry);
+});
+it("resolves a relative main against its registration cwd rather than the installer cwd", async () => {
+  const { base, ctx, options } = await fixture();
+  const foreign = join(base, "foreign");
+  await mkdir(join(foreign, "dist", "transports", "mcp"), { recursive: true });
+  await writeFile(join(foreign, "package.json"), '{"name":"unrelated-plugin"}');
+  await writeFile(join(foreign, "dist", "transports", "mcp", "main.js"), "// foreign");
+  const entry = { command: process.execPath, args: ["./dist/transports/mcp/main.js"], cwd: foreign };
+  await writeFile(paths(ctx).codex, upsert("", "intent-runtime", entry));
+  expect((await install({ ...ctx, cwd: ctx.root }, options)).registrations[0]!.name).toBe("intent-runtime-2");
+  expect(servers(await readFile(paths(ctx).codex, "utf8"))["intent-runtime"]).toEqual(entry);
+});
+it("recognizes a verified npm binary target and restores an independent original", async () => {
+  const { base, ctx, options } = await fixture();
+  const legacy = join(base, "legacy");
+  const main = join(legacy, "dist", "transports", "mcp", "main.js");
+  await mkdir(dirname(main), { recursive: true });
+  await writeFile(join(legacy, "package.json"), '{"name":"@devcodex-labs/intent-runtime"}');
+  await writeFile(main, "// independent main");
+  const bin = join(base, process.platform === "win32" ? "intent-runtime-mcp.cmd" : "intent-runtime-mcp");
+  if (process.platform === "win32") await writeFile(bin, '@ECHO off\n"node" "%dp0%\\legacy\\dist\\transports\\mcp\\main.js" %*\n');
+  else await symlink(main, bin, "file");
+  const business = join(base, "independent.mjs");
+  await writeFile(business, "export default {instances:{default:{}}};");
+  const entry = { command: bin, args: ["--config", business] };
+  expect(await belongsToModule(entry, ctx)).toBe(true);
+  await writeFile(paths(ctx).codex, upsert("", "intent-runtime", entry));
+  expect((await install(ctx, options)).registrations[0]!.name).toBe("intent-runtime");
+  await clean(ctx, options);
+  expect(servers(await readFile(paths(ctx).codex, "utf8"))["intent-runtime"]).toEqual(entry);
 });
 it("configures a discovered host from arbitrary cwd and preserves unrelated settings", async () => {
   const { ctx, options } = await fixture();
@@ -149,7 +189,7 @@ it("migrates a known manual registration and keeps its trusted config path and s
 });
 it("does not replace a missing existing business config with invented defaults", async () => {
   const { ctx, options } = await fixture();
-  const original = upsert('', "intent-runtime", { command: "intent-runtime-mcp", args: ["--config", join(ctx.home, "missing.mjs")] });
+  const original = upsert('', "intent-runtime", { command: process.execPath, args: [paths(ctx).main, "--config", join(ctx.home, "missing.mjs")] });
   await writeFile(paths(ctx).codex, original);
   await expect(install(ctx, options)).rejects.toMatchObject({ code: "TRUSTED_CONFIG_MISSING" });
   expect(await readFile(paths(ctx).codex, "utf8")).toBe(original);
@@ -195,7 +235,7 @@ it("does not restore an old registration that relies on the global package being
   const { base, ctx, options } = await fixture();
   const business = join(base, "business.mjs");
   await writeFile(business, 'export default {instances:{orders:{}}};');
-  await writeFile(paths(ctx).codex, upsert('', "intent-runtime", { command: "intent-runtime-mcp", args: ["--config", business] }));
+  await writeFile(paths(ctx).codex, upsert('', "intent-runtime", { command: process.execPath, args: [paths(ctx).main, "--config", business] }));
   await install(ctx, options);
   expect((await clean(ctx, options)).status).toBe("cleaned");
   expect(servers(await readFile(paths(ctx).codex, "utf8"))["intent-runtime"]).toBeUndefined();

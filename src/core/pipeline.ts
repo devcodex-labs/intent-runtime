@@ -103,7 +103,7 @@ export function nextRequest(state: Pipeline): ModelRequest {
     payload,
     format:
       stage === "core"
-        ? { kind: "json_schema", name: "intent_core", schema: CORE_SCHEMA }
+        ? { kind: "json_schema", name: "intent_core", schema: structuredClone(CORE_SCHEMA) }
         : { kind: "json_object" },
     signal: state.controller.signal,
   };

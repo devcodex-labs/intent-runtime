@@ -4,6 +4,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { randomUUID } from "node:crypto";
 
 const root = process.cwd();
 const temp = mkdtempSync(path.join(tmpdir(), "intent-maintenance-中文 "));
@@ -50,7 +51,7 @@ function launch(args, env) {
   return { child, closed };
 }
 async function holder(host, changeFiles = false) {
-  const program = path.join(temp, "holder-" + (changeFiles ? "interrupted" : "concurrent") + ".mjs");
+  const program = path.join(temp, "holder-" + (changeFiles ? "interrupted" : "concurrent") + "-" + randomUUID() + ".mjs");
   const files = pathToFileURL(path.join(installed(host), "dist", "installation", "files.js")).href;
   const environment = pathToFileURL(path.join(installed(host), "dist", "installation", "environment.js")).href;
   const changes = changeFiles ? `
@@ -98,8 +99,13 @@ try {
   }
   assert.equal(readFileSync(path.join(interrupted.codex, "config.toml"), "utf8"), original);
   await stop(held);
+  const reclaimers = await Promise.allSettled(Array.from({ length: 6 }, () => holder(interrupted)));
+  const winners = reclaimers.filter(result => result.status === "fulfilled");
+  assert.equal(winners.length, 1, "Only one real process may reclaim and hold the dead owner's lock");
+  for (const result of reclaimers) if (result.status === "rejected") assert.match(String(result.reason), /INSTALL_BUSY/);
+  await stop(winners[0].value);
   assert.equal(doctor(interrupted, true).status, "healthy");
-  checks.push("real competing repair/clean processes cannot modify files while another process holds the lock; a killed owner is reclaimable");
+  checks.push("live-owner competitors are refused; six real stale-lock reclaimers have exactly one holder; killed holders are reclaimable");
   JSON.parse(run([cli(interrupted), "clean", "--json"], interrupted.env));
   writeFileSync(path.join(interrupted.codex, "config.toml"), original);
   rmSync(path.join(interrupted.base, "state.json"));

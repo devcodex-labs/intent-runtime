@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { mkdtemp, mkdir, writeFile, readFile, rm, symlink, lstat, chmod } from "node:fs/promises";
 import { writeFileSync } from "node:fs";
+import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { context, paths } from "../src/installation/environment.js";
@@ -55,6 +56,44 @@ function fail(operation: string, fragment: string, code: string, once = true) {
     }
   };
 }
+it.each(["install", "clean"])("preserves an edit after %s transforms its source snapshot", async operation => {
+  const { ctx, options } = await fixture();
+  if (operation === "clean") await install(ctx, options);
+  const before = await readFile(paths(ctx).codex, "utf8");
+  const edited = 'model_reasoning_effort="high"\n' + before;
+  const adapter = { ...codex, detect: async () => true };
+  const method = operation === "install" ? "write" : "remove";
+  const transform = adapter[method].bind(adapter);
+  adapter[method] = (source, name, ...args: [Record<string, unknown>?]) => {
+    const updated = transform(source, name, args[0]!);
+    writeFileSync(paths(ctx).codex, edited);
+    return updated;
+  };
+  const configured = { ...options, adapters: [adapter] };
+  await expect(operation === "install" ? install(ctx, configured) : clean(ctx, configured)).rejects.toMatchObject({ code: "CONFIG_CHANGED" });
+  expect(await readFile(paths(ctx).codex, "utf8")).toBe(edited);
+});
+it("serializes all contenders reclaiming a real dead-process lock", async () => {
+  const { ctx } = await fixture();
+  const exited = spawn(process.execPath, ["-e", ""], { stdio: "ignore" });
+  await new Promise<void>((resolve, reject) => { exited.once("exit", () => resolve()); exited.once("error", reject); });
+  await mkdir(paths(ctx).base, { recursive: true });
+  await writeFile(paths(ctx).lock, JSON.stringify({ pid: exited.pid, id: "dead-owner" }));
+  let release!: () => void, entered!: () => void, winner = -1, count = 0;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const ready = new Promise<void>(resolve => { entered = resolve; });
+  const competitors = Array.from({ length: 8 }, (_, index) => locked(ctx, async () => {
+    winner = index; count++; entered(); await gate; return "done";
+  }).then(value => ({ value }), error => ({ error: error as { code: string } })));
+  try {
+    await ready;
+    const failures = await Promise.all(competitors.filter((_, index) => index !== winner));
+    expect(count).toBe(1);
+    expect(failures.every(result => "error" in result && result.error.code === "INSTALL_BUSY")).toBe(true);
+    expect(JSON.parse(await readFile(paths(ctx).lock, "utf8")).pid).toBe(process.pid);
+  } finally { release(); await Promise.all(competitors); }
+  expect(await read(paths(ctx).lock)).toBeUndefined();
+});
 it.each([
   ["writeFile", "intent.config.mjs.", "ENOSPC"],
   ["rename", "config.toml", "EBUSY"],
@@ -198,7 +237,7 @@ it("keeps a broken configuration symlink without creating its target", async ({ 
 });
 it("rejects a relative legacy config without an absolute working directory", async () => {
   const { ctx, options } = await fixture();
-  const before = '[mcp_servers.intent-runtime]\ncommand="intent-runtime-mcp"\nargs=["--config","relative.mjs"]\n';
+  const before = '[mcp_servers.intent-runtime]\ncommand=' + JSON.stringify(process.execPath) + '\nargs=' + JSON.stringify([paths(ctx).main, "--config", "relative.mjs"]) + '\n';
   await writeFile(paths(ctx).codex, before);
   await expect(install(ctx, options)).rejects.toMatchObject({ code: "CONFIG_PATH_AMBIGUOUS" });
   expect(await readFile(paths(ctx).codex, "utf8")).toBe(before);
