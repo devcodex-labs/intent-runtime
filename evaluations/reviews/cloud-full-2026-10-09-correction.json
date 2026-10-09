@@ -1,0 +1,22 @@
+{
+  "sourceRun": "cloud-full-2026-10-09",
+  "originalRecordsPreserved": true,
+  "reviewer": "same current conversation assistant, second review against requirements",
+  "independent": false,
+  "eligibleCoreSamples": 92,
+  "inputRejectionCasesExcluded": ["S-44/unknown", "S-46/default", "S-62/unknown"],
+  "knownClassificationFailures": [
+    {"key": "S-22/default", "observedAction": "other", "expectedAction": "modify", "reason": "Cancelling the pending request changes request validity, per requirements B.6."},
+    {"key": "S-70/default", "observedAction": "other", "expectedAction": "modify", "reason": "Withdrawing the request changes request validity. Already-completed code must not be rolled back automatically, per requirements 6.2 and S-70."}
+  ],
+  "requiresAdjudication": [
+    {"key": "S-24/default", "reason": "Language constraint for this report does not explicitly establish generation vs pure constraints. An extra standing-preference prohibition was inferred."},
+    {"key": "S-39/default", "reason": "Delivery is labelled other; verify execute and whether explicitly unresolved budget units need clarification."},
+    {"key": "S-60/default", "reason": "Organizing a report establishes a request but existing-content modification vs new-content generation is not explicit."}
+  ],
+  "remainingProvisionalSelfReviewPasses": 87,
+  "productionAccuracy": null,
+  "independentAccuracy": null,
+  "providerApiCalls": 0,
+  "note": "Withdraw the earlier implication that 95 self-review passes establish 100% recognition accuracy. Do not merge corrected/repeated inputs or controlled probes into an independent score. X-01/X-02 retest the withdrawal classifications with the revised prompt. Full original dataset has not been regenerated after that prompt revision."
+}

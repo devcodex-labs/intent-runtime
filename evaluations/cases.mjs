@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
-export function loadCases() {
+export function loadCases(datasets = ["semantics", "languages"]) {
   const result = [];
-  for (const dataset of ["semantics", "languages"]) {
+  for (const dataset of datasets) {
+    if (!["semantics", "languages", "additional"].includes(dataset))
+      throw new Error("Unknown evaluation dataset.");
     const cases = readFileSync(
       new URL("./cases/" + dataset + ".jsonl", import.meta.url),
       "utf8",

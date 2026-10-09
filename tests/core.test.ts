@@ -468,6 +468,10 @@ describe("strict JSON and resource boundaries", () => {
     expect(value.b).toBe(0.1);
     expect(Object.getPrototypeOf(value)).toBe(null);
   });
+  it("does not count brackets or escaped quotes inside JSON strings as nesting", () => {
+    const value = { text: '[]{}\\"' + "[}".repeat(1000) + "e\u0301😀" };
+    expect(readJson(JSON.stringify(value), { ...DEFAULT_LIMITS, maxCandidateDepth: 1 }, "data")).toEqual(value);
+  });
   it("rejects deep nesting before recursive parseTree can overflow", () => {
     const candidate =
       '{"x":' + "[".repeat(10000) + "0" + "]".repeat(10000) + "}";

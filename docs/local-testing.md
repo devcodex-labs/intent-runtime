@@ -134,9 +134,14 @@ npm run evaluate -- --languages
 
 ~~~bash
 npm run evaluate
+npm run evaluate -- --additional
+# 全部 119 条逐例重新请求五次；会调用所配置 API
+npm run evaluate -- --all --repeat 5
 ~~~
 
 完整运行会主动调用所配置 API；每个变体通常 1 或 2 个阶段，每阶段最多修复一次。结果保存到 evaluations/results，不提交源码。所有语义判定为 pending，需要按 review-guidance.md 人工或独立 AI 复核；exit 0 不等于语义通过。
+
+runner 记录 parse 总耗时以及每次 core/data/repair 模型请求耗时、完整任务、Prompt 摘要和模型回复。按这些记录计算真实模型路径的 p50/p95、修复率和独立语义评分；云端受控候选的毫秒基准不能替代它。原 95 条自评发现两项分类错误，补充 24 条的结果和三种语义校验边界见 [复查报告](coverage-accuracy-review-2026-10-09.md)。
 
 OpenAI 与 xAI 分别运行并记录模型名。桌面路径使用相同案例逐例交接并留存工具记录，API runner 不能替代桌面联调。
 

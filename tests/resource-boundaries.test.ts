@@ -120,6 +120,28 @@ it.each(["maxEvidenceEntries", "maxIssueCount"] as const)(
   },
 );
 
+it("rejects an oversized data request before generation, retains core and releases capacity", async () => {
+  const largeCore = core("Order 000123 " + "x".repeat(16000));
+  const executor = fakeExecutor(largeCore, core());
+  const intent = new Intent({
+    schema: orderSchema,
+    executor,
+    limits: { maxRequestBytes: 10000, maxConcurrentParses: 1 },
+  });
+  try {
+    await expect(intent.parse({ input: "000123" })).rejects.toMatchObject({
+      code: "LIMIT_EXCEEDED",
+      stage: "data",
+      partialResult: { data: {}, intents: [{ target: largeCore.intents[0]!.target }] },
+    });
+    expect(executor.generate).toHaveBeenCalledTimes(1);
+    expect((await intent.parse({ input: "000123", fields: [] })).data).toEqual({});
+    expect(executor.generate).toHaveBeenCalledTimes(2);
+  } finally {
+    intent.dispose();
+  }
+});
+
 it("evicts selected-schema cache entries while keeping selection and validation correct", async () => {
   const candidates = ["a", "b", "a"].flatMap((name) => [
     core(),

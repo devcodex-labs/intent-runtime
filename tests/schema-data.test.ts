@@ -215,3 +215,54 @@ it("keeps nested special-name type, required and closed-object validation active
     store.dispose();
   }
 });
+
+it("preserves Unicode code points rather than normalizing an exact identifier", async () => {
+  const identifier = "e\u0301-000١٢٣😀";
+  const exact = data(identifier);
+  const normalized = structuredClone(exact);
+  normalized.data.orderId = identifier.normalize("NFC");
+  const executor = fakeExecutor(core(), normalized, core(), exact);
+  const intent = new Intent({
+    schema: { type: "object", properties: { orderId: { type: "string", description: "Exact ID" } } },
+    executor,
+    repairAttempts: 0,
+  });
+  try {
+    await expect(intent.parse({ input: identifier })).rejects.toMatchObject({
+      code: "MODEL_OUTPUT_INVALID", stage: "data", partialResult: { data: {} },
+    });
+    expect((await intent.parse({ input: identifier })).data.orderId).toBe(identifier);
+  } finally {
+    intent.dispose();
+  }
+});
+
+it.each([
+  ["false", false, { type: "boolean" }],
+  ["zero", 0, { type: "number" }],
+  ["empty array", [], { type: "array", items: { type: "string" } }],
+  ["empty object", {}, { type: "object", properties: {}, additionalProperties: false }],
+] as const)("requires evidence for an explicitly supplied %s", async (_, value, definition) => {
+  const input = "Explicit value: " + JSON.stringify(value);
+  const candidate = {
+    data: { value },
+    evidence: [{ path: "/data/value", mode: "semantic", sources: [{ sourceId: "input", quote: input }] }],
+    descriptionChecks: [],
+    fieldResults: [{ path: "/data/value", status: "extracted", explanation: "Explicit value" }],
+    issues: [],
+  };
+  const executor = fakeExecutor(core(), { ...candidate, evidence: [] }, core(), candidate);
+  const intent = new Intent({
+    schema: { type: "object", properties: { value: definition } },
+    executor,
+    repairAttempts: 0,
+  });
+  try {
+    await expect(intent.parse({ input })).rejects.toMatchObject({
+      code: "MODEL_OUTPUT_INVALID", stage: "data", partialResult: { data: {} },
+    });
+    expect((await intent.parse({ input })).data).toEqual({ value });
+  } finally {
+    intent.dispose();
+  }
+});

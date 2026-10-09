@@ -22,7 +22,7 @@ const output = resolve(
     ),
 );
 mkdirSync(output, { recursive: true });
-const cases = loadCases();
+const cases = loadCases(process.argv[3]?.split(","));
 const state = new Map(
   cases.map((test) => [test.key, { test, calls: [], review: null }]),
 );

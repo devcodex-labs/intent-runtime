@@ -1,4 +1,8 @@
-import { readFile, mkdir, writeFile } from "node:fs/promises";
+import { mkdir, appendFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { performance } from "node:perf_hooks";
+import { loadCases } from "./cases.mjs";
+import { checkExpectations } from "./expected-result.mjs";
 import { SCHEMA_PRESETS } from "./schemas.mjs";
 import { Intent, IntentParseError } from "@devcodex-labs/intent-runtime";
 import { createApiExecutor } from "@devcodex-labs/intent-runtime/adapters/api";
@@ -6,6 +10,8 @@ const args = process.argv.slice(2);
 const selected = args.includes("--case")
   ? args[args.indexOf("--case") + 1]
   : undefined;
+const repeat = args.includes("--repeat") ? Number(args[args.indexOf("--repeat") + 1]) : 1;
+if (!Number.isInteger(repeat) || repeat < 1 || repeat > 50) throw new Error("--repeat must be an integer from 1 to 50.");
 const provider = process.env.INTENT_PROVIDER,
   model = process.env.INTENT_MODEL;
 const apiKey =
@@ -19,29 +25,42 @@ if (!["openai", "xai"].includes(provider) || !model || !apiKey) {
   process.exit(2);
 }
 
-const files = args.includes("--languages") ? ["languages"] : ["semantics"];
-let cases = [];
-for (const file of files)
-  cases.push(
-    ...(await readFile("evaluations/cases/" + file + ".jsonl", "utf8"))
-      .trim()
-      .split("\n")
-      .map((line) => JSON.parse(line)),
-  );
+const files = args.includes("--all") ? ["semantics", "languages", "additional"]
+  : args.includes("--additional") ? ["additional"]
+    : args.includes("--languages") ? ["languages"] : ["semantics"];
+let cases = loadCases(files);
 if (selected) cases = cases.filter((item) => item.id === selected);
 if (!cases.length) throw new Error("No matching evaluation cases.");
+await mkdir("evaluations/results", { recursive: true });
+const output = "evaluations/results/" + new Date().toISOString().replace(/[:.]/g, "-") + "-" + provider + ".jsonl";
 const records = [];
 let unexpectedFailures = 0;
 for (const item of cases) {
-  for (const variant of item.variants ?? [{ name: "default" }]) {
-    const test = { ...item, ...variant };
+  for (let repetition = 1; repetition <= repeat; repetition++) {
+    const test = item;
+    const variant = { name: test.variant };
     let calls = 0;
+    let unexpected = false;
+    const stages = [];
     const api = createApiExecutor({ provider, model, apiKey });
     const executor = {
       ...api,
       async generate(request) {
         calls++;
-        return api.generate(request);
+        const started = performance.now();
+        const stage = {
+          stage: request.stage, instructions: request.instructions,
+          instructionsSha256: createHash("sha256").update(request.instructions).digest("hex"),
+          payload: request.payload, format: request.format,
+        };
+        try {
+          const reply = await api.generate(request);
+          stage.reply = reply;
+          return reply;
+        } finally {
+          stage.durationMs = performance.now() - started;
+          stages.push(stage);
+        }
       },
     };
     const schema = SCHEMA_PRESETS[test.schemaPreset];
@@ -55,17 +74,20 @@ for (const item of cases) {
       ...(test.fields !== undefined ? { fields: test.fields } : {}),
       ...(test.context !== undefined ? { context: test.context } : {}),
     };
-    const started = Date.now();
+    const started = performance.now();
     const record = {
       id: test.id,
       variant: variant.name,
+      dataset: test.dataset,
+      repetition,
       provider,
       model,
       language: test.language ?? "en",
       request,
       schema: schema ?? null,
       rubric: test.rubric,
-      promptVersion: "v1-dev.0",
+      promptVersion: "v1-dev.1-request-classification",
+      stages,
       semanticReview: "pending",
     };
     try {
@@ -73,7 +95,7 @@ for (const item of cases) {
       record.outcome = "complete";
       if (test.expectedError) {
         record.unexpected = "Expected " + test.expectedError;
-        unexpectedFailures++;
+        unexpected = true;
       }
     } catch (error) {
       record.error =
@@ -86,38 +108,35 @@ for (const item of cases) {
           ? record.error.code !== test.expectedError
           : record.error.code !== "DATA_EXTRACTION_FAILED"
       )
-        unexpectedFailures++;
+        unexpected = true;
     } finally {
-      record.durationMs = Date.now() - started;
+      record.durationMs = performance.now() - started;
       record.calls = calls;
+      record.automatedExpectations = checkExpectations(test, record.result
+        ? { kind: "result", result: record.result }
+        : { kind: "error", error: record.error });
+      if (record.automatedExpectations.mismatches.length) unexpected = true;
+      record.unexpectedProcessingOrExpectationFailure = unexpected;
+      if (unexpected) unexpectedFailures++;
       intent.dispose();
     }
     records.push(record);
+    await appendFile(output, JSON.stringify(record) + "\n");
     console.log(
       test.id +
         " / " +
         variant.name +
-        ": " +
+        " / repeat " + repetition + ": " +
         record.outcome +
         "; semantic review pending",
     );
   }
 }
-await mkdir("evaluations/results", { recursive: true });
-const output =
-  "evaluations/results/" +
-  new Date().toISOString().replace(/[:.]/g, "-") +
-  "-" +
-  provider +
-  ".jsonl";
-await writeFile(
-  output,
-  records.map((item) => JSON.stringify(item)).join("\n") + "\n",
-);
 console.log(
   JSON.stringify({
     cases: cases.length,
     executed: records.length,
+    repeat,
     unexpectedProcessingFailures: unexpectedFailures,
     semanticPassed: 0,
     semanticPending: records.length,
