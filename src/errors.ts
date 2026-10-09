@@ -1,5 +1,5 @@
 import type { IntentResult } from "./contracts/public.js";
-export const ERROR_CODES = [
+export const ERROR_CODES = Object.freeze([
   "CONFIG_INVALID",
   "SCHEMA_UNSUPPORTED",
   "INPUT_INVALID",
@@ -20,8 +20,8 @@ export const ERROR_CODES = [
   "BRIDGE_JOB_NOT_FOUND",
   "BRIDGE_JOB_EXPIRED",
   "BRIDGE_STEP_CONFLICT",
-] as const;
-export const DATA_ISSUE_CODES = [
+] as const);
+export const DATA_ISSUE_CODES = Object.freeze([
   "DATA_REQUIRED_MISSING",
   "DATA_AMBIGUOUS",
   "DATA_CONFLICT",
@@ -31,7 +31,7 @@ export const DATA_ISSUE_CODES = [
   "DATA_DEPENDENCY_MISSING",
   "DATA_DESCRIPTION_UNDETERMINED",
   "DATA_SOURCE_INVALID",
-] as const;
+] as const);
 export type ErrorCode = (typeof ERROR_CODES)[number];
 export type DataIssueCode = (typeof DATA_ISSUE_CODES)[number];
 export type ErrorStage = "config" | "input" | "core" | "data" | "bridge";

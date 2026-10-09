@@ -1,9 +1,15 @@
 import { expect, it } from "vitest";
-import { Intent } from "../src/index.js";
+import { Intent, DATA_ISSUE_CODES, ERROR_CODES } from "../src/index.js";
 import { core, data, fakeExecutor } from "./fixtures.js";
 import { SchemaStore, snapshotSchema } from "../src/schema/schema.js";
 import { DEFAULT_LIMITS } from "../src/contracts/public.js";
 import type { JSONSchema } from "../src/index.js";
+it("keeps public issue/error enums immutable so consumers cannot change validation policy", () => {
+  expect(Reflect.set(DATA_ISSUE_CODES, 0, "invented_issue")).toBe(false);
+  expect(Reflect.set(ERROR_CODES, 0, "invented_error")).toBe(false);
+  expect(DATA_ISSUE_CODES[0]).toBe("DATA_REQUIRED_MISSING");
+  expect(ERROR_CODES[0]).toBe("CONFIG_INVALID");
+});
 it.each(["anyOf", "oneOf"] as const)("requires descriptions only from matching %s branches", async keyword => {
   const schema: JSONSchema = { type: "object", properties: { value: { [keyword]: [
     { type: "string", description: "Keep the string." },
