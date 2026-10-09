@@ -1,7 +1,8 @@
 import { Validator } from "schema-dsl/pure";
 import type { JSONSchema, IntentLimits } from "../contracts/public.js";
 import { fail } from "../errors.js";
-import { bytes, freeze, isObject, pointerKey } from "../internal/object.js";
+import { bytes, freeze, isObject } from "../internal/object.js";
+import { SchemaWorkerPool } from "./worker-pool.js";
 const DIALECT = "http://json-schema.org/draft-07/schema#";
 const keywords = new Set([
   "type",
@@ -327,7 +328,7 @@ export function snapshotSchema(
 }
 export class SchemaStore {
   readonly schema: JSONSchema;
-  private readonly validator: Validator;
+  private readonly validator: SchemaWorkerPool;
   private readonly cache = new Map<
     string,
     { schema: JSONSchema; native: JSONSchema }
@@ -335,12 +336,11 @@ export class SchemaStore {
   constructor(
     schema: JSONSchema,
     private readonly limit: number,
+    budgetMs = 1000,
+    queueSize = 32,
   ) {
     this.schema = schema;
-    this.validator = new Validator({
-      ...validatorOptions,
-      cache: { enabled: true, maxSize: limit },
-    });
+    this.validator = new SchemaWorkerPool(limit, budgetMs, queueSize);
   }
   select(fields: readonly string[] | undefined): string[] {
     const available = Object.keys(this.schema.properties ?? {});
@@ -379,48 +379,17 @@ export class SchemaStore {
     this.cache.set(key, { schema, native: freeze(nativeSchema(schema)) });
     return schema;
   }
-  validate(names: readonly string[], data: unknown) {
+  validate(names: readonly string[], data: unknown, signal?: AbortSignal) {
     this.project(names);
     const key = JSON.stringify([...names].sort());
-    return this.validator.validate(this.cache.get(key)!.native, data, {
-      coerce: false,
-      smartCoerce: false,
-      format: false,
-    });
-  }
-  descriptions(
-    names: readonly string[],
-    data: Record<string, unknown>,
-  ): string[] {
-    const paths: string[] = [];
-    if (this.schema.description) paths.push("/data");
-    const walk = (schema: unknown, value: unknown, path: string): void => {
-      if (!isObject(schema)) return;
-      if (schema.description) paths.push(path);
-      if (isObject(schema.properties) && isObject(value))
-        for (const [key, child] of Object.entries(schema.properties)) {
-          if (Object.hasOwn(value, key))
-            walk(child, value[key], path + "/" + pointerKey(key));
-        }
-      if (isObject(schema.items) && Array.isArray(value))
-        value.forEach((child, index) =>
-          walk(schema.items, child, path + "/" + index),
-        );
-      for (const key of ["allOf", "anyOf", "oneOf"])
-        if (Array.isArray(schema[key]))
-          for (const branch of schema[key]) walk(branch, value, path);
-    };
-    for (const name of names)
-      if (Object.hasOwn(data, name))
-        walk(
-          this.schema.properties![name],
-          data[name],
-          "/data/" + pointerKey(name),
-        );
-    return [...new Set(paths)];
+    const selected = this.cache.get(key)!;
+    // Preserve the root description even though root value constraints are
+    // intentionally not projected into selectable field validation.
+    const original = this.schema.description ? { ...selected.schema, description: this.schema.description } : selected.schema;
+    return this.validator.validate(selected.native, original, data, signal);
   }
   dispose(): void {
     this.cache.clear();
-    this.validator.clearCache();
+    this.validator.dispose();
   }
 }

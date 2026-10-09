@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { Intent } from "../src/index.js";
 import type { IntentConfig } from "../src/index.js";
 import { core, data, fakeExecutor, orderSchema } from "./fixtures.js";
@@ -205,20 +205,25 @@ it("data timeout aborts an uncooperative executor, retains core and releases cap
   const intent = new Intent({
     schema: orderSchema,
     executor,
-    timeoutMs: 30,
+    timeoutMs: 1000,
     limits: { maxConcurrentParses: 1 },
   });
   try {
-    await expect(intent.parse({ input: "000123" })).rejects.toMatchObject({
+    vi.useFakeTimers();
+    const failed = expect(intent.parse({ input: "000123" })).rejects.toMatchObject({
       code: "MODEL_TIMEOUT",
       stage: "data",
       partialResult: { data: {}, intents: [{ action: "query" }] },
     });
+    await vi.advanceTimersByTimeAsync(1001);
+    await failed;
+    vi.useRealTimers();
     expect(aborted).toBe(true);
     expect((await intent.parse({ input: "000123" })).data).toEqual({
       orderId: "000123",
     });
   } finally {
+    vi.useRealTimers();
     intent.dispose();
   }
 });

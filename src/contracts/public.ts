@@ -112,6 +112,8 @@ export interface IntentLimits {
   maxCandidateNodes: number;
   maxEvidenceEntries: number;
   maxIssueCount: number;
+  maxValidationMs: number;
+  maxValidationQueueEntries: number;
 }
 export interface IntentConfig {
   language?: string;
@@ -137,4 +139,6 @@ export const DEFAULT_LIMITS: Readonly<IntentLimits> = Object.freeze({
   maxCandidateNodes: 20000,
   maxEvidenceEntries: 4096,
   maxIssueCount: 256,
+  maxValidationMs: 1000,
+  maxValidationQueueEntries: 32,
 });

@@ -64,7 +64,7 @@ export class Intent {
           Promise.resolve().then(() => executor.generate(modelRequest)),
           aborted,
         ]);
-        const result = acceptCandidate(state, reply);
+        const result = await Promise.race([acceptCandidate(state, reply), aborted]);
         if (result) return result;
       }
       fail(

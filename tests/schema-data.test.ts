@@ -3,7 +3,48 @@ import { Intent } from "../src/index.js";
 import { core, data, fakeExecutor } from "./fixtures.js";
 import { SchemaStore, snapshotSchema } from "../src/schema/schema.js";
 import { DEFAULT_LIMITS } from "../src/contracts/public.js";
-it("normalizes exactLength without weakening existing length bounds", () => {
+import type { JSONSchema } from "../src/index.js";
+it.each(["anyOf", "oneOf"] as const)("requires descriptions only from matching %s branches", async keyword => {
+  const schema: JSONSchema = { type: "object", properties: { value: { [keyword]: [
+    { type: "string", description: "Keep the string." },
+    { type: "number", minimum: 10 },
+  ] } } };
+  const store = new SchemaStore(snapshotSchema(schema, DEFAULT_LIMITS), 2);
+  try {
+    expect(await store.validate(["value"], { value: 12 })).toEqual({ valid: true, descriptionPaths: [] });
+    expect(await store.validate(["value"], { value: "000123" })).toEqual({ valid: true, descriptionPaths: ["/data/value"] });
+    // A number below the bound matches neither described branch.
+    expect(await store.validate(["value"], { value: 5 })).toEqual({ valid: false, descriptionPaths: [] });
+  } finally { store.dispose(); }
+});
+it("walks nested dynamic arrays, literal special names and allOf without duplicate paths", async () => {
+  const schema = JSON.parse('{"type":"object","description":"Root contract","properties":{"extra":{"type":"object","additionalProperties":{"type":"array","items":{"allOf":[{"type":"object","properties":{"__proto__":{"type":"string","description":"Keep identifier"}}},{"description":"Item contract"}]}}}}}');
+  const store = new SchemaStore(snapshotSchema(schema, DEFAULT_LIMITS), 2);
+  try {
+    const value = JSON.parse('{"extra":{"a/~":[{"__proto__":"000123"}]}}');
+    expect(await store.validate(["extra"], value)).toEqual({ valid: true, descriptionPaths: ["/data", "/data/extra/a~1~0/0/__proto__", "/data/extra/a~1~0/0"] });
+  } finally { store.dispose(); }
+});
+it("does not require description checks for absent or unrestricted dynamic values", async () => {
+  const schema: JSONSchema = { type: "object", properties: { extra: { type: "object", additionalProperties: true }, missing: { type: "string", description: "Only when returned" } } };
+  const store = new SchemaStore(snapshotSchema(schema, DEFAULT_LIMITS), 2);
+  try { expect(await store.validate(["extra", "missing"], { extra: { value: "000123" } })).toEqual({ valid: true, descriptionPaths: [] }); }
+  finally { store.dispose(); }
+});
+it.each([false, true])("checks descriptions on dynamic returned properties (complete=%s)", async complete => {
+  const candidate = {
+    data: { extra: { "id/~": "000123" } },
+    evidence: [{ path: "/data/extra/id~1~0", mode: "exact", sources: [{ sourceId: "input", quote: "000123" }] }],
+    descriptionChecks: complete ? [{ path: "/data/extra/id~1~0", verdict: "satisfied", explanation: "Preserves identifier.", sources: [{ sourceId: "input", quote: "000123" }] }] : [],
+    fieldResults: [{ path: "/data/extra", status: "extracted", explanation: "Explicit ID." }], issues: [],
+  };
+  const intent = new Intent({ schema: { type: "object", properties: { extra: { type: "object", additionalProperties: { type: "string", description: "Preserve identifier." } } } }, executor: fakeExecutor(core(), candidate), repairAttempts: 0 });
+  try {
+    if (complete) expect((await intent.parse({ input: "000123" })).data).toEqual(candidate.data);
+    else await expect(intent.parse({ input: "000123" })).rejects.toMatchObject({ code: "MODEL_OUTPUT_INVALID", stage: "data", partialResult: { data: {} } });
+  } finally { intent.dispose(); }
+});
+it("normalizes exactLength without weakening existing length bounds", async () => {
   const store = new SchemaStore(
     snapshotSchema(
       {
@@ -15,7 +56,7 @@ it("normalizes exactLength without weakening existing length bounds", () => {
     2,
   );
   try {
-    expect(store.validate(["value"], { value: "12345" }).valid).toBe(false);
+    expect((await store.validate(["value"], { value: "12345" })).valid).toBe(false);
   } finally {
     store.dispose();
   }
@@ -195,22 +236,21 @@ it("supports literal __proto__ business keys without prototype mutation", async 
   expect(result.data.__proto__).toBe("000123");
   intent.dispose();
 });
-it("keeps nested special-name type, required and closed-object validation active", () => {
+it("keeps nested special-name type, required and closed-object validation active", async () => {
   const schema = JSON.parse(
     '{"type":"object","properties":{"record":{"type":"object","properties":{"__proto__":{"type":"string"}},"required":["__proto__"],"additionalProperties":false}}}',
   );
   const store = new SchemaStore(snapshotSchema(schema, DEFAULT_LIMITS), 2);
   try {
     expect(
-      store.validate(["record"], JSON.parse('{"record":{"__proto__":"value"}}'))
-        .valid,
+      (await store.validate(["record"], JSON.parse('{"record":{"__proto__":"value"}}'))).valid,
     ).toBe(true);
     for (const input of [
       '{"record":{"__proto__":123}}',
       '{"record":{}}',
       '{"record":{"__proto__":"value","extra":1}}',
     ])
-      expect(store.validate(["record"], JSON.parse(input)).valid).toBe(false);
+      expect((await store.validate(["record"], JSON.parse(input))).valid).toBe(false);
   } finally {
     store.dispose();
   }

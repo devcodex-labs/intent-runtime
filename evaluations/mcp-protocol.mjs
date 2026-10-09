@@ -321,13 +321,15 @@ await group("默认32个活动任务容量", {}, async (c) => {
   for (const t of tasks) await c.call("intent_cancel", { jobId: t.jobId });
   assert.equal((await prepare(c)).kind, "task");
 });
-await group("默认128个活动和终态任务合计容量", {}, async (c) => {
+await group("默认128条保留记录优先回收终态，保留活动任务", {}, async (c) => {
+  const active = task(await prepare(c));
+  const oldest = task(await prepare(c));
+  assert.equal((await accept(c, oldest, core)).kind, "result");
   for (let i = 0; i < 128; i++)
-    assert.equal(
-      (await accept(c, task(await prepare(c)), core)).kind,
-      "result",
-    );
-  err(await prepare(c), "LIMIT_EXCEEDED", "bridge");
+    assert.equal((await accept(c, task(await prepare(c)), core)).kind, "result");
+  err(await c.call("intent_cancel", { jobId: oldest.jobId }), "BRIDGE_JOB_NOT_FOUND");
+  assert.equal((await accept(c, active, core)).kind, "result");
+  task(await prepare(c));
 });
 await group(
   "初始材料超过重放字节预算不会保留任务",
@@ -366,19 +368,21 @@ for (const stage of ["core", "data"])
     },
   );
 await group(
-  "输出字节限制在核心/数据阶段终止",
+  "输出字节限制拒绝候选，保留核心/数据阶段及原令牌",
   { instance: { schema, limits: { maxOutputBytes: 1024 } } },
   async (c) => {
     const large = "x".repeat(1025);
+    const first = task(await prepare(c));
     err(
-      await accept(c, task(await prepare(c)), large),
+      await accept(c, first, large),
       "LIMIT_EXCEEDED",
       "core",
     );
-    const d = task(await accept(c, task(await prepare(c)), core));
+    const d = task(await accept(c, first, core));
     const r = await accept(c, d, large);
     err(r, "LIMIT_EXCEEDED", "data");
     assert.deepEqual(r.error.partialResult.data, {});
+    assert.equal((await accept(c, d, data)).kind, "result");
   },
 );
 await group(

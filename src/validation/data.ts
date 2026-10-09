@@ -25,11 +25,12 @@ function invalid(message: string): never {
 }
 const text = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
-export function validateData(
+export async function validateData(
   runtime: Runtime,
   task: ParseTask,
   value: Record<string, JsonValue>,
-): Record<string, JsonValue> {
+  signal?: AbortSignal,
+): Promise<Record<string, JsonValue>> {
   onlyKeys(
     value,
     ["data", "evidence", "descriptionChecks", "fieldResults", "issues"],
@@ -144,12 +145,6 @@ export function validateData(
         message: entry.explanation,
       });
   }
-  if (
-    runtime.store
-      .descriptions(task.selectedNames, data)
-      .some((path) => !checks.has(path))
-  )
-    invalid("Missing applicable description check.");
   for (const entry of value.issues) {
     if (!isObject(entry)) invalid("Invalid issue.");
     onlyKeys(
@@ -233,8 +228,11 @@ export function validateData(
     invalid(
       "Every selected field needs a conclusion, including omitted optional fields.",
     );
+  const native = await runtime.store.validate(task.selectedNames, data, signal);
+  if (native.descriptionPaths.some(path => !checks.has(path)))
+    invalid("Missing applicable description check.");
   if (issues.length) throw new IntentDataError(issues);
-  if (!runtime.store.validate(task.selectedNames, data).valid)
+  if (!native.valid)
     invalid(
       "Candidate does not satisfy selected native Schema; correct it or report the actual business constraint.",
     );

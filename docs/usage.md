@@ -28,11 +28,15 @@ Optional without evidence is omitted. Missing required is reported. null is not 
 
 Internal data candidates include data, evidence, descriptionChecks, fieldResults and issues. Those fields support checking and repair, and do not enter the public result. Every selected field has a conclusion; every returned leaf or empty container has source evidence. Exact string values equal their quoted source; semantic mapping still requires review.
 
+Description checks cover returned declared and dynamic additionalProperties values, array items and allOf branches. Only matching anyOf/oneOf branches contribute descriptions. JSON Pointer names escape `/` and `~`; absent optional values do not need checks. Multiple applicable descriptions at the same path require a verdict covering all of them.
+
 Candidate mistakes are repaired at most once per stage by default. Actual business missing/conflict/capacity/description failures terminate without guessing. All data failures retain the checked default result; no partially checked business fields are committed.
 
 ## Lifetime
 
 parse requires an executor and defaults to one 120-second deadline across both stages and repairs. Four concurrent API parses per instance by default; there is no waiting queue. dispose is idempotent, aborts active requests/jobs and rejects new calls, while leaving a borrowed executor alive.
+
+Native business validation runs in an instance-owned worker pool with at most two live threads, including threads being terminated. limits.maxValidationMs defaults to 1000 ms and includes queue time, worker startup, native compilation/validation and description-branch matching. limits.maxValidationQueueEntries defaults to 32 and counts running and waiting validations. Exhaustion or validation timeout returns LIMIT_EXCEEDED, retains the checked core and commits no business fields. Cancelling/disposal interrupts workers; idle workers are reclaimed. These computation budgets apply when submitting a candidate and do not expire an idle bridge session.
 
 Core/data tasks use independent explicit materials. No hidden model history, external tools, file reading or implicit credentials. The Codex bridge does not physically erase the host model's broader context.
 

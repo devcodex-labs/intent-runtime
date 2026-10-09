@@ -108,10 +108,10 @@ export function nextRequest(state: Pipeline): ModelRequest {
     signal: state.controller.signal,
   };
 }
-export function acceptCandidate(
+export async function acceptCandidate(
   state: Pipeline,
   reply: ModelReply,
-): IntentResult | undefined {
+): Promise<IntentResult | undefined> {
   if (state.terminal)
     fail("BRIDGE_STEP_CONFLICT", "bridge", "Pipeline is already terminal.");
   try {
@@ -143,7 +143,8 @@ export function acceptCandidate(
       stopPipeline(state);
       return structuredClone(state.coreResult);
     }
-    const data = validateData(state.runtime, state.task, value);
+    const data = await validateData(state.runtime, state.task, value, state.controller.signal);
+    if (state.controller.signal.aborted) throw state.controller.signal.reason;
     const result = { ...state.coreResult!, data };
     stopPipeline(state);
     return structuredClone(result);
@@ -151,6 +152,7 @@ export function acceptCandidate(
     const error = asIntentError(cause, state.stage);
     if (
       error.code === "MODEL_OUTPUT_INVALID" &&
+      !state.controller.signal.aborted &&
       state.repairs < state.runtime.repairAttempts &&
       reply?.outcome === "complete" &&
       typeof reply.text === "string"

@@ -214,10 +214,11 @@ export function createIntentBridge(config: BridgeConfig): { connect(): BridgeSes
             const job = lookup(request.jobId, owner);
             if (typeof request.stepToken !== "string" || typeof request.candidateText !== "string")
               fail("INPUT_INVALID", "bridge", "Token and candidateText must be strings.");
+            request = { jobId: job.id, stepToken: request.stepToken, candidateText: request.candidateText };
             if (job.terminal?.kind === "error" && ["BRIDGE_JOB_EXPIRED", "INSTANCE_DISPOSED"].includes(job.terminal.error.code))
               return clone(job.terminal);
             if (bytes(request.candidateText) > job.state.runtime.limits.maxOutputBytes)
-              fail("LIMIT_EXCEEDED", job.state.stage, "Candidate exceeds maxOutputBytes.");
+              return errorReply(attachPartial(job.state, new IntentParseError("LIMIT_EXCEEDED", job.state.stage, "Candidate exceeds maxOutputBytes; the active job and token are unchanged.")));
             const digest = createHash("sha256").update(request.candidateText).digest("hex");
             const prior = job.replays.get(request.stepToken);
             if (prior) {

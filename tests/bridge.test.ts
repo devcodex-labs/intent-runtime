@@ -26,6 +26,50 @@ function task(reply: BridgeReply) {
   if (reply.kind !== "task") throw new Error("Expected task");
   return reply;
 }
+it("snapshots an asynchronous submission before the caller can mutate its request", async () => {
+  const { session } = setup();
+  const first = task(session.prepare({ instance: "orders", input: "x", fields: [] }));
+  const request = { jobId: first.jobId, stepToken: first.stepToken, candidateText: JSON.stringify(core()) };
+  const original = { ...request }, pending = session.accept(request);
+  request.candidateText = "{}";
+  request.stepToken = "mutated";
+  const result = await pending;
+  expect(result).toMatchObject({ kind: "result", result: { normalizedInput: "Query order 000123." } });
+  expect(await session.accept(original)).toEqual(result);
+});
+it("shares an in-flight data submission and rejects a competing candidate", async () => {
+  const { session } = setup();
+  const first = task(session.prepare({ instance: "orders", input: "000123" }));
+  const next = task(await session.accept({ jobId: first.jobId, stepToken: first.stepToken, candidateText: JSON.stringify(core()) }));
+  const request = { jobId: next.jobId, stepToken: next.stepToken, candidateText: JSON.stringify(data()) };
+  const pending = session.accept(request), duplicate = session.accept(request);
+  expect(await session.accept({ ...request, candidateText: "{}" })).toMatchObject({ kind: "error", error: { code: "BRIDGE_STEP_CONFLICT" } });
+  const result = await pending;
+  expect(result.kind).toBe("result");
+  expect(await duplicate).toEqual(result);
+  expect(await session.accept(request)).toEqual(result);
+});
+it.each(["cancel", "close", "dispose"] as const)("does not resurrect data work after %s during validation", async operation => {
+  const { session, intent, bridge } = setup({ maxJobs: 1 });
+  const first = task(session.prepare({ instance: "orders", input: "000123" }));
+  const next = task(await session.accept({ jobId: first.jobId, stepToken: first.stepToken, candidateText: JSON.stringify(core()) }));
+  const pending = session.accept({ jobId: next.jobId, stepToken: next.stepToken, candidateText: JSON.stringify(data()) });
+  await Promise.resolve(); // Enter the worker-backed data validation.
+  if (operation === "cancel") session.cancel({ jobId: next.jobId });
+  else if (operation === "close") session.close();
+  else intent.dispose();
+  expect(await pending).toMatchObject({ kind: "error", error: { code: operation === "cancel" ? "MODEL_ABORTED" : operation === "close" ? "BRIDGE_JOB_NOT_FOUND" : "INSTANCE_DISPOSED" } });
+  if (operation !== "dispose") expect(bridge.connect().prepare({ instance: "orders", input: "next", fields: [] }).kind).toBe("task");
+});
+it("does not replay an old successful stage after configured idle expiration", async () => {
+  vi.useFakeTimers();
+  const { session } = setup({ jobTtlMs: 100 });
+  const first = task(session.prepare({ instance: "orders", input: "000123" }));
+  const request = { jobId: first.jobId, stepToken: first.stepToken, candidateText: JSON.stringify(core()) };
+  expect((await session.accept(request)).kind).toBe("task");
+  vi.advanceTimersByTime(101);
+  expect(await session.accept(request)).toMatchObject({ kind: "error", error: { code: "BRIDGE_JOB_EXPIRED", partialResult: { data: {} } } });
+});
 it("keeps default active sessions and completed replays across several days", async () => {
   vi.useFakeTimers();
   const { session } = setup();
