@@ -69,11 +69,19 @@ format 支持：`date`、`time`、`date-time`、`duration`、`uri`、`uri-refere
 
 所选 data 的根对象只允许所选属性，required 只保留其中选中的必填字段。字段内部的约束保持不变；例如未选择必填 orderId 不会阻止只提取 note，选择 orderId 后它仍是必填。
 
+### 根描述与关系材料
+
+字段选择不会取消适用的根 description。只选择 endTime 时，如果定义要求“结束时间不得早于开始时间”，仍需依据原材料里的开始时间核对关系。未选 startTime 可以作为来源材料，但不能返回到 data；缺少关系材料应反馈 DATA_DEPENDENCY_MISSING 等问题，不能凭未选择该字段跳过约束或猜值。
+
+模型需为适用根描述给出 `/data` 的 descriptionChecks；本地验证检查结论结构与引用，实际关系含义仍需语义复核。完整 Schema、成功候选、失败候选和响应见[部分字段与跨字段约束](../examples/context-fields.md#部分字段与跨字段约束)。
+
 ## 来源与完整性
 
 data 候选除了 `data`，还包含 `evidence`、`descriptionChecks`、`fieldResults` 和 `issues`。API 路径自动处理它们；MCP 的当前模型按实际返回的任务格式生成。最终成功结果只暴露公共 `data` 字段，而错误可暴露相关 issues。
 
 完整 data 候选、来源格式与字段结论枚举见[任务与候选](../api/bridge-mcp.md#data-候选)，最终 data 的省略/null 规则见[响应结构](../api/response.md#data-的省略与-null)。
+
+包含可选省略、null、false、0、空容器及嵌套明细的完整例子见[多订单与不同值类型](../examples/orders.md#多订单与不同值类型)。
 
 每个返回叶值需要对应输入或显式上下文的来源，每个所选字段要有提取结论。精确引用能够证明片段存在，仍不能单独证明引用含义适合该字段。
 

@@ -60,3 +60,91 @@ try {
 ## 只理解动作
 
 同一个订单实例使用 `fields: []` 时，跳过订单号提取，返回完整默认意图与空 data。必填字段不会因此阻止默认意图识别。
+
+## 多订单与不同值类型
+
+下面把明细数组与几种易混淆的值组合在一例中。将此 JSON Schema 传入 Intent 的 schema，或配置为 MCP 命名实例的 schema；它是独立于前面单个 orderId 定义的完整例子。
+
+<!-- business-schema: data-values -->
+```json
+{
+  "type": "object",
+  "description": "各条明细保留订单编号与数量的对应关系。",
+  "properties": {
+    "urgent": { "type": "boolean" },
+    "budget": { "type": "number" },
+    "note": { "type": ["string", "null"] },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "metadata": { "type": "object", "properties": {}, "additionalProperties": false },
+    "orders": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "orderId": { "type": "string" },
+          "quantity": { "type": "integer" }
+        },
+        "required": ["orderId", "quantity"],
+        "additionalProperties": false
+      }
+    },
+    "deliveryNote": { "type": "string", "default": "默认配送说明" }
+  },
+  "required": ["urgent", "budget", "note", "tags", "metadata", "orders"],
+  "additionalProperties": false
+}
+```
+
+parse 请求省略 fields，尝试全部七个顶层字段。调用 MCP prepare 时另外指定实际配置的 instance 名：
+
+<!-- parse-request: data-values -->
+```json
+{
+  "input": "查询订单000123数量2、000124数量1。加急标志为false，预算为0，备注值为null，标签为空数组，附加信息为空对象；未提供配送说明。"
+}
+```
+
+下面是完整 data 候选；它仍须通过 intent_accept 或 API 流水线验证，不能直接当作最终响应。false、0、null 和空容器均引用明确材料；编号采用 exact，其他值用有依据的 semantic 映射。每个数组叶值使用相应 JSON Pointer，配送说明即使被省略也有字段结论。
+
+<!-- model-candidate: data-values -->
+```json
+{
+  "data": {
+    "urgent": false,
+    "budget": 0,
+    "note": null,
+    "tags": [],
+    "metadata": {},
+    "orders": [
+      { "orderId": "000123", "quantity": 2 },
+      { "orderId": "000124", "quantity": 1 }
+    ]
+  },
+  "evidence": [
+    { "path": "/data/urgent", "mode": "semantic", "sources": [{ "sourceId": "input", "quote": "加急标志为false" }] },
+    { "path": "/data/budget", "mode": "semantic", "sources": [{ "sourceId": "input", "quote": "预算为0" }] },
+    { "path": "/data/note", "mode": "semantic", "sources": [{ "sourceId": "input", "quote": "备注值为null" }] },
+    { "path": "/data/tags", "mode": "semantic", "sources": [{ "sourceId": "input", "quote": "标签为空数组" }] },
+    { "path": "/data/metadata", "mode": "semantic", "sources": [{ "sourceId": "input", "quote": "附加信息为空对象" }] },
+    { "path": "/data/orders/0/orderId", "mode": "exact", "sources": [{ "sourceId": "input", "quote": "000123" }] },
+    { "path": "/data/orders/0/quantity", "mode": "semantic", "sources": [{ "sourceId": "input", "quote": "000123数量2" }] },
+    { "path": "/data/orders/1/orderId", "mode": "exact", "sources": [{ "sourceId": "input", "quote": "000124" }] },
+    { "path": "/data/orders/1/quantity", "mode": "semantic", "sources": [{ "sourceId": "input", "quote": "000124数量1" }] }
+  ],
+  "descriptionChecks": [
+    { "path": "/data", "verdict": "satisfied", "explanation": "两条明细分别保留编号与对应数量。", "sources": [{ "sourceId": "input", "quote": "订单000123数量2、000124数量1" }] }
+  ],
+  "fieldResults": [
+    { "path": "/data/urgent", "status": "extracted", "explanation": "明确提供false。" },
+    { "path": "/data/budget", "status": "extracted", "explanation": "明确提供0。" },
+    { "path": "/data/note", "status": "extracted", "explanation": "Schema允许null，原文明确空值。" },
+    { "path": "/data/tags", "status": "extracted", "explanation": "明确提供空数组。" },
+    { "path": "/data/metadata", "status": "extracted", "explanation": "明确提供空对象。" },
+    { "path": "/data/orders", "status": "extracted", "explanation": "两个编号及数量分别保留。" },
+    { "path": "/data/deliveryNote", "status": "not_provided", "explanation": "未提供配送说明，不填入Schema default。" }
+  ],
+  "issues": []
+}
+```
+
+验证后的[完整 IntentResult](../api/response.md#可选字段空值与嵌套业务数据)只保留 data，deliveryNote 省略。缺少明确空值材料时也不能把 note 补成 null；缺少值不等于 false、0 或空容器。引用命中和 satisfied 声明本身不证明语义正确，实际模型仍需按原材料复核。

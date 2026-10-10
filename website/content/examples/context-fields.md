@@ -77,3 +77,128 @@ description: 显式提供相关历史，处理撤回后的当前请求，并理�
 完整多动作输出及局部 requirements 示例见[响应结构](../api/response.md#多动作与局部要求)。
 
 更多检查点见[意图契约](../guide/intent-contract.md)和[语义验证](../testing/validation.md#真实语义与准确率)。
+
+## 部分字段与跨字段约束
+
+这个独立例子定义两个必填时间字段，以及约束两者关系的根 description。将 Schema 配置在 Intent 或 MCP 命名实例中：
+
+<!-- business-schema: partial-fields -->
+```json
+{
+  "type": "object",
+  "description": "结束时间不得早于原材料中的开始时间。",
+  "properties": {
+    "startTime": { "type": "string" },
+    "endTime": { "type": "string" }
+  },
+  "required": ["startTime", "endTime"],
+  "additionalProperties": false
+}
+```
+
+只提取 endTime，startTime 的必填属性不进入所选 data，但原材料中的开始时间仍用于核对根描述：
+
+<!-- parse-request: partial-fields -->
+```json
+{
+  "input": "查询会议时间：开始时间09:00，结束时间10:00。",
+  "fields": ["endTime"]
+}
+```
+
+完整成功 data 候选如下。仅选一个字段，也不能省略适用的根 descriptionChecks：
+
+<!-- model-candidate: partial-fields -->
+```json
+{
+  "data": { "endTime": "10:00" },
+  "evidence": [
+    { "path": "/data/endTime", "mode": "exact", "sources": [{ "sourceId": "input", "quote": "10:00" }] }
+  ],
+  "descriptionChecks": [
+    { "path": "/data", "verdict": "satisfied", "explanation": "10:00晚于原材料中的09:00。", "sources": [{ "sourceId": "input", "quote": "开始时间09:00，结束时间10:00" }] }
+  ],
+  "fieldResults": [
+    { "path": "/data/endTime", "status": "extracted", "explanation": "结束时间明确，关系材料完整。" }
+  ],
+  "issues": []
+}
+```
+
+<!-- response: partial-fields -->
+```json
+{
+  "input": "查询会议时间：开始时间09:00，结束时间10:00。",
+  "normalizedInput": "查询会议时间，开始时间09:00，结束时间10:00。",
+  "primaryIntent": "查询会议时间",
+  "requirements": [],
+  "intents": [
+    { "id": "i1", "action": "query", "target": "会议时间", "requirements": [], "status": "ready" }
+  ],
+  "prohibitions": [],
+  "data": { "endTime": "10:00" }
+}
+```
+
+startTime 没有返回；它的材料可以被引用。若完整候选缺少根检查，则属于 MODEL_OUTPUT_INVALID，可进入候选修复，而非自动忽略该描述。
+
+### 缺少关系材料
+
+仍使用上述 Schema 和 fields，只把输入改为：
+
+<!-- parse-request: missing-dependency -->
+```json
+{
+  "input": "查询会议结束时间：结束时间10:00，未提供开始时间。",
+  "fields": ["endTime"]
+}
+```
+
+结束时间虽已给出，但无法判断相对开始时间的关系。候选保留明确值与来源，并报告依赖缺失；根描述检查为 undetermined，另产生 DATA_DESCRIPTION_UNDETERMINED：
+
+<!-- model-candidate: missing-dependency -->
+```json
+{
+  "data": { "endTime": "10:00" },
+  "evidence": [
+    { "path": "/data/endTime", "mode": "exact", "sources": [{ "sourceId": "input", "quote": "10:00" }] }
+  ],
+  "descriptionChecks": [
+    { "path": "/data", "verdict": "undetermined", "explanation": "缺少开始时间，无法核对结束时间是否更早。", "sources": [{ "sourceId": "input", "quote": "结束时间10:00，未提供开始时间" }] }
+  ],
+  "fieldResults": [
+    { "path": "/data/endTime", "status": "extracted", "explanation": "结束时间明确提供；关系材料缺失由检查和issue报告。" }
+  ],
+  "issues": [
+    { "code": "DATA_DEPENDENCY_MISSING", "category": "business_information", "path": "/data/endTime", "message": "缺少判断关系所需的开始时间。" }
+  ]
+}
+```
+
+API 抛出以下序列化错误；Bridge/MCP 放在 error 分支。模块反馈业务材料问题，不用格式修复补造开始时间，也不返回部分业务 data。默认 query 的 ready 状态保留：
+
+<!-- error-response: dependency -->
+```json
+{
+  "code": "DATA_EXTRACTION_FAILED",
+  "stage": "data",
+  "message": "Selected extension information cannot satisfy the definition.",
+  "issues": [
+    { "code": "DATA_DESCRIPTION_UNDETERMINED", "category": "definition", "path": "/data", "message": "缺少开始时间，无法核对结束时间是否更早。" },
+    { "code": "DATA_DEPENDENCY_MISSING", "category": "business_information", "path": "/data/endTime", "message": "缺少判断关系所需的开始时间。" }
+  ],
+  "partialResult": {
+    "input": "查询会议结束时间：结束时间10:00，未提供开始时间。",
+    "normalizedInput": "查询会议结束时间，已提供10:00，缺少开始时间。",
+    "primaryIntent": "查询会议结束时间",
+    "requirements": [],
+    "intents": [
+      { "id": "i1", "action": "query", "target": "会议结束时间", "requirements": [], "status": "ready" }
+    ],
+    "prohibitions": [],
+    "data": {}
+  }
+}
+```
+
+补充相关材料后重新识别；不要将未选字段的必填检查与根关系描述的适用性混为一谈。描述 verdict 是模型给出的检查结论，本地来源校验不替代独立语义复核。

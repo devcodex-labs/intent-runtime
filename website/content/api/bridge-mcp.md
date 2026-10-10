@@ -18,7 +18,7 @@ Bridge 管理宿主协作的识别任务，宿主负责生成候选。MCP 把该
 
 ## 完整 Bridge 流程
 
-下面的函数完成 prepare/accept 循环，返回终态 result 或 error。`generateCandidate(task)` 由宿主提供，必须按实际 task 的 instructions、payload、format 生成完整 JSON 字符串；它不是模块内置的模型客户端。
+下面的函数完成 prepare/accept 循环，收到 result 或 error 后停止，并在 finally 关闭它创建的 session。`generateCandidate(task)` 由宿主提供，必须按实际 task 的 instructions、payload、format 生成完整 JSON 字符串；它不是模块内置的模型客户端。需要在提交被拒绝后继续原任务的宿主，按[调用错误与任务状态](#调用错误与任务状态)处理，不能仅凭 kind:error 判断任务已终止。
 
 ```js
 import { Intent } from "@devcodex/intent-runtime";
@@ -197,7 +197,36 @@ task 的 payload 是 JSON 字符串；format.schema（存在时）是 JSON 对�
 }
 ```
 
-收到 task 后结束当前工具调用，再生成候选；如果下一次回复仍为 task，继续直到终态。使用每次实际回复的令牌，不从文档示例编造。
+收到 task 后结束当前工具调用，再生成候选；如果下一次回复仍为 task，继续处理。使用每次实际回复的令牌，不从文档示例编造。result 表示成功；error 的处理见下一节。
+
+## 调用错误与任务状态
+
+`kind: "error"` 表示本次调用失败。部分提交拒绝会保留活动任务和有效 stepToken，不能将所有 error 都理解为任务已经终止。MCP 的 `isError: true` 也只描述此次工具回复。
+
+| 发生位置 / 情况 | 对任务的影响 | 宿主处理 |
+| --- | --- | --- |
+| prepare 输入或实例无效、容量不足 | 未为该请求创建可继续的 job | 修正请求后重新 prepare |
+| 活动 job 的 accept 参数类型或未知参数错误 | 不推进该 job | 修正参数，使用最后实际 task 的有效令牌 |
+| 候选超过 maxOutputBytes 或提交无法纳入保留字节容量 | 返回 LIMIT_EXCEEDED，活动 job 与当前令牌保持 | 调整候选；仍使用原有效令牌，不能改写用户材料来规避限制 |
+| token 伪造、同 token 不同候选或竞争提交 | 返回 BRIDGE_STEP_CONFLICT，不替该提交推进任务；原任务可能活动，也可能早已终态 | 核对实际 task 和正在处理的提交；相同请求重放必须使用相同候选字符串，不能猜 token 或盲目重试 |
+| 候选修复用尽、真实业务提取失败、有效取消 | 流水线已结束，返回终态错误 | 保留 code/issues/partialResult；修正材料后发起新识别 |
+| job 不属于连接、已被回收或连接已关闭 | 返回 BRIDGE_JOB_NOT_FOUND，无可访问的原任务 | 在需要时重新 prepare，不跨连接沿用令牌 |
+
+不要只按错误码推断生命周期。例如 LIMIT_EXCEEDED 也可能发生在流水线的其他校验步骤，BRIDGE_STEP_CONFLICT 也可能针对已终态 job。结合调用位置、最后实际 task 与已完成的提交判断；message 文案不作为稳定分支条件。SDK/协议参数校验或连接异常还可能直接抛出，不一定生成 BridgeReply。
+
+例如，已确认是活动 job 的候选字节超限拒绝时，保存原 task，调整完整候选后继续提交：
+
+```js
+export async function resubmitAfterSizeRejection(session, activeTask, correctedCandidateText) {
+  return session.accept({
+    jobId: activeTask.jobId,
+    stepToken: activeTask.stepToken,
+    candidateText: correctedCandidateText,
+  });
+}
+```
+
+这是已知保留任务场景的提交片段，不自动判断任意 error 是否可恢复。后续若收到修复或 data task，应改用新 task 的实际令牌。明确停止时调用 intent_cancel/session.cancel，或关闭连接/session，释放仍活动的任务。
 
 ## MCP 外层返回
 
@@ -244,7 +273,7 @@ export function readIntentToolReply(toolResult) {
 }
 ```
 
-收到 result 后读取 reply.result；收到 error 后读取 reply.error；收到 task 后按任务生成候选并调用 intent_accept，继续到终态。函数用于解包已连接的本服务回复，不能替代对任意不可信数据的完整结构校验。
+收到 result 后读取 reply.result；收到 error 后读取 reply.error，并按[调用错误与任务状态](#调用错误与任务状态)判断如何继续或结束；收到 task 后按任务生成候选并调用 intent_accept。函数用于解包已连接的本服务回复，不能替代对任意不可信数据的完整结构校验。
 
 ## 任务与候选
 

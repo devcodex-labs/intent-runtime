@@ -74,6 +74,17 @@ OpenAI 使用 `https://api.openai.com/v1`；xAI 使用 `https://api.x.ai/v1`。�
 
 默认意图需要目标模型支持所需的 strict JSON Schema 响应格式。设置 `nativeJsonSchema: false` 不会把不支持格式的模型自动变为兼容模型；遇到不能承载的任务会返回 `HOST_CAPABILITY_UNSUPPORTED`。请按服务商当前文档核对模型能力，再执行真实联调。
 
+### 各阶段的实际请求格式
+
+| provider | core | data |
+| --- | --- | --- |
+| OpenAI | `text.format.type: "json_schema"`，`strict: true` | `text.format.type: "json_object"` |
+| xAI | `text.format.type: "json_schema"`，`strict: true` | `text.format.type: "text"` |
+
+内部 data 任务的 `ModelRequest.format.kind` 均为 `json_object`，表示宿主应生成完整 JSON 候选；它不等同于服务商请求体的格式字段。xAI 的 text 路径由提示要求完整 JSON，再执行同样的本地 JSON、Schema、来源与业务候选校验，格式错误仍进入候选修复流程。
+
+OpenAI 将任务说明放在 `instructions`；xAI 使用 system/user input。两种路径都不附加业务工具或隐藏历史。格式构造经过受控 SDK 检查，目标模型是否可靠遵循仍需真实联调。
+
 ## 等待、取消与错误
 
 模块默认不增加 parse 总时限，SDK 和服务商仍有自己的等待限制。SDK 请求超时映射为 `MODEL_TIMEOUT`，请求取消映射为 `MODEL_ABORTED`；鉴权和限流分别对应 `MODEL_AUTH_FAILED`、`MODEL_RATE_LIMITED`。

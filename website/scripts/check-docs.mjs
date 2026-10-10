@@ -1,38 +1,33 @@
 import assert from "node:assert/strict";
-import { readdir, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
+import { documentationFiles, codeBlocks } from "./markdown.mjs";
 
 const website = fileURLToPath(new URL("../", import.meta.url));
 const root = join(website, "..");
 const content = join(website, "content");
-async function walk(dir) {
-  const files = [];
-  for (const entry of await readdir(dir, { withFileTypes: true })) {
-    if (entry.name === "public") continue;
-    const path = join(dir, entry.name);
-    if (entry.isDirectory()) files.push(...await walk(path));
-    else if (/\.mdx?$/.test(entry.name)) files.push(path);
-  }
-  return files;
-}
-const files = await walk(content);
+const files = await documentationFiles(root);
 let snippets = 0, jsonSnippets = 0;
 for (const path of files) {
   const text = await readFile(path, "utf8");
-  assert.match(text, /^title: .+$/m, `Missing title: ${path}`);
-  assert.match(text, /^description: .+$/m, `Missing description: ${path}`);
-  assert.doesNotMatch(text, /开发预览|development preview/i, `User documentation must describe the supported API: ${path}`);
-  for (const match of text.matchAll(/```json\r?\n([\s\S]*?)\r?\n```/g)) {
-    try { JSON.parse(match[1]); }
-    catch (error) { throw new Error(`Invalid JSON example in ${relative(content, path)}`, { cause: error }); }
-    jsonSnippets++;
+  if (path !== join(root, "README.md")) {
+    assert.match(text, /^title: .+$/m, `Missing title: ${path}`);
+    assert.match(text, /^description: .+$/m, `Missing description: ${path}`);
   }
-  for (const match of text.matchAll(/```(?:js|javascript)\r?\n([\s\S]*?)\r?\n```/g)) {
-    try { execFileSync(process.execPath, ["--input-type=module", "--check"], { input: match[1], stdio: ["pipe", "pipe", "pipe"] }); }
-    catch (error) { throw new Error(`Invalid JavaScript example in ${relative(content, path)}`, { cause: error }); }
-    snippets++;
+  assert.doesNotMatch(text, /开发预览|development preview/i, `User documentation must describe the supported API: ${path}`);
+  for (const block of codeBlocks(text)) {
+    if (block.language === "json") {
+      try { JSON.parse(block.code); }
+      catch (error) { throw new Error(`Invalid JSON example in ${relative(root, path)}:${block.line}`, { cause: error }); }
+      jsonSnippets++;
+    }
+    if (block.language === "js") {
+      try { execFileSync(process.execPath, ["--input-type=module", "--check"], { input: block.code, stdio: ["pipe", "pipe", "pipe"] }); }
+      catch (error) { throw new Error(`Invalid JavaScript example in ${relative(root, path)}:${block.line}`, { cause: error }); }
+      snippets++;
+    }
   }
 }
 const contracts = await readFile(join(root, "src/contracts/public.ts"), "utf8");
@@ -62,4 +57,4 @@ for (const name of ["keywords", "formats"]) {
     assert.ok(schemaPage.includes(`\`${value}\``), `Undocumented Schema ${name}: ${value}`);
 }
 assert.ok(!files.some(path => relative(content,path).startsWith("en/")), "English translation awaits Chinese acceptance");
-console.log(`Chinese documentation: ${files.length} pages, ${snippets} JavaScript and ${jsonSnippets} JSON examples parsed; public defaults, error codes and Schema support lists match source. Rspress build verifies page links.`);
+console.log(`Chinese documentation: ${files.length - 1} pages and README, ${snippets} JavaScript and ${jsonSnippets} JSON examples parsed across both fence styles; public defaults, error codes and Schema support lists match source. check:rendered verifies site and README links.`);

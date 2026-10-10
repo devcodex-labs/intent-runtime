@@ -49,7 +49,7 @@ npm run docs:build
 npm --prefix website run check:rendered
 ```
 
-check:examples 包含响应契约检查：完整公共类型与源码对照、文档 JSON 按公共类型校验，并用实际构建包和 MCP SDK 核对四种状态、多动作、显式上下文、业务字段、部分结果与工具封装。可以单独运行 `npm --prefix website run check:responses`；它同样需要先构建根包。候选使用受控材料，这些检查验证文档与接口一致，不测模型语义准确率。
+check:examples 检查站点与根 README 的 JavaScript 示例，包含响应契约检查：完整公共类型与源码对照、文档 JSON 按公共类型校验，并用实际构建包和 MCP SDK 核对四种状态、全局与局部要求、七类动作、显式上下文、业务字段的省略/空值/嵌套、部分字段语义、部分结果与工具封装。可以单独运行 `npm --prefix website run check:responses`；它同样需要先构建根包。候选使用受控材料，这些检查验证文档与接口一致，不测模型语义准确率。
 
 ## 无密钥 MCP 链路
 
@@ -57,7 +57,15 @@ check:examples 包含响应契约检查：完整公共类型与源码对照、�
 npm run test:mcp
 ```
 
-真实 SDK 客户端连接独立 stdio 服务进程，运行 18 组协议与资源场景，候选是受控数据。这证明生产入口、工具交接与校验链路工作，不调用真实模型，也不启动 Codex Desktop。
+真实 SDK 客户端连接独立 stdio 服务进程，运行 18 组协议与资源场景，候选是受控数据。该脚本启动 `evaluations/mcp-protocol-server.mjs`，调用与正式服务共用的 `serveIntentMcp`，验证工具交接与校验链路；它不启动正式 CLI 文件、不调用真实模型，也不启动真实 Codex 客户端。
+
+| 检查 | 入口与覆盖 | 证据边界 |
+| --- | --- | --- |
+| `test:mcp` | 专用服务入口，18 组协议与资源场景 | 受控候选、真实 SDK/stdio；不等于正式 CLI 启动验证 |
+| `smoke:package` | 安装实际 tarball，启动正式 MCP CLI，检查工具和 prepare/cancel | 验证打包与启动，不表示全部模型场景覆盖 |
+| `smoke:installation` / `smoke:maintenance` | 实际安装、诊断、修复与清理；探查配置指向的入口 | 不启动真实 Codex CLI/Desktop，不测语义准确率 |
+| 目标客户端验收 | 用户实际 Codex CLI 与 Desktop，分别保存工具往返 | 安装诊断或测试服务不能替代 |
+| API 语义验收 | 明确的 OpenAI、xAI 模型实际生成与独立评审 | SDK 受控 fetch 不能替代 |
 
 ## 真实语义与准确率
 

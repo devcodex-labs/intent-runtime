@@ -38,7 +38,7 @@ intent-runtime doctor
 1. `intent_prepare` 提交原始 input、instance、明确 context 和 fields。
 2. 等该次工具调用结束，再按任务生成候选。
 3. `intent_accept` 提交完整 JSON 字符串 candidateText 与真实 jobId/stepToken。
-4. 回复仍为 task 时，继续 core/data/repair 阶段；直到 result/error。
+4. 回复仍为 task 时，继续 core/data/repair 阶段；result 表示成功。收到 error 时按[任务错误处理](../api/bridge-mcp.md#调用错误与任务状态)核对状态，提交拒绝不一定终止任务；明确停止时 cancel 或关闭连接。
 5. 拒绝、输出不完整或用户停止时调用 `intent_cancel`。
 
 业务字段实例请用[配置示例](../guide/configuration.md)，例如 `orders` 与 `fields: ["orderId"]`。未定义 Schema 的默认实例不会自动提取任意字段。

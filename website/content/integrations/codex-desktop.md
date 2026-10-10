@@ -54,7 +54,7 @@ npm run build
 原始 input：查询订单 000123
 先调用 intent_prepare。工具返回后按其 instructions、payload 和 format 生成完整候选，
 用回复的真实 jobId、stepToken 调用 intent_accept。
-若返回新 task 则继续，直到最终 result/error；只识别，不查询订单。
+若返回新 task 则继续，result 表示成功；error 按[任务错误处理](../api/bridge-mcp.md#调用错误与任务状态)判断是否仍有活动任务。明确停止时 cancel 或关闭连接；只识别，不查询订单。
 ```
 
 检查最终 `data.orderId` 是字符串 `"000123"`，input 保持原样，当前会话确实经过 prepare/accept。再验证否定、确认、澄清、多意图和提取失败；详见[本地验收清单](./codex-cli.md#本地验收)。

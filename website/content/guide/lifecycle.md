@@ -24,6 +24,8 @@ description: 默认无解析总时限和任务自动过期，理解取消、连�
 
 对活动任务调用 `intent_cancel`，默认 outcome 为 `cancelled`，返回终态错误 `MODEL_ABORTED`。模型拒绝或输出不完整时可分别提交 `refusal`、`incomplete`，对应 `MODEL_REFUSED`、`MODEL_OUTPUT_INCOMPLETE`。
 
+提交调用返回 error 不一定意味着已取消或结束任务。参数、令牌和部分容量拒绝可能保留活动 job；恢复或停止的判断见[调用错误与任务状态](../api/bridge-mcp.md#调用错误与任务状态)。默认没有时间过期机制，明确停止时应取消或关闭所属连接/session。
+
 任务已完成且记录仍保留时，参数有效的 cancel 返回原终态，可能仍是 `result`；取消不会改变已完成的结果。任务被回收或不属于当前连接时返回 `BRIDGE_JOB_NOT_FOUND`。
 
 程序内 Bridge 可关闭单个 session，或关闭整个 bridge。传给 bridge 的 Intent 实例由调用方负责释放。API 路径在不再需要实例时执行 `intent.dispose()`；这会影响该实例上所有活动请求，并返回 `INSTANCE_DISPOSED`。释放后需要创建新实例。

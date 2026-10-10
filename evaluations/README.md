@@ -13,7 +13,7 @@ npm ci
 npm run test:mcp
 ```
 
-使用真实 SDK 客户端和独立 stdio 服务进程，测试 18 组协议及资源场景。候选是受控测试数据，不调用模型 API。结果在外部运行目录中的 `<时间戳>-protocol/`；CI 在 Windows/Linux、两种 Node 版本执行该脚本，实际运行结果以 CI 为准。
+使用真实 SDK 客户端和独立 stdio 服务进程，测试 18 组协议及资源场景。启动的是 `mcp-protocol-server.mjs` 专用测试入口，复用正式服务的 `serveIntentMcp`；正式 MCP CLI 的打包与启动由 smoke:package 等另行检查。候选是受控测试数据，不调用模型 API 或真实 Codex 客户端。结果在外部运行目录中的 `<时间戳>-protocol/`；CI 在 Windows/Linux/macOS × Node 20.0.0/24.x 执行该脚本，实际运行结果以精确提交的 CI 为准。
 
 ## 当前助手逐例生成候选
 
@@ -34,7 +34,7 @@ node evaluations/mcp-session.mjs ../intent-runtime-results/runs/<新的补充目
 {"operation":"close"}
 ```
 
-有 data 或 repair task 时，读取后继续 accept，直到 result/error。澄清问题是 `{question, options}` 对象。建议每批不超过 10 条；默认活动任务上限 32，任务不按时间自动过期，但需要保持原 MCP 连接。原始 instructions、格式、参数、候选摘要和回复写入 `transcript.jsonl`。控制台仅缩略相同 instructions，原始记录完整保留。
+有 data 或 repair task 时，读取后继续 accept。result 表示成功；error 需按[任务错误处理](https://devcodex-labs.github.io/intent-runtime/api/bridge-mcp.html#调用错误与任务状态)判断是否终止，容量拒绝等可能保留当前任务。停止识别时 cancel 或关闭连接。澄清问题是 `{question, options}` 对象。建议每批不超过 10 条；默认活动任务上限 32，任务不按时间自动过期，但需要保持原 MCP 连接。原始 instructions、格式、参数、候选摘要和回复写入 `transcript.jsonl`。控制台仅缩略相同 instructions，原始记录完整保留。
 
 驱动不自动生成候选，不自动批准语义，也不连接 Codex 桌面客户端。`review` 始终记录为当前助手自评、`independent:false`。`summary.json` 保留 `independentReview:pending`。
 
