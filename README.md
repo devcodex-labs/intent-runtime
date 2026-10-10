@@ -10,6 +10,8 @@ Requires Node.js >=20.0.0. ESM only. The package identity is @devcodex-labs/inte
 
 首期站点提供中文内容，中文验证确认后再翻译英文。
 
+[中文文档站](https://devcodex-labs.github.io/intent-runtime/)
+
 - [快速开始](https://github.com/devcodex-labs/intent-runtime/blob/main/website/content/guide/quick-start.md)
 - [Codex CLI](https://github.com/devcodex-labs/intent-runtime/blob/main/website/content/integrations/codex-cli.md) / [Codex Desktop](https://github.com/devcodex-labs/intent-runtime/blob/main/website/content/integrations/codex-desktop.md)
 - [API 参考](https://github.com/devcodex-labs/intent-runtime/blob/main/website/content/api/intent.md) / [错误处理](https://github.com/devcodex-labs/intent-runtime/blob/main/website/content/api/errors.md)
@@ -85,7 +87,7 @@ try {
 
 The MCP path uses the current Codex model through prepare/accept tools. It does not need a model API key. The MCP SDK is installed with the module. Global installation registers the user-level stdio entry and recognition Skill for Codex CLI and desktop; source development can also configure the entry manually. Explicitly activate the workflow to validate actual model use.
 
-See the [Codex workflow](integrations/codex/workflow.md), [configuration example](examples/codex/intent.config.mjs) and [evaluation tools](evaluations/README.md).
+See the [Codex workflow](https://github.com/devcodex-labs/intent-runtime/blob/main/integrations/codex/workflow.md), [configuration example](https://github.com/devcodex-labs/intent-runtime/blob/main/examples/codex/intent.config.mjs) and [evaluation tools](https://github.com/devcodex-labs/intent-runtime/blob/main/evaluations/README.md).
 
 ## Public entries
 

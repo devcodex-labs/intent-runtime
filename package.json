@@ -12,14 +12,19 @@
   "bugs": {
     "url": "https://github.com/devcodex-labs/intent-runtime/issues"
   },
-  "homepage": "https://github.com/devcodex-labs/intent-runtime#readme",
+  "homepage": "https://devcodex-labs.github.io/intent-runtime/",
   "keywords": [
     "intent",
     "runtime",
     "schema",
     "validation",
     "traceability",
-    "natural-language"
+    "natural-language",
+    "mcp",
+    "codex",
+    "schema-dsl",
+    "openai",
+    "xai"
   ],
   "sideEffects": false,
   "exports": {
