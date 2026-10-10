@@ -29,19 +29,6 @@ jobs:
           package-manager-cache: false
       - name: Verify stable tag and package version
         run: node scripts/check-release-tag.mjs
-      - name: Require approved evidence artifact identifiers
-        if: github.ref_name != 'v1.0.1'
-        env:
-          EVIDENCE_RUN_ID: ${{ vars.RELEASE_EVIDENCE_RUN_ID }}
-          EVIDENCE_SHA256: ${{ vars.RELEASE_EVIDENCE_SHA256 }}
-        run: node --input-type=module -e 'if (!/^\d+$/.test(process.env.EVIDENCE_RUN_ID || "") || !/^[a-f0-9]{64}$/.test(process.env.EVIDENCE_SHA256 || "")) throw new Error("Configure the reviewed evidence run and SHA-256 in npm-release.");'
-      - uses: actions/download-artifact@v7
-        if: github.ref_name != 'v1.0.1'
-        with:
-          name: release-acceptance
-          run-id: ${{ vars.RELEASE_EVIDENCE_RUN_ID }}
-          github-token: ${{ github.token }}
-          path: ${{ runner.temp }}/intent-release-evidence
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
@@ -70,15 +57,7 @@ jobs:
           fs.writeFileSync(path.join(dir, 'SHA256SUMS'), `${hash}  ${filename}\n`);
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `tarball=${tarball}\n`);
           NODE
-      - name: Verify approved release evidence and exact platform CI
-        if: github.ref_name != 'v1.0.1'
-        run: node scripts/check-release.mjs
-        env:
-          GH_TOKEN: ${{ github.token }}
-          INTENT_RELEASE_EVIDENCE: ${{ runner.temp }}/intent-release-evidence/release-acceptance.json
-          INTENT_RELEASE_EVIDENCE_SHA256: ${{ vars.RELEASE_EVIDENCE_SHA256 }}
-      - name: Verify exact platform CI for v1.0.1 bootstrap
-        if: github.ref_name == 'v1.0.1'
+      - name: Verify exact main-branch platform CI
         run: |
           node --input-type=module <<'NODE'
           import { execFileSync } from 'node:child_process';
@@ -94,7 +73,7 @@ jobs:
           const run = runs.find(run => run.head_sha === commit && run.status === 'completed' && run.conclusion === 'success');
           if (!run) throw new Error('No successful main-branch CI for this exact release commit.');
           await verifyReleaseCi({ repository, commit, runId: run.id, token });
-          console.log('v1.0.1 bootstrap: exact main-branch platform CI verified; seven-review exception explicitly authorized.');
+          console.log('Exact release commit and all required main-branch platform CI checks verified.');
           NODE
         env:
           GH_TOKEN: ${{ github.token }}

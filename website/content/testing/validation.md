@@ -83,7 +83,15 @@ npm run test:mcp
 
 输入拒绝不混入意图识别准确率分母；部分字段正确也不能算完整请求通过。计划中的通过率目标是验收门槛，不能写成已测准确率。
 
-发布验收逐一记录展开后的 `id/variant` 键，例如 `S-62/omitted` 和 `S-62/empty` 分别评审。验收清单中的 `reviews.semantics.reviewedCaseKeys` 必须包含全部 113 个语义键，`reviews.multilingual.reviewedCaseKeys` 必须包含全部 6 个语言键，不能只记录父用例编号，也不能以重复记录补足数量。
+独立语义验收逐一记录展开后的 `id/variant` 键，例如 `S-62/omitted` 和 `S-62/empty` 分别评审。使用验收清单时，`reviews.semantics.reviewedCaseKeys` 必须包含全部 113 个语义键，`reviews.multilingual.reviewedCaseKeys` 必须包含全部 6 个语言键，不能只记录父用例编号，也不能以重复记录补足数量。
+
+## 版本发布检查
+
+推送与 `package.json` 版本完全一致的稳定版本 tag（例如 `v1.0.2`）会触发 npm 发布。自动流程验证版本匹配、该精确提交在 main 分支上的完整 CI，重新执行类型、代码、单元、MCP、安装维护和打包检查，然后发布带 provenance 的 npm 包，并创建包含安装包与 SHA-256 校验和的 GitHub Release。
+
+自动发布不依赖 OpenAI、xAI 或 Codex CLI/Desktop 的真实验收清单，也无需设置 `RELEASE_EVIDENCE_RUN_ID` 或 `RELEASE_EVIDENCE_SHA256`。真实模型和客户端验证仍用于评估实际行为与语义准确率；包已发布不表示这些检查已完成。
+
+需要保存独立验收记录时，可以手动运行仓库中的 `Review Release Evidence` 工作流。`scripts/check-release.mjs` 和从源码执行 `npm publish` 的 `prepublishOnly` 仍校验外部验收清单；tag 发布工作流直接发布经过检查的 tarball。
 
 ## API 评测命令
 
