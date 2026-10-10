@@ -73,6 +73,8 @@ format 支持：`date`、`time`、`date-time`、`duration`、`uri`、`uri-refere
 
 data 候选除了 `data`，还包含 `evidence`、`descriptionChecks`、`fieldResults` 和 `issues`。API 路径自动处理它们；MCP 的当前模型按实际返回的任务格式生成。最终成功结果只暴露公共 `data` 字段，而错误可暴露相关 issues。
 
+完整 data 候选、来源格式与字段结论枚举见[任务与候选](../api/bridge-mcp.md#data-候选)，最终 data 的省略/null 规则见[响应结构](../api/response.md#data-的省略与-null)。
+
 每个返回叶值需要对应输入或显式上下文的来源，每个所选字段要有提取结论。精确引用能够证明片段存在，仍不能单独证明引用含义适合该字段。
 
 ## 提取失败

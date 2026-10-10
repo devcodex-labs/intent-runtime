@@ -12,7 +12,7 @@ Requires Node.js >=20.0.0. ESM only. The package identity is @devcodex/intent-ru
 
 - [快速开始](https://github.com/devcodex-labs/intent-runtime/blob/main/website/content/guide/quick-start.md)
 - [Codex CLI](https://github.com/devcodex-labs/intent-runtime/blob/main/website/content/integrations/codex-cli.md) / [Codex Desktop](https://github.com/devcodex-labs/intent-runtime/blob/main/website/content/integrations/codex-desktop.md)
-- [API 参考](https://github.com/devcodex-labs/intent-runtime/blob/main/website/content/api/intent.md) / [错误处理](https://github.com/devcodex-labs/intent-runtime/blob/main/website/content/api/errors.md)
+- [API 参考](https://github.com/devcodex-labs/intent-runtime/blob/main/website/content/api/intent.md) / [响应结构](https://github.com/devcodex-labs/intent-runtime/blob/main/website/content/api/response.md) / [错误处理](https://github.com/devcodex-labs/intent-runtime/blob/main/website/content/api/errors.md)
 
 站点在独立 `website/` 包中维护。使用 Node 24 开发或构建站点，库本身仍支持 Node 20.0.0：
 

@@ -39,6 +39,18 @@ npm run smoke:maintenance
 
 覆盖输入与输出契约、字段选择、Schema、来源、错误、并发、任务令牌、容量、取消、安装迁移和恢复等逻辑。打包测试安装实际 tarball，再检查公共入口和 MCP 服务。`smoke:release` 仅校验发布证据契约，运行它不会发布包，也不代表已经获得发布验收。
 
+文档维护还会执行以下检查（website 构建需要 Node 24.x）：
+
+```bash
+npm ci --prefix website
+npm run docs:check
+npm --prefix website run check:examples
+npm run docs:build
+npm --prefix website run check:rendered
+```
+
+check:examples 包含响应契约检查：完整公共类型与源码对照、文档 JSON 按公共类型校验，并用实际构建包和 MCP SDK 核对四种状态、多动作、显式上下文、业务字段、部分结果与工具封装。可以单独运行 `npm --prefix website run check:responses`；它同样需要先构建根包。候选使用受控材料，这些检查验证文档与接口一致，不测模型语义准确率。
+
 ## 无密钥 MCP 链路
 
 ```bash

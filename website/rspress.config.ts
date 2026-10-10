@@ -53,6 +53,7 @@ export default defineConfig({
         ] },
         { text: "API 参考", items: [
           { text: "Intent 与执行器", link: "/api/intent" },
+          { text: "响应结构", link: "/api/response" },
           { text: "Bridge 与 MCP", link: "/api/bridge-mcp" },
           { text: "错误与部分结果", link: "/api/errors" },
         ] },

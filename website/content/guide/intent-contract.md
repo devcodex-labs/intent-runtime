@@ -5,7 +5,7 @@ description: 理解 IntentResult 的默认字段、动作分类、状态、要�
 
 # 意图契约
 
-`IntentResult` 包含固定的默认字段和扩展 `data`。下面是便于理解的示例，措辞和 id 不作为逐字验收标准：
+`IntentResult` 包含固定的默认字段和扩展 `data`。完整类型、必填与空值规则、全部状态和 JSON 示例见[响应结构](../api/response.md)。下面是便于理解的示例，说明措辞不作为逐字验收标准：
 
 ```json
 {
@@ -14,7 +14,7 @@ description: 理解 IntentResult 的默认字段、动作分类、状态、要�
   "primaryIntent": "分析登录失败原因",
   "requirements": [],
   "intents": [
-    { "id": "intent-1", "action": "analyze", "target": "登录失败原因", "status": "ready", "requirements": [] }
+    { "id": "i1", "action": "analyze", "target": "登录失败原因", "status": "ready", "requirements": [] }
   ],
   "prohibitions": ["暂不修改代码"],
   "data": {}
@@ -58,7 +58,7 @@ description: 理解 IntentResult 的默认字段、动作分类、状态、要�
 | `awaiting_confirmation` | `reason` | 请求明确要求先确认 |
 | `conditional` | `reason` | 动作依赖明确的条件或前提 |
 
-`clarification` 中的元素为 `{ "question": "…", "options": [] }`，可提供选项。应用可以据此向用户提问。
+`clarification` 中的元素为 `{ "question": "…", "options": [] }`，question 和 options 都是必填字段；没有明确选项时 options 为空数组。应用可以据此向用户提问。多个阻塞同时存在时的状态优先级与 reason 规则见[动作字段与状态](../api/response.md#动作字段与状态)。
 
 `ready` 不能替代业务授权；`awaiting_confirmation` 也不自动批准后续动作。状态是对材料的理解，应用决定如何推进。
 

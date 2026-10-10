@@ -9,6 +9,7 @@
     "preview": "rspress preview",
     "check": "tsc --noEmit && node scripts/check-docs.mjs",
     "check:examples": "node scripts/check-examples.mjs",
+    "check:responses": "node scripts/check-responses.mjs",
     "check:rendered": "node scripts/check-rendered.mjs"
   },
   "engines": { "node": ">=24.0.0" },

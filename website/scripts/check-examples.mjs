@@ -130,4 +130,5 @@ try {
   assert.match(MCP_TOOLS.find(tool => tool.name === "intent_cancel").inputSchema.properties.detail.description, /2048 UTF-8 bytes/);
 } finally { bridge.close(); intent.dispose(); }
 
+await import("./check-responses.mjs");
 console.log(`${samples.size} JavaScript snippets typechecked against public exports; 3 documented API examples executed with actual SDK and controlled fetch; complete Bridge example and 6 public behavior groups verified. No provider API calls or semantic accuracy measurement.`);

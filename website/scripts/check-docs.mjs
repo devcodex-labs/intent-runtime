@@ -18,12 +18,17 @@ async function walk(dir) {
   return files;
 }
 const files = await walk(content);
-let snippets = 0;
+let snippets = 0, jsonSnippets = 0;
 for (const path of files) {
   const text = await readFile(path, "utf8");
   assert.match(text, /^title: .+$/m, `Missing title: ${path}`);
   assert.match(text, /^description: .+$/m, `Missing description: ${path}`);
   assert.doesNotMatch(text, /开发预览|development preview/i, `User documentation must describe the supported API: ${path}`);
+  for (const match of text.matchAll(/```json\r?\n([\s\S]*?)\r?\n```/g)) {
+    try { JSON.parse(match[1]); }
+    catch (error) { throw new Error(`Invalid JSON example in ${relative(content, path)}`, { cause: error }); }
+    jsonSnippets++;
+  }
   for (const match of text.matchAll(/```(?:js|javascript)\r?\n([\s\S]*?)\r?\n```/g)) {
     try { execFileSync(process.execPath, ["--input-type=module", "--check"], { input: match[1], stdio: ["pipe", "pipe", "pipe"] }); }
     catch (error) { throw new Error(`Invalid JavaScript example in ${relative(content, path)}`, { cause: error }); }
@@ -57,4 +62,4 @@ for (const name of ["keywords", "formats"]) {
     assert.ok(schemaPage.includes(`\`${value}\``), `Undocumented Schema ${name}: ${value}`);
 }
 assert.ok(!files.some(path => relative(content,path).startsWith("en/")), "English translation awaits Chinese acceptance");
-console.log(`Chinese documentation: ${files.length} pages, ${snippets} JavaScript examples parsed; public defaults, error codes and Schema support lists match source. Rspress build verifies page links.`);
+console.log(`Chinese documentation: ${files.length} pages, ${snippets} JavaScript and ${jsonSnippets} JSON examples parsed; public defaults, error codes and Schema support lists match source. Rspress build verifies page links.`);

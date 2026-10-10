@@ -39,6 +39,8 @@ try {
 
 完整结果中的 `data.orderId` 应为 `"000123"`。这是应当核对的业务要求，并非每个模型都已经通过的验收声明。
 
+完整七字段输出见[业务字段提取成功](../api/response.md#业务字段提取成功)，必填值缺失时的完整 issues 与 partialResult 见[失败示例](../api/errors.md#完整失败示例)。
+
 ## MCP 示例
 
 业务配置参考[中文订单实例](../guide/configuration.md#定义中文订单实例)。向 `intent_prepare` 提交：
@@ -48,6 +50,8 @@ try {
 ```
 
 接下来的 core 和 data 候选由当前模型按实际任务生成。不要直接把预期 `data` 当作 accept 候选；data 任务还要求 evidence、字段结论和描述检查。
+
+完整候选与来源字段见 [Bridge 与 MCP：任务与候选](../api/bridge-mcp.md#任务与候选)。SDK 客户端从 `structuredContent.result.data.orderId` 读取最终值；程序内 Bridge 从 `reply.result.data.orderId` 读取。
 
 ## 必填信息缺失
 

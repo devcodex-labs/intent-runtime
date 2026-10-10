@@ -26,6 +26,8 @@ npm install -g @devcodex/intent-runtime
 
 自动生成的 instance 名为 `default`，默认不含业务 Schema，结构化说明语言为 `en`。要提取 `orderId` 或改为中文说明，按[配置与多实例](./configuration.md)编辑业务配置后重载客户端。
 
+MCP 成功回复为 `{ kind: "result", result: ... }`，SDK 工具结果中的完整意图位于 `structuredContent.result`。字段与状态见[响应结构](../api/response.md)，外层封装见 [Bridge 与 MCP](../api/bridge-mcp.md#mcp-外层返回)。
+
 ## 从当前源码本地测试
 
 在项目根目录执行。`npm ci` 是本地依赖安装，不会修改 Codex 配置。
@@ -84,6 +86,25 @@ try {
 ```
 
 上例需要设置有效的环境变量，并选择支持所需响应格式的目标模型。模型名没有模块默认值。完整步骤见 [OpenAI 与 xAI](../integrations/openai-xai.md)。
+
+本例直接得到以下结构的结果；具体说明措辞可以变化：
+
+<!-- response: quick-start -->
+```json
+{
+  "input": "分析登录失败原因，先不要修改代码。",
+  "normalizedInput": "分析登录失败原因，暂不修改代码。",
+  "primaryIntent": "分析登录失败原因",
+  "requirements": [],
+  "intents": [
+    { "id": "i1", "action": "analyze", "target": "登录失败原因", "requirements": [], "status": "ready" }
+  ],
+  "prohibitions": ["暂不修改代码"],
+  "data": {}
+}
+```
+
+需要澄清、等待确认、条件动作、多动作和业务字段等完整输出见[响应结构](../api/response.md)。识别失败时，API 捕获错误并用 toJSON() 获取[错误结构](../api/errors.md#完整失败示例)。
 
 ## 检查安装
 

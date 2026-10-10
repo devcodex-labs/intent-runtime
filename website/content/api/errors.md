@@ -10,21 +10,72 @@ API 路径使用 `IntentParseError`，data 信息不满足定义时可能为其�
 ## 序列化结构
 
 ```ts
+import type { DataIssueCode, ErrorCode, ErrorStage, IntentResult } from "@devcodex/intent-runtime";
+
+type IssueCategory = "input" | "config" | "business_information" | "definition" | "processing";
+interface IntentIssue {
+  code: DataIssueCode | ErrorCode;
+  category: IssueCategory;
+  path: string | null;
+  message: string;
+}
 interface SerializedIntentError {
   code: ErrorCode;
-  stage: "config" | "input" | "core" | "data" | "bridge";
+  stage: ErrorStage;
   message: string;
-  issues: {
-    code: DataIssueCode | ErrorCode;
-    category: "input" | "config" | "business_information" | "definition" | "processing";
-    path: string | null;
-    message: string;
-  }[];
+  issues: IntentIssue[];
   partialResult?: IntentResult;
 }
 ```
 
-stage 表示错误发生位置，不能仅凭错误码假定阶段。issues.path 可为字段路径或 null；不同 issue category 区分输入、定义、业务信息与处理问题。
+ErrorStage 为 config、input、core、data 或 bridge，表示错误发生位置，不能仅凭错误码假定阶段。IssueCategory 在上面用于解释类型，不是独立公开导出。不同 category 区分输入、定义、业务信息与处理问题。
+
+code、stage、message 和 issues 均必填；没有问题明细时 issues 为 `[]`。partialResult 是可选字段，缺失时省略，不能假定总会存在。IntentResult 的完整结构见[响应结构](./response.md)。
+
+API 捕获到的 Error 对象还具有 name、stack 等运行时属性。`error.toJSON(): SerializedIntentError` 返回上面的稳定序列化结构，不包含 name 和 stack；用于记录或传给应用。message 及 issue.message 用于说明，不应作为稳定分支条件。
+
+data issue 的 path 使用 JSON Pointer，例如 `/data/orderId`、`/data/items/0/id` 或根 `/data`；不适用具体路径时为 null。键中的 `~` 用 `~0`、`/` 用 `~1` 转义，例如业务字段 `a/b` 对应 `/data/a~1b`。不要把通用错误的所有 path 都假定为业务字段路径。
+
+## 完整失败示例
+
+空白 input 会得到前置输入错误，没有 partialResult。API 的 error.toJSON() 结构如下；Bridge/MCP 将它放在 `{ kind: "error", error: ... }` 中，再使用 [MCP 外层返回](./bridge-mcp.md#mcp-外层返回)封装。
+
+<!-- error-response: input -->
+```json
+{
+  "code": "INPUT_INVALID",
+  "stage": "input",
+  "message": "input must contain non-whitespace text.",
+  "issues": []
+}
+```
+
+已定义并选择必填 orderId，但材料只有“查询订单”时，业务信息缺失的响应可以如下。core 已成功，data 尚未完成，因此保留完整默认意图，partialResult.data 为 `{}`：
+
+<!-- error-response: data -->
+```json
+{
+  "code": "DATA_EXTRACTION_FAILED",
+  "stage": "data",
+  "message": "Selected extension information cannot satisfy the definition.",
+  "issues": [
+    { "code": "DATA_REQUIRED_MISSING", "category": "business_information", "path": "/data/orderId", "message": "请提供订单编号。" }
+  ],
+  "partialResult": {
+    "input": "查询订单",
+    "normalizedInput": "查询订单。",
+    "primaryIntent": "查询订单",
+    "requirements": [],
+    "intents": [
+      { "id": "i1", "action": "query", "target": "订单", "requirements": [], "status": "ready" }
+    ],
+    "prohibitions": [],
+    "data": {}
+  }
+}
+```
+
+上例的 ready 说明默认请求可以表达，并不代表必填业务字段已提取。问题明细中的措辞由实际候选和校验产生；按 code、category 与 path 处理。
 
 ## 全部公开错误码
 

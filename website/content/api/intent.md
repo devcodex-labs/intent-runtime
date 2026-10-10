@@ -21,7 +21,7 @@ import type { IntentConfig, IntentParseRequest, IntentResult, ModelExecutor } fr
 | 错误类与常量 | `IntentParseError`、`IntentDataError`、`ERROR_CODES`、`DATA_ISSUE_CODES` |
 | 错误类型 | `ErrorCode`、`DataIssueCode`、`ErrorStage`、`IntentIssue`、`SerializedIntentError` |
 
-结果类型见[意图契约](../guide/intent-contract.md)，错误类型见[错误参考](./errors.md)。其他子模块的导出见 [Bridge 与 MCP](./bridge-mcp.md#公开入口)及 [API 适配器](../integrations/openai-xai.md#公开入口)。
+结果完整类型、字段规则和 JSON 示例见[响应结构](./response.md)，语义解释见[意图契约](../guide/intent-contract.md)，错误类型见[错误参考](./errors.md)。其他子模块的导出见 [Bridge 与 MCP](./bridge-mcp.md#公开入口)及 [API 适配器](../integrations/openai-xai.md#公开入口)。
 
 ## new Intent(config)
 
@@ -126,3 +126,5 @@ type ModelReply =
 必须支持 abort，按当前请求格式生成候选，不隐式执行工具或加入额外上下文。`signal` 用于停止执行器正在等待的请求，默认没有解析总期限。
 
 返回值为 `{ outcome: "complete", text: "完整候选 JSON" }`，或 `{ outcome: "refusal" | "incomplete", detail?: string }`。声明的能力必须与实际执行器一致。内置 API 适配器见 [OpenAI 与 xAI](../integrations/openai-xai.md)。
+
+core 和 data 的候选结构与最终 IntentResult 不同；任务 payload、候选和修复示例见 [Bridge 与 MCP：任务与候选](./bridge-mcp.md#任务与候选)。执行器将 instructions 与 payload 交给模型，按本次 format 生成完整候选；最终结果由模块验证并组装。
