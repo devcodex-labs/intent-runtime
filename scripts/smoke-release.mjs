@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { validateReleaseEvidence, verifyReleaseCi } from "./release-evidence.mjs";
+import { validateReleaseEvidence, validateReleaseTag, verifyReleaseCi } from "./release-evidence.mjs";
 import { loadCases } from "../evaluations/cases.mjs";
 const now = Date.parse("2026-10-09T00:00:00Z"), commit = "a".repeat(40);
 const expected = { repository: "devcodex-labs/intent-runtime", commit, version: "1.0.0", hashes: { prompt: "b".repeat(64) }, caseKeys: { semantics: loadCases(["semantics", "additional"]).map(test => test.key), multilingual: loadCases(["languages"]).map(test => test.key) }, registryDate: "2025-08-25", now };
@@ -8,6 +8,16 @@ for (const name of ["openai", "xai", "codexCli", "codexDesktop", "semantics", "m
   evidence.reviews[name] = { accepted: true, reviewedBy: "Test fixture", reviewedAt: "2026-10-08T00:00:00Z", evidence: "fixture://no-real-test", model: "fixture", apiCalls: 1, clientVersion: "fixture", os: "fixture", reviewedCaseKeys: expected.caseKeys[name], accuracy: 1, minimumAccuracy: 0.9, criticalFailures: 0, fileDate: "2025-08-25", freshnessDecision: "fixture" };
 validateReleaseEvidence(evidence, expected);
 let rejected = 0;
+validateReleaseTag({ tag: "v1.0.0", version: "1.0.0" });
+for (const invalid of [
+  { tag: "v1.0.1", version: "1.0.0" },
+  { tag: "1.0.0", version: "1.0.0" },
+  { tag: "v1.0.0-dev.0", version: "1.0.0-dev.0" },
+  { tag: "v1.00.0", version: "1.00.0" },
+  { tag: "vnext", version: "1.0.0" },
+]) {
+  assert.throws(() => validateReleaseTag(invalid)); rejected++;
+}
 for (const mutate of [e => e.commit = "c".repeat(40), e => e.version = "1.0.1", e => e.hashes.prompt = "changed", e => e.reviews.openai.apiCalls = 0, e => e.reviews.codexCli.os = "", e => e.reviews.semantics.reviewedCaseKeys = [], e => e.reviews.multilingual.criticalFailures = 1, e => e.reviews.languageRegistry.reviewedAt = "2025-01-01", e => delete e.reviews.codexDesktop]) {
   const changed = structuredClone(evidence); mutate(changed);
   assert.throws(() => validateReleaseEvidence(changed, expected)); rejected++;

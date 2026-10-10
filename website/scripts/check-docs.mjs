@@ -23,6 +23,7 @@ for (const path of files) {
   const text = await readFile(path, "utf8");
   assert.match(text, /^title: .+$/m, `Missing title: ${path}`);
   assert.match(text, /^description: .+$/m, `Missing description: ${path}`);
+  assert.doesNotMatch(text, /开发预览|development preview/i, `User documentation must describe the supported API: ${path}`);
   for (const match of text.matchAll(/```(?:js|javascript)\n([\s\S]*?)\n```/g)) {
     try { execFileSync(process.execPath, ["--input-type=module", "--check"], { input: match[1], stdio: ["pipe", "pipe", "pipe"] }); }
     catch (error) { throw new Error(`Invalid JavaScript example in ${relative(content, path)}`, { cause: error }); }
@@ -45,5 +46,15 @@ for (const name of ["ERROR_CODES", "DATA_ISSUE_CODES"]) {
 }
 const config = await readFile(join(website, "rspress.config.ts"), "utf8");
 assert.match(config, /lang: "zh"/);
+for (const path of [join(root, "README.md"), join(website, "rspress.config.ts"), join(website, "scripts/generate-llms.mjs")])
+  assert.doesNotMatch(await readFile(path, "utf8"), /开发预览|development preview/i, `User-facing release label: ${path}`);
+const schemaSource = await readFile(join(root, "src/schema/schema.ts"), "utf8");
+const schemaPage = await readFile(join(content, "guide/schema-fields.md"), "utf8");
+for (const name of ["keywords", "formats"]) {
+  const values = new RegExp(`const ${name} = new Set\\(\\[([\\s\\S]*?)\\]\\)`).exec(schemaSource)?.[1];
+  assert.ok(values, name);
+  for (const [,value] of values.matchAll(/"([^"]+)"/g))
+    assert.ok(schemaPage.includes(`\`${value}\``), `Undocumented Schema ${name}: ${value}`);
+}
 assert.ok(!files.some(path => relative(content,path).startsWith("en/")), "English translation awaits Chinese acceptance");
-console.log(`Chinese documentation: ${files.length} pages, ${snippets} JavaScript examples parsed; public defaults and error codes match source. Rspress build verifies page links.`);
+console.log(`Chinese documentation: ${files.length} pages, ${snippets} JavaScript examples parsed; public defaults, error codes and Schema support lists match source. Rspress build verifies page links.`);

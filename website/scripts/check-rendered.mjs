@@ -20,6 +20,7 @@ let references = 0;
 for (const path of files) {
   const html = await readFile(path, "utf8");
   assert.match(html, /<html[^>]*lang="zh/);
+  assert.doesNotMatch(html, /开发预览|development preview/i, `Unexpected release label: ${path}`);
   const origin = new URL(base + relative(dist, path).replaceAll("\\", "/"), "https://docs.test");
   for (const [,attribute,value] of html.matchAll(/\b(href|src)="([^"]+)"/g)) {
     if (/^(data:|mailto:|tel:|javascript:)/.test(value)) continue;
@@ -39,6 +40,7 @@ for (const path of files) {
   }
 }
 const llms = await readFile(join(dist, "llms.txt"), "utf8");
+assert.doesNotMatch(llms, /开发预览|development preview/i);
 const pageCount = (await walk(join(website, "content"), /\.mdx?$/)).length;
 assert.equal((llms.match(/^- \[/gm) ?? []).length, pageCount);
 assert.equal(files.length, pageCount + 1, "Every source page and the 404 page must render");

@@ -20,7 +20,42 @@ const schema = s({
 
 类型约束说明值能否表示，description 说明业务含义。必填字段在材料不足时应反馈问题，不能通过猜测填满。编号等精确值建议使用 string。
 
-也可以传入等价 JSON Schema。当前支持的关键字以源码校验和 `SCHEMA_UNSUPPORTED` 反馈为准；远程引用、函数和可执行 Schema 不属于可传递的定义。顶层属性是字段选择单位。
+也可以直接传入 JSON Schema。模块支持下表所述的 Draft-7 子集，顶层属性是字段选择单位。不支持的定义会在构造实例时返回 `SCHEMA_UNSUPPORTED`；超出资源限制则返回 `LIMIT_EXCEEDED`。
+
+## 支持的 Schema 范围
+
+非空定义的根必须是带 `properties` 的 `type: "object"`。省略 schema 或传入 `{}` 表示没有扩展字段。
+
+| 类别 | 支持的关键字 / 行为 |
+| --- | --- |
+| 对象 | `type`、`properties`、`required`、`additionalProperties` |
+| 数组 | 单个对象或 boolean Schema 的 `items`、`minItems`、`maxItems`、`uniqueItems`；不支持数组形式的 tuple items |
+| 字符串 | `minLength`、`maxLength`、`pattern`、`format`；DSL 的 `exactLength` 转换为长度上下界 |
+| 数字 | `minimum`、`maximum`、`exclusiveMinimum`、`exclusiveMaximum`、`multipleOf` |
+| 值与组合 | 嵌套字段中的 `enum`、`const`、`anyOf`、`oneOf`、`allOf`、`not`；组合数组长度为 1–16 |
+| 注解 | `title`、`description`、`examples`、`default`、`$comment`；default 不自动填充数据 |
+| 方言与标识 | `$schema` 只接受 Draft-7 的 http/https 标识；`$id` 接受后在内部移除，不注册引用 |
+| DSL 元数据 | `_label`、`_customMessages` 接受后在内部移除，不参与业务校验 |
+
+format 支持：`date`、`time`、`date-time`、`duration`、`uri`、`uri-reference`、`url`、`email`、`hostname`、`ipv4`、`ipv6`、`regex`、`uuid`、`json-pointer`、`relative-json-pointer`。
+
+根对象不支持 `anyOf`、`oneOf`、`allOf`、`not`、`enum`、`const` 值约束，因为字段选择后无法保留这些约束的原始含义。可以把组合规则写在对应的顶层属性内部。
+
+所有 `$ref` 都不支持，包括 `#/...` 本地引用；`definitions`、`$defs`、条件关键字和未列出的其他关键字也不支持。定义需为可复制的 JSON 数据，不包含函数、访问器、循环引用或可执行转换。boolean Schema 可用于嵌套节点，根定义仍需为对象。
+
+例如，下面的本地引用会被拒绝，即使引用目标在同一份 Schema 中：
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "orderId": { "type": "string" },
+    "relatedOrderId": { "$ref": "#/properties/orderId" }
+  }
+}
+```
+
+直接在 relatedOrderId 中写对应的字段定义即可。校验不会自动转换类型、插入 default 或删除额外属性；编号 `"000123"` 不会被转成数值，缺失必填值也不会用默认值替代。
 
 ## 三种 fields
 
@@ -32,6 +67,8 @@ const schema = s({
 
 选择未知字段会得到 `UNKNOWN_FIELD`。选择嵌套叶值不替代选择对应顶层字段。字段选择改变扩展范围，不应删减默认动作、要求或禁止事项。
 
+所选 data 的根对象只允许所选属性，required 只保留其中选中的必填字段。字段内部的约束保持不变；例如未选择必填 orderId 不会阻止只提取 note，选择 orderId 后它仍是必填。
+
 ## 来源与完整性
 
 data 候选除了 `data`，还包含 `evidence`、`descriptionChecks`、`fieldResults` 和 `issues`。API 路径自动处理它们；MCP 的当前模型按实际返回的任务格式生成。最终成功结果只暴露公共 `data` 字段，而错误可暴露相关 issues。
@@ -40,6 +77,8 @@ data 候选除了 `data`，还包含 `evidence`、`descriptionChecks`、`fieldRe
 
 ## 提取失败
 
-必要字段缺失、多个候选无法确定、相互冲突、数量不符、值不可表示、描述约束违反或来源无效，都可能产生 `DATA_EXTRACTION_FAILED`。
+必要字段缺失、多个候选无法确定、相互冲突、数量不符、值不可表示或描述约束不满足，可能产生 `DATA_EXTRACTION_FAILED`，直接反馈材料或定义问题。
+
+缺少来源证据、引用片段不在声明来源中、精确值与引用不一致，则属于 `MODEL_OUTPUT_INVALID`。完整候选可尝试修复，修复用尽后返回该错误；它们不作为真实业务信息缺失处理。
 
 处理错误时记录 `issues`，可用 `partialResult` 显示已经验证的默认意图。该部分结果不代表业务字段提取成功，下一步可澄清材料或修正定义后重新识别。参见[错误与部分结果](../api/errors.md)。

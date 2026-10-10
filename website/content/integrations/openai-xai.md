@@ -7,6 +7,19 @@ description: 从 Node.js 应用显式配置 provider、model 和 apiKey，并理
 
 API 适配器使用 OpenAI SDK 的 Responses API。两种 provider 共用 `createApiExecutor`，模型名和凭据由调用方明确提供。
 
+## 公开入口
+
+```ts
+import { createApiExecutor, readCompletedResponse } from "@devcodex-labs/intent-runtime/adapters/api";
+import type { ApiExecutorConfig } from "@devcodex-labs/intent-runtime/adapters/api";
+import type { ModelExecutor, ModelRequest, ModelReply } from "@devcodex-labs/intent-runtime";
+
+// createApiExecutor(config: ApiExecutorConfig): ModelExecutor
+// readCompletedResponse(response: unknown, request: ModelRequest): ModelReply
+```
+
+`readCompletedResponse` 解析已有的 Responses API 回复，不发起网络请求。它将 completed 消息提取成完整候选，将 incomplete/refusal 转为相应 outcome，并拒绝非预期的工具输出、多个最终候选或空候选。候选的 JSON 和业务契约仍由 Intent 流水线校验；使用 createApiExecutor 时无需额外调用它。
+
 ## 配置环境
 
 API 路径需要安装可选 peer `openai`（支持 `>=6.49.0 <7`）。从源码执行 `npm ci` 已包含测试使用的 SDK。

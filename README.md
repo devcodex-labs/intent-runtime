@@ -2,13 +2,11 @@
 
 A TypeScript / Node.js library for expressing the current effective user request as default intents plus selected schema-dsl business fields.
 
-**Development preview:** target V1 is implemented with deterministic contract tests. Real OpenAI/xAI models and Codex desktop semantics require local validation; this is not a release acceptance claim.
-
-Requires Node.js >=20.0.0. ESM only. The package identity is @devcodex-labs/intent-runtime; existing 0.1.0 prototype exports are not retained.
+Requires Node.js >=20.0.0. ESM only. The package identity is @devcodex-labs/intent-runtime.
 
 ## 中文文档
 
-首期站点提供中文内容，中文验证确认后再翻译英文。
+安装、接入指南和 API 参考见中文文档站。
 
 [中文文档站](https://devcodex-labs.github.io/intent-runtime/)
 
@@ -25,7 +23,7 @@ npm run docs:dev
 
 ## Global installation
 
-Once this preview is released to npm's default tag, install from any directory:
+Install from any directory:
 
 ~~~bash
 npm install -g @devcodex-labs/intent-runtime
@@ -47,7 +45,11 @@ npm run smoke:installation
 
 ## API usage
 
-Install the optional openai peer when using the API adapter. Provider, key and model are always explicitly supplied by the caller.
+Install the optional openai peer when using the API adapter, and schema-dsl when importing its DSL directly. Provider, key and model are always explicitly supplied by the caller.
+
+~~~bash
+npm install @devcodex-labs/intent-runtime openai schema-dsl
+~~~
 
 ~~~js
 import { s } from "schema-dsl/pure";
@@ -94,9 +96,9 @@ See the [Codex workflow](https://github.com/devcodex-labs/intent-runtime/blob/ma
 | Entry | Exports |
 |---|---|
 | @devcodex-labs/intent-runtime | Intent, public contracts, errors and constants |
-| @devcodex-labs/intent-runtime/adapters/api | createApiExecutor |
-| @devcodex-labs/intent-runtime/bridge | createIntentBridge |
-| @devcodex-labs/intent-runtime/mcp | serveIntentMcp |
+| @devcodex-labs/intent-runtime/adapters/api | createApiExecutor, readCompletedResponse, ApiExecutorConfig type |
+| @devcodex-labs/intent-runtime/bridge | createIntentBridge and Bridge/session/request/reply types |
+| @devcodex-labs/intent-runtime/mcp | serveIntentMcp, MCP_TOOLS |
 | intent-runtime-mcp --config path.mjs | Trusted config + stdio MCP service |
 | intent-runtime doctor / clean | Optional client diagnostics, repair and owned-configuration cleanup |
 

@@ -7,13 +7,9 @@ description: 选择 Codex MCP 或 API 路径，完成安装、配置与第一次
 
 先选择接入方式：希望使用当前 Codex 模型，走 MCP；希望从 Node.js 应用直接请求指定模型，走 API。
 
-:::warning 开发预览
-当前源码版本是 `1.0.0-dev.0`，正式 npm 发布验收尚未完成。下方包名安装命令用于对应版本发布后；测试当前源码请使用本页的本地打包流程。不要把旧 npm 原型版本当作当前源码。
-:::
-
 ## Codex：全局安装
 
-已安装 Node.js ≥20.0.0，并至少启动过 Codex 客户端后，正式版本可用时执行：
+安装 Node.js ≥20.0.0，并至少启动一次 Codex 客户端后执行：
 
 ```bash
 npm install -g @devcodex-labs/intent-runtime
@@ -43,15 +39,15 @@ npm run build
 可以按 [Desktop 手动配置](../integrations/codex-desktop.md#从源码手动配置)直接接入，也可以测试全局安装的完整行为：
 
 ```powershell
-npm pack --pack-destination ..
-npm install -g ..\devcodex-labs-intent-runtime-1.0.0-dev.0.tgz
+$packed = npm pack --pack-destination .. --json | ConvertFrom-Json
+npm install -g (Join-Path .. $packed[0].filename)
 ```
 
 输出包名以 `npm pack` 实际显示的文件名为准。包保存在项目同级，方便本地检查和清理。
 
 ## API：从应用调用
 
-对应版本发布后，在应用中安装：
+在应用中安装：
 
 ```bash
 npm install @devcodex-labs/intent-runtime openai

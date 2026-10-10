@@ -77,7 +77,7 @@ export const MCP_TOOLS = [
           type: "string",
           enum: ["cancelled", "refusal", "incomplete"],
         },
-        detail: { type: "string", maxLength: 2048 },
+        detail: { type: "string", maxLength: 2048, description: "Cancellation detail, at most 2048 UTF-8 bytes." },
       },
       required: ["jobId"],
       additionalProperties: false,

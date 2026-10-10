@@ -9,8 +9,13 @@ export function releaseHashes(root) {
 }
 const requireValue = (condition, message) => { if (!condition) throw new Error(message); };
 const text = value => typeof value === "string" && value.trim().length > 0;
+export function validateReleaseTag({ tag, version }) {
+  const stable = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+  requireValue(stable.test(version), "Release package version must be stable SemVer.");
+  requireValue(tag === `v${version}`, "Release tag must match the package version exactly.");
+}
 export function validateReleaseEvidence(evidence, { repository, commit, version, hashes, caseKeys, registryDate, now = Date.now() }) {
-  requireValue(/^\d+\.\d+\.\d+$/.test(version), "Only a stable version is release-approved; development previews are blocked.");
+  validateReleaseTag({ tag: `v${version}`, version });
   requireValue(evidence?.schemaVersion === 1 && evidence.repository === repository && evidence.commit === commit && evidence.version === version, "Release evidence does not match the repository, commit and version.");
   requireValue(/^\d+$/.test(String(evidence.ciRunId)), "Missing CI run ID.");
   for (const [file, hash] of Object.entries(hashes)) requireValue(evidence.hashes?.[file] === hash, `Release input changed: ${file}.`);

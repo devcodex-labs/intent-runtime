@@ -64,6 +64,6 @@ export default defineConfig({
       ],
     },
     socialLinks: [{ icon: "github", mode: "link", content: repository }],
-    footer: { message: "MIT License · devcodex-labs · 中文开发预览" },
+    footer: { message: "MIT License · devcodex-labs" },
   },
 });

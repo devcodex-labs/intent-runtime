@@ -55,4 +55,79 @@ globalThis.fetch = async () => {
   assert.equal(result.stderr, "", name);
   assert.match(result.stdout, expected, name);
 }
-console.log(`${samples.size} JavaScript snippets typechecked against public exports; 3 documented API examples executed with actual SDK and controlled fetch. No provider API calls or semantic accuracy measurement.`);
+
+const bridgePage = await readFile(join(content, "api/bridge-mcp.md"), "utf8");
+const bridgeCode = /```js\n([\s\S]*?)\n```/.exec(bridgePage)?.[1];
+assert.ok(bridgeCode, "Complete Bridge example");
+const bridgeRun = spawnSync(process.execPath, ["--input-type=module", "--eval", `${bridgeCode}\n
+import assert from 'node:assert/strict';
+let calls = 0;
+const reply = await recognizeWithHost('查询订单 000123', async task => {
+  assert.equal(task.kind, 'task');
+  return ++calls === 1 ? '{' : JSON.stringify(${JSON.stringify(core("查询订单 000123"))});
+});
+assert.equal(calls, 2);
+assert.equal(reply.kind, 'result');
+assert.deepEqual(reply.result.data, {});
+const failure = await recognizeWithHost('查询订单 000123', async () => '{}');
+assert.equal(failure.kind, 'error');
+assert.equal(failure.error.code, 'MODEL_OUTPUT_INVALID');
+console.log('Complete Bridge example: repair, result and terminal error verified');
+`], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+assert.equal(bridgeRun.status, 0, bridgeRun.stderr);
+assert.equal(bridgeRun.stderr, "");
+
+// These are public boundaries explained by the documentation, checked against
+// the built package. Controlled candidates never call a model provider.
+const { Intent } = await import(new URL("../../dist/index.js", import.meta.url));
+const { createIntentBridge } = await import(new URL("../../dist/bridge/index.js", import.meta.url));
+const { MCP_TOOLS } = await import(new URL("../../dist/transports/mcp/index.js", import.meta.url));
+const capability = { nativeJsonSchema: false, nativeJsonObject: false, isolatedTurn: true, supportsAbort: true };
+const reply = value => ({ outcome: "complete", text: JSON.stringify(value) });
+const schema = { type: "object", properties: { orderId: { type: "string", description: "Current order identifier; preserve exactly.", default: "000123" } }, required: ["orderId"] };
+const missing = { data: {}, evidence: [], descriptionChecks: [], fieldResults: [{ path: "/data/orderId", status: "issue", explanation: "No order given." }], issues: [{ code: "DATA_REQUIRED_MISSING", category: "business_information", path: "/data/orderId", message: "No order given." }] };
+let calls = 0;
+const missingIntent = new Intent({ schema, executor: { id: "docs:missing", capabilities: capability, async generate() { return reply(++calls === 1 ? core("查询订单") : missing); } } });
+try {
+  await assert.rejects(missingIntent.parse({ input: "查询订单" }), error => error.code === "DATA_EXTRACTION_FAILED" && error.issues[0].code === "DATA_REQUIRED_MISSING" && Object.keys(error.partialResult.data).length === 0);
+  assert.equal(calls, 2, "Business missing must not generate a repair or insert default values");
+} finally { missingIntent.dispose(); }
+
+calls = 0;
+const wrongSource = { ...data, evidence: [{ ...data.evidence[0], sources: [{ sourceId: "input", quote: "999" }] }] };
+const sourceIntent = new Intent({ schema, executor: { id: "docs:source", capabilities: capability, async generate() { return reply(++calls === 1 ? core("查询订单 000123") : wrongSource); } } });
+try {
+  await assert.rejects(sourceIntent.parse({ input: "查询订单 000123" }), error => error.code === "MODEL_OUTPUT_INVALID" && error.stage === "data");
+  assert.equal(calls, 3, "Source quote errors must receive one candidate repair");
+} finally { sourceIntent.dispose(); }
+
+const active = new Intent({ executor: { id: "docs:dispose", capabilities: capability, generate: () => new Promise(() => {}) } });
+const disposed = assert.rejects(active.parse({ input: "x", fields: [] }), error => error.code === "INSTANCE_DISPOSED");
+active.dispose();
+await disposed;
+
+const original = { id: "docs:reference", capabilities: capability, async generate() { return reply(core("original")); } };
+const config = { executor: original };
+const referenced = new Intent(config);
+try {
+  config.executor = { ...original, async generate() { return reply(core("replacement")); } };
+  original.generate = async () => reply(core("mutated original"));
+  assert.equal((await referenced.parse({ input: "x", fields: [] })).intents[0].target, "mutated original");
+} finally { referenced.dispose(); }
+
+const intent = new Intent();
+const bridge = createIntentBridge({ instances: { default: intent } });
+try {
+  const session = bridge.connect();
+  const job = session.prepare({ instance: "default", input: "x", fields: [] });
+  assert.equal(job.kind, "task");
+  assert.equal(session.cancel({ jobId: job.jobId, detail: "中".repeat(683) }).error.code, "INPUT_INVALID");
+  const terminal = await session.accept({ jobId: job.jobId, stepToken: job.stepToken, candidateText: JSON.stringify(core("x")) });
+  assert.equal(terminal.kind, "result");
+  assert.deepEqual(session.cancel({ jobId: job.jobId }), terminal);
+  const next = session.prepare({ instance: "default", input: "x", fields: [] });
+  assert.equal(session.cancel({ jobId: next.jobId, detail: "中".repeat(682) }).error.code, "MODEL_ABORTED");
+  assert.match(MCP_TOOLS.find(tool => tool.name === "intent_cancel").inputSchema.properties.detail.description, /2048 UTF-8 bytes/);
+} finally { bridge.close(); intent.dispose(); }
+
+console.log(`${samples.size} JavaScript snippets typechecked against public exports; 3 documented API examples executed with actual SDK and controlled fetch; complete Bridge example and 6 public behavior groups verified. No provider API calls or semantic accuracy measurement.`);

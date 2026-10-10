@@ -12,6 +12,17 @@ import { Intent, IntentParseError, DEFAULT_LIMITS } from "@devcodex-labs/intent-
 import type { IntentConfig, IntentParseRequest, IntentResult, ModelExecutor } from "@devcodex-labs/intent-runtime";
 ```
 
+| 公开导出 | 名称 |
+| --- | --- |
+| 实例与常量 | `Intent`、`ACTIONS`、`STATUSES`、`DEFAULT_LIMITS` |
+| 请求与结果类型 | `IntentConfig`、`IntentLimits`、`IntentParseRequest`、`IntentResult`、`IntentItem`、`IntentAction`、`IntentStatus`、`Clarification` |
+| 材料与 Schema 类型 | `ContextMessage`、`IntentContext`、`JsonValue`、`JSONSchema` |
+| 执行器类型 | `ModelExecutor`、`ExecutorCapabilities`、`ModelRequest`、`ModelReply` |
+| 错误类与常量 | `IntentParseError`、`IntentDataError`、`ERROR_CODES`、`DATA_ISSUE_CODES` |
+| 错误类型 | `ErrorCode`、`DataIssueCode`、`ErrorStage`、`IntentIssue`、`SerializedIntentError` |
+
+结果类型见[意图契约](../guide/intent-contract.md)，错误类型见[错误参考](./errors.md)。其他子模块的导出见 [Bridge 与 MCP](./bridge-mcp.md#公开入口)及 [API 适配器](../integrations/openai-xai.md#公开入口)。
+
 ## new Intent(config)
 
 | 配置 | 默认值 | 说明 |
@@ -23,7 +34,9 @@ import type { IntentConfig, IntentParseRequest, IntentResult, ModelExecutor } fr
 | `repairAttempts` | 1 | 每阶段候选修复次数，只支持 0 或 1 |
 | `limits` | `DEFAULT_LIMITS` | 可选的部分资源限制覆盖 |
 
-配置和 Schema 在实例初始化时形成内部快照，修改原对象不是更新实例配置的方式。重新构造实例来应用新定义。
+Schema、language、timeoutMs、repairAttempts 和 limits 在初始化时确定；修改原配置或 Schema 不会更新实例。
+
+自定义 `executor` 保存原对象引用：重新赋值 `config.executor` 不会替换实例使用的执行器，但修改原执行器的 `generate` 或 capabilities 会影响后续调用。构造后保持执行器行为稳定；需要更换定义或执行器时创建新 Intent 实例。
 
 ## parse(request)
 
@@ -41,11 +54,13 @@ interface IntentParseRequest {
 
 `input` 必须包含非空白文字。`fields` 选择顶层字段；省略、部分选择与 `[]` 的行为见 [Schema 与字段选择](../guide/schema-fields.md)。`context` 是显式文字或按时间顺序排列的消息，不隐式加载宿主历史。
 
+parse 只接受一个请求对象；请求和 context 消息中的未知参数会被拒绝。重复 fields 会去重。返回 Promise 在成功时得到完整结果，在失败时抛出 `IntentParseError` 或其子类。
+
 未配置 executor 时，parse 抛出 `EXECUTOR_NOT_CONFIGURED`。接口没有公开的单次 parse signal 参数；自定义 executor 接收模块提供的 `ModelRequest.signal`。
 
 ## dispose()
 
-释放实例并取消该实例上的活动流水线。重复释放可安全调用，之后不能再使用该实例进行识别；生命周期见[相关指南](../guide/lifecycle.md)。
+释放实例并停止该实例上的活动流水线，活动识别和释放后的新调用均返回 `INSTANCE_DISPOSED`。重复释放可安全调用，之后需要创建新实例；生命周期见[相关指南](../guide/lifecycle.md)。
 
 ## 默认资源限制
 
@@ -90,6 +105,24 @@ interface ModelExecutor {
 }
 ```
 
-`ModelRequest` 包含 stage、instructions、payload、format 和 signal。格式为 `json_schema`（name/schema）或 `json_object`。必须支持 abort，按当前请求格式生成候选，不隐式执行工具或加入额外上下文。
+请求与回复契约：
+
+```ts
+interface ModelRequest {
+  stage: "core" | "data";
+  instructions: string;
+  payload: string;
+  format:
+    | { kind: "json_schema"; name: string; schema: JSONSchema }
+    | { kind: "json_object" };
+  signal: AbortSignal;
+}
+
+type ModelReply =
+  | { outcome: "complete"; text: string }
+  | { outcome: "refusal" | "incomplete"; detail?: string };
+```
+
+必须支持 abort，按当前请求格式生成候选，不隐式执行工具或加入额外上下文。`signal` 用于停止执行器正在等待的请求，默认没有解析总期限。
 
 返回值为 `{ outcome: "complete", text: "完整候选 JSON" }`，或 `{ outcome: "refusal" | "incomplete", detail?: string }`。声明的能力必须与实际执行器一致。内置 API 适配器见 [OpenAI 与 xAI](../integrations/openai-xai.md)。

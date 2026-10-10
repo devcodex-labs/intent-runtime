@@ -1,28 +1,14 @@
 # Changelog
 
-## Unreleased — global installation
+## 1.0.0 — 2026-10-10
 
-- Enforce release acceptance in the npm publish lifecycle and review every expanded evaluation case variant, including sibling variants of the same parent.
-- Wait for diagnostic MCP subprocess exit before returning and retry transient Windows executable cleanup locks. Update test tooling to Vitest 4.1.11 and Vite 6.4.4 while retaining Node 20.0.0 support.
-- Use the Rspress 2.0.23 default theme for the Chinese documentation site, with native homepage, search and light/dark modes.
-- Preserve exact configuration snapshots during installation/cleanup and serialize stale-lock recovery with a process-owned local guard. Verify package ownership before restoring MCP registrations.
-- Keep bridge sessions active by default through multi-day pauses. Evict completed records first under capacity pressure and preserve active tokens on oversized or over-budget submissions; await asynchronous accept calls.
-- Check dynamic and applicable composed Schema descriptions. Run native validation in bounded, interruptible workers with adversarial-regex, cancellation and installed-package coverage.
-- Bind release reviews to the exact commit, version, Prompt/datasets/registry hashes and successful platform matrix. Transfer reviewed evidence as a protected artifact and derive the MCP version from package metadata.
-
-- Support Node.js >=20.0.0, including actual minimum-version package and stdio checks.
-- Automatically configure discovered local clients on direct global npm installation; Codex is the first adapter. Preserve business config, unrelated settings and user-edited instructions.
-- Add optional intent-runtime doctor, doctor --repair and clean commands, private ownership records, backups and failure recovery.
-- Install the MCP SDK with the module and use openai 6.49.0 as the optional API test baseline compatible with Node 20.
-- Verify global installation, reinstall, changed prefix, disabled lifecycle scripts, local/indirect installation isolation and cleanup with real packaged fixtures.
-- Recover interrupted installation/cleanup from a private journal; preserve conflicting user edits and release locks even when their initial write fails. Validate incomplete ownership records and allow retry after a failed first initialization without inventing replacements for established business config.
-- Add filesystem fault checks and real-process maintenance tests for contention, interruption, imported business config/env, version changes, stale Node paths and uninstall/reinstall. Isolate native discovery in filesystem tests and compare canonical installation paths across platforms.
-
-## 1.0.0-dev.0 — 2026-10-09
-
-- Implement the latest object-only Intent.parse request, default en, registered language validation and explicit context.
-- Add native schema-dsl snapshots, top-level projection, strict JSON/number/source checks and selected-field conclusions.
-- Add shared core/data pipeline, bounded repair, partialResult, deadlines, disposal and configurable limits.
-- Add OpenAI/xAI Responses adapters and session-bound prepare/accept/cancel bridge with a local stdio MCP entry.
-- Add deterministic contracts, SDK/MCP transport tests, installed-package smoke and 81 numbered semantic scenarios.
-- Replace prototype exports; real-model and desktop acceptance remain manual and unverified.
+- 提供对象式 Intent.parse，识别当前有效请求，保留多动作、要求、禁止事项及澄清、确认和条件状态。
+- 支持显式上下文、注册语言标签和 schema-dsl / JSON Schema 业务字段，按顶层字段选择提取范围。
+- 共享 core/data 流水线，校验候选结构、业务描述和来源；区分候选修复与真实信息缺失，保留默认意图部分结果。
+- 提供 OpenAI/xAI Responses API 适配器，以及 prepare/accept/cancel Bridge 与 stdio MCP 服务。
+- 直接全局安装时自动配置检测到的 Codex CLI/Desktop，安装识别 Skill，提供 doctor、修复和清理命令。
+- 默认不增加解析总期限，Bridge 任务不按时间自动过期；容量不足时优先回收已完成记录，保持活动任务和令牌可继续使用。
+- 使用可中断的本地 Schema 校验及资源预算，支持并发、实例释放、取消、安装恢复与用户配置保护。
+- 库运行时支持 Node.js ≥20.0.0 和 ESM；CI 覆盖 Linux、Windows、macOS 与 Node 20.0.0/24.x。
+- 提供基于 Rspress 2.0.23 的中文使用文档，补齐公开 API、Schema 支持范围、配置、错误分类和维护排障参考。
+- 发布流程由版本 tag 触发，检查版本匹配、验收材料及精确提交 CI，发布 npm 包后创建含安装包和校验和的 GitHub Release。

@@ -5,6 +5,13 @@ on:
     tags:
       - "v*"
 
+concurrency:
+  group: npm-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -19,17 +26,9 @@ jobs:
         with:
           node-version: "24.x"
           registry-url: https://registry.npmjs.org/
-          cache: npm
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm run build
-      - run: npm test
-      - run: npm run smoke:validation
-      - run: node evaluations/mcp-protocol.mjs
-      - run: npm run smoke:package
-      - run: npm run smoke:installation
-      - run: npm run smoke:maintenance
+          package-manager-cache: false
+      - name: Verify stable tag and package version
+        run: node scripts/check-release-tag.mjs
       - name: Require approved evidence artifact identifiers
         env:
           EVIDENCE_RUN_ID: ${{ vars.RELEASE_EVIDENCE_RUN_ID }}
@@ -41,9 +40,69 @@ jobs:
           run-id: ${{ vars.RELEASE_EVIDENCE_RUN_ID }}
           github-token: ${{ github.token }}
           path: ${{ runner.temp }}/intent-release-evidence
-      - run: npm publish --access public --provenance
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test
+      - run: npm run smoke:validation
+      - run: npm run smoke:release
+      - run: node evaluations/mcp-protocol.mjs
+      - run: npm run smoke:package
+      - run: npm run smoke:installation
+      - run: npm run smoke:maintenance
+      - name: Pack release asset
+        id: package
+        run: |
+          mkdir -p "$RUNNER_TEMP/intent-package"
+          npm pack --pack-destination "$RUNNER_TEMP/intent-package" --json > "$RUNNER_TEMP/intent-package/pack.json"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import { createHash } from 'node:crypto';
+          const dir = path.join(process.env.RUNNER_TEMP, 'intent-package');
+          const [{ filename }] = JSON.parse(fs.readFileSync(path.join(dir, 'pack.json'), 'utf8'));
+          if (path.basename(filename) !== filename) throw new Error('Unexpected package filename.');
+          const tarball = path.join(dir, filename);
+          const hash = createHash('sha256').update(fs.readFileSync(tarball)).digest('hex');
+          fs.writeFileSync(path.join(dir, 'SHA256SUMS'), `${hash}  ${filename}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `tarball=${tarball}\n`);
+          NODE
+      - name: Verify approved release evidence and exact platform CI
+        run: node scripts/check-release.mjs
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           GH_TOKEN: ${{ github.token }}
           INTENT_RELEASE_EVIDENCE: ${{ runner.temp }}/intent-release-evidence/release-acceptance.json
           INTENT_RELEASE_EVIDENCE_SHA256: ${{ vars.RELEASE_EVIDENCE_SHA256 }}
+      - uses: actions/upload-artifact@v6
+        with:
+          name: npm-package
+          path: |
+            ${{ runner.temp }}/intent-package/*.tgz
+            ${{ runner.temp }}/intent-package/SHA256SUMS
+          if-no-files-found: error
+          overwrite: true
+      - run: npm publish "${{ steps.package.outputs.tarball }}" --access public --provenance
+        env:
+          # Optional bootstrap token; configured trusted publishing uses OIDC.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+  release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: npm-package
+          path: release-assets
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" release-assets/*.tgz release-assets/SHA256SUMS --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$RELEASE_TAG" release-assets/*.tgz release-assets/SHA256SUMS --repo "$GITHUB_REPOSITORY" --verify-tag --title "$RELEASE_TAG" --generate-notes
+          fi

@@ -22,13 +22,17 @@ description: 默认无解析总时限和任务自动过期，理解取消、连�
 
 ## 取消与释放
 
-MCP 调用 `intent_cancel`，默认 outcome 为 `cancelled`，返回终态错误 `MODEL_ABORTED`。模型拒绝或输出不完整时可分别提交 `refusal`、`incomplete`，对应 `MODEL_REFUSED`、`MODEL_OUTPUT_INCOMPLETE`。
+对活动任务调用 `intent_cancel`，默认 outcome 为 `cancelled`，返回终态错误 `MODEL_ABORTED`。模型拒绝或输出不完整时可分别提交 `refusal`、`incomplete`，对应 `MODEL_REFUSED`、`MODEL_OUTPUT_INCOMPLETE`。
 
-程序内 Bridge 可关闭单个 session，或关闭整个 bridge。传给 bridge 的 Intent 实例由调用方负责释放。API 路径在不再需要实例时执行 `intent.dispose()`；这会影响该实例上所有活动请求。
+任务已完成且记录仍保留时，参数有效的 cancel 返回原终态，可能仍是 `result`；取消不会改变已完成的结果。任务被回收或不属于当前连接时返回 `BRIDGE_JOB_NOT_FOUND`。
+
+程序内 Bridge 可关闭单个 session，或关闭整个 bridge。传给 bridge 的 Intent 实例由调用方负责释放。API 路径在不再需要实例时执行 `intent.dispose()`；这会影响该实例上所有活动请求，并返回 `INSTANCE_DISPOSED`。释放后需要创建新实例。
 
 ## 容量与回放
 
-Bridge 默认最多 32 个活动任务，保留条目上限 128，保留字节上限 8 MiB。已完成任务的回复没有默认时间 TTL，但可能因容量被回收，因此不把回放当作永久历史。
+Bridge 默认最多 32 个活动任务，保留任务记录上限 128，保留字节上限 8 MiB。这些容量在同一 Bridge 的全部连接和命名实例之间共享；保留记录包括活动和已终态任务。字节预算统计内部任务与回复等序列化内容，详见[容量统计](../api/bridge-mcp.md#配置与容量)。
+
+已完成任务的回复没有默认时间 TTL，但可能因容量被回收，因此不把回放当作永久历史。
 
 同一连接、同一 stepToken 和相同候选的重复提交可以返回保留的回复；改变已提交候选会产生冲突。业务应用应保存最终结果，不能靠无限回放存储数据。
 
