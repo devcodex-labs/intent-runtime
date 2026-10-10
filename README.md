@@ -6,6 +6,21 @@ A TypeScript / Node.js library for expressing the current effective user request
 
 Requires Node.js >=20.0.0. ESM only. The package identity is @devcodex-labs/intent-runtime; existing 0.1.0 prototype exports are not retained.
 
+## 中文文档
+
+首期站点提供中文内容，中文验证确认后再翻译英文。
+
+- [快速开始](https://github.com/devcodex-labs/intent-runtime/blob/main/website/content/guide/quick-start.md)
+- [Codex CLI](https://github.com/devcodex-labs/intent-runtime/blob/main/website/content/integrations/codex-cli.md) / [Codex Desktop](https://github.com/devcodex-labs/intent-runtime/blob/main/website/content/integrations/codex-desktop.md)
+- [API 参考](https://github.com/devcodex-labs/intent-runtime/blob/main/website/content/api/intent.md) / [错误处理](https://github.com/devcodex-labs/intent-runtime/blob/main/website/content/api/errors.md)
+
+站点在独立 `website/` 包中维护。使用 Node 24 开发或构建站点，库本身仍支持 Node 20.0.0：
+
+~~~bash
+npm ci --prefix website
+npm run docs:dev
+~~~
+
 ## Global installation
 
 Once this preview is released to npm's default tag, install from any directory:

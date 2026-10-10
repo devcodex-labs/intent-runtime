@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://devcodex-labs.github.io/intent-runtime/sitemap.xml

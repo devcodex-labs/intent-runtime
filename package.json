@@ -67,6 +67,10 @@
     "smoke:validation": "node scripts/smoke-validation.mjs",
     "smoke:release": "node scripts/smoke-release.mjs",
     "registry:refresh": "node scripts/refresh-language-registry.mjs",
+    "docs:dev": "npm --prefix website run dev",
+    "docs:build": "npm --prefix website run build",
+    "docs:preview": "npm --prefix website run preview",
+    "docs:check": "npm --prefix website run check",
     "postinstall": "node scripts/postinstall.mjs"
   },
   "publishConfig": {
