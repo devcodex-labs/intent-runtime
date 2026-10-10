@@ -7,7 +7,7 @@ description: 全局安装如何自动配置 Codex，以及升级、诊断、修�
 
 ## 自动配置的触发条件
 
-直接执行 `npm install -g @devcodex-labs/intent-runtime` 时，安装脚本会尝试配置检测到的客户端。全局依赖的间接安装、应用本地依赖安装和源码 `npm ci` 不会自动修改客户端配置。
+直接执行 `npm install -g @devcodex/intent-runtime` 时，安装脚本会尝试配置检测到的客户端。全局依赖的间接安装、应用本地依赖安装和源码 `npm ci` 不会自动修改客户端配置。
 
 Codex 检测会检查用户配置目录、CLI 可执行文件及受支持的桌面安装位置。未检测到客户端时，不代表模块无法安装；安装状态会反映未配置客户端的情况，安装客户端后可运行修复命令。
 
@@ -117,7 +117,7 @@ intent-runtime doctor --repair
 
 ```bash
 intent-runtime clean
-npm uninstall -g @devcodex-labs/intent-runtime
+npm uninstall -g @devcodex/intent-runtime
 ```
 
 npm 卸载本身不负责运行本模块的配置清理。业务配置和安装备份不会被 `clean` 删除；确认不再需要后由你手动处理。源码测试和日常本地依赖安装无需这一套全局维护流程。

@@ -32,7 +32,7 @@ function sandbox(name) {
   return { home, prefix, codex, env };
 }
 function installed(prefix) {
-  return path.join(prefix, ...(process.platform === "win32" ? [] : ["lib"]), "node_modules", "@devcodex-labs", "intent-runtime");
+  return path.join(prefix, ...(process.platform === "win32" ? [] : ["lib"]), "node_modules", "@devcodex", "intent-runtime");
 }
 function metadata(home) { return JSON.parse(readFileSync(path.join(home, ".intent-runtime", "state.json"), "utf8")); }
 function doctor(prefix, env, expected = 0, repair = false) {
@@ -86,7 +86,7 @@ try {
   const indirect = sandbox("indirect");
   const parent = path.join(temp, "parent");
   mkdirSync(parent);
-  writeFileSync(path.join(parent, "package.json"), JSON.stringify({ name: "intent-parent-fixture", version: "1.0.0", dependencies: { "@devcodex-labs/intent-runtime": "file:" + tar } }));
+  writeFileSync(path.join(parent, "package.json"), JSON.stringify({ name: "intent-parent-fixture", version: "1.0.0", dependencies: { "@devcodex/intent-runtime": "file:" + tar } }));
   const parentPack = JSON.parse(npm(["pack", "--ignore-scripts", "--json", "--pack-destination", temp], indirect.env, parent));
   npm(["install", "-g", "--prefix", indirect.prefix, "--engine-strict", "--no-audit", "--no-fund", path.join(temp, parentPack[0].filename)], indirect.env);
   assert.equal(existsSync(path.join(indirect.home, ".intent-runtime", "state.json")), false);

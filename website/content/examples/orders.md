@@ -11,8 +11,8 @@ description: 用 schema-dsl 定义订单编号，保留前导零并处理扩展�
 
 ```js
 import { s } from "schema-dsl/pure";
-import { Intent, IntentParseError } from "@devcodex-labs/intent-runtime";
-import { createApiExecutor } from "@devcodex-labs/intent-runtime/adapters/api";
+import { Intent, IntentParseError } from "@devcodex/intent-runtime";
+import { createApiExecutor } from "@devcodex/intent-runtime/adapters/api";
 
 const apiKey = process.env.INTENT_OPENAI_KEY;
 const model = process.env.INTENT_MODEL;

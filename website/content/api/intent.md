@@ -8,8 +8,8 @@ description: IntentConfig、parse、dispose、默认资源限制及自定义 Mod
 公共入口：
 
 ```ts
-import { Intent, IntentParseError, DEFAULT_LIMITS } from "@devcodex-labs/intent-runtime";
-import type { IntentConfig, IntentParseRequest, IntentResult, ModelExecutor } from "@devcodex-labs/intent-runtime";
+import { Intent, IntentParseError, DEFAULT_LIMITS } from "@devcodex/intent-runtime";
+import type { IntentConfig, IntentParseRequest, IntentResult, ModelExecutor } from "@devcodex/intent-runtime";
 ```
 
 | 公开导出 | 名称 |

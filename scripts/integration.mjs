@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { s } from "schema-dsl/pure";
-import { Intent, IntentParseError } from "@devcodex-labs/intent-runtime";
-import { createApiExecutor } from "@devcodex-labs/intent-runtime/adapters/api";
+import { Intent, IntentParseError } from "@devcodex/intent-runtime";
+import { createApiExecutor } from "@devcodex/intent-runtime/adapters/api";
 const provider = process.env.INTENT_PROVIDER,
   model = process.env.INTENT_MODEL;
 const apiKey =

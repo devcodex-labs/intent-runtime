@@ -24,7 +24,7 @@ for (const path of files) {
   assert.match(text, /^title: .+$/m, `Missing title: ${path}`);
   assert.match(text, /^description: .+$/m, `Missing description: ${path}`);
   assert.doesNotMatch(text, /开发预览|development preview/i, `User documentation must describe the supported API: ${path}`);
-  for (const match of text.matchAll(/```(?:js|javascript)\n([\s\S]*?)\n```/g)) {
+  for (const match of text.matchAll(/```(?:js|javascript)\r?\n([\s\S]*?)\r?\n```/g)) {
     try { execFileSync(process.execPath, ["--input-type=module", "--check"], { input: match[1], stdio: ["pipe", "pipe", "pipe"] }); }
     catch (error) { throw new Error(`Invalid JavaScript example in ${relative(content, path)}`, { cause: error }); }
     snippets++;

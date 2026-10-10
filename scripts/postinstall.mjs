@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 let direct = false;
 if (process.env.npm_config_global === "true" && process.env.npm_config_prefix) {
-  const target = join(process.env.npm_config_prefix, ...(process.platform === "win32" ? [] : ["lib"]), "node_modules", "@devcodex-labs", "intent-runtime");
+  const target = join(process.env.npm_config_prefix, ...(process.platform === "win32" ? [] : ["lib"]), "node_modules", "@devcodex", "intent-runtime");
   try {
     const canonical = p => process.platform === "win32" ? realpathSync(p).toLowerCase() : realpathSync(p);
     direct = !lstatSync(target).isSymbolicLink() && canonical(target) === canonical(root);

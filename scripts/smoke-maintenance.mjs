@@ -35,7 +35,7 @@ function sandbox(name) {
   const base = path.join(home, ".intent-runtime");
   return { home, prefix, codex, env, base };
 }
-function installed(host) { return path.join(host.prefix, ...(process.platform === "win32" ? [] : ["lib"]), "node_modules", "@devcodex-labs", "intent-runtime"); }
+function installed(host) { return path.join(host.prefix, ...(process.platform === "win32" ? [] : ["lib"]), "node_modules", "@devcodex", "intent-runtime"); }
 function cli(host) { return path.join(installed(host), "dist", "installation", "cli.js"); }
 function state(host) { return JSON.parse(readFileSync(path.join(host.base, "state.json"), "utf8")); }
 function doctor(host, repair = false, expected = 0) { return JSON.parse(run([cli(host), "doctor", "--json", ...(repair ? ["--repair"] : [])], host.env, expected)); }
@@ -177,7 +177,7 @@ try {
   checks.push("a removed prior Node executable is diagnosed; repair updates the owned registration to the active executable");
 
   JSON.parse(run([cli(migrated), "clean", "--json"], migrated.env));
-  npm(["uninstall", "-g", "--prefix", migrated.prefix, "--no-audit", "--no-fund", "@devcodex-labs/intent-runtime"], migrated.env);
+  npm(["uninstall", "-g", "--prefix", migrated.prefix, "--no-audit", "--no-fund", "@devcodex/intent-runtime"], migrated.env);
   assert.equal(existsSync(installed(migrated)), false);
   assert.equal(readFileSync(config, "utf8"), configText);
   npm(["install", "-g", "--prefix", migrated.prefix, "--engine-strict", "--no-audit", "--no-fund", tar], migrated.env);

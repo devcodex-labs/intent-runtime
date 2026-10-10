@@ -39,6 +39,6 @@ intent-runtime 是 TypeScript / Node.js 模块。它把调用方明确提供的�
 
 ## 运行要求
 
-本文档介绍 v1.0.0 的公共接口。包名为 `@devcodex-labs/intent-runtime`，要求 Node.js **≥20.0.0**，使用 ESM。
+本文档介绍 v1.0.0 的公共接口。包名为 `@devcodex/intent-runtime`，要求 Node.js **≥20.0.0**，使用 ESM。
 
 接下来阅读[快速开始](./quick-start.md)、[意图契约](./intent-contract.md)或[测试与兼容](../testing/validation.md)。

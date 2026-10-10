@@ -20,8 +20,8 @@ async function walk(dir) {
 const samples = new Map();
 for (const path of await walk(content)) {
   const source = await readFile(path, "utf8");
-  for (const [,code] of source.matchAll(/```js\n([\s\S]*?)\n```/g))
-    samples.set(join(root, `.docs-example-${samples.size}.mjs`), code);
+  for (const [,code] of source.matchAll(/```js\r?\n([\s\S]*?)\r?\n```/g))
+    samples.set(join(root, `.docs-example-${samples.size}.mjs`).replaceAll("\\", "/"), code);
 }
 const options = { noEmit: true, allowJs: true, checkJs: true, strictNullChecks: true, module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext, target: ts.ScriptTarget.ES2022, skipLibCheck: true };
 const host = ts.createCompilerHost(options);
@@ -43,7 +43,7 @@ for (const [name,replies,expected] of [
   ["examples/orders.md", [core("查询订单 000123"),data], /^000123\s*$/],
 ]) {
   const source = await readFile(join(content, name), "utf8");
-  const code = /```js\n([\s\S]*?)\n```/.exec(source)?.[1];
+  const code = /```js\r?\n([\s\S]*?)\r?\n```/.exec(source)?.[1];
   assert.ok(code, name);
   const fixture = `const docReplies = ${JSON.stringify(replies)};
 globalThis.fetch = async () => {
@@ -57,7 +57,7 @@ globalThis.fetch = async () => {
 }
 
 const bridgePage = await readFile(join(content, "api/bridge-mcp.md"), "utf8");
-const bridgeCode = /```js\n([\s\S]*?)\n```/.exec(bridgePage)?.[1];
+const bridgeCode = /```js\r?\n([\s\S]*?)\r?\n```/.exec(bridgePage)?.[1];
 assert.ok(bridgeCode, "Complete Bridge example");
 const bridgeRun = spawnSync(process.execPath, ["--input-type=module", "--eval", `${bridgeCode}\n
 import assert from 'node:assert/strict';

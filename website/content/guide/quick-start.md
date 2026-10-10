@@ -12,7 +12,7 @@ description: 选择 Codex MCP 或 API 路径，完成安装、配置与第一次
 安装 Node.js ≥20.0.0，并至少启动一次 Codex 客户端后执行：
 
 ```bash
-npm install -g @devcodex-labs/intent-runtime
+npm install -g @devcodex/intent-runtime
 ```
 
 直接全局安装会检测客户端、注册用户级 MCP、安装识别 Skill，并检查真实 MCP 连接。完成后重新启动 Codex CLI 或重载 Desktop；在会话中明确启用识别工作流。
@@ -50,14 +50,14 @@ npm install -g (Join-Path .. $packed[0].filename)
 在应用中安装：
 
 ```bash
-npm install @devcodex-labs/intent-runtime openai
+npm install @devcodex/intent-runtime openai
 ```
 
 `openai` 是 API 路径使用的可选 SDK，同时负责 OpenAI 和 xAI 请求；MCP 路径无需额外安装它。明确提供模型和凭据：
 
 ```js
-import { Intent, IntentParseError } from "@devcodex-labs/intent-runtime";
-import { createApiExecutor } from "@devcodex-labs/intent-runtime/adapters/api";
+import { Intent, IntentParseError } from "@devcodex/intent-runtime";
+import { createApiExecutor } from "@devcodex/intent-runtime/adapters/api";
 
 const apiKey = process.env.INTENT_OPENAI_KEY;
 const model = process.env.INTENT_MODEL;

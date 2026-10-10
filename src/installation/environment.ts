@@ -45,7 +45,7 @@ export function supportedNode(value = process.versions.node): boolean {
 }
 export function directGlobal(ctx: InstallContext): boolean {
   if (ctx.env.npm_config_global !== "true" || !ctx.env.npm_config_prefix) return false;
-  const target = join(ctx.env.npm_config_prefix, ...(ctx.platform === "win32" ? [] : ["lib"]), "node_modules", "@devcodex-labs", "intent-runtime");
+  const target = join(ctx.env.npm_config_prefix, ...(ctx.platform === "win32" ? [] : ["lib"]), "node_modules", "@devcodex", "intent-runtime");
   try {
     if (lstatSync(target).isSymbolicLink()) return false;
     const normalize = (path: string) => ctx.platform === "win32" ? realpathSync(path).toLowerCase() : realpathSync(path);

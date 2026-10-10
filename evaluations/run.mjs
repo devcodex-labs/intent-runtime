@@ -6,8 +6,8 @@ import { evaluationOutput } from "./output.mjs";
 import { loadCases } from "./cases.mjs";
 import { checkExpectations } from "./expected-result.mjs";
 import { SCHEMA_PRESETS } from "./schemas.mjs";
-import { Intent, IntentParseError } from "@devcodex-labs/intent-runtime";
-import { createApiExecutor } from "@devcodex-labs/intent-runtime/adapters/api";
+import { Intent, IntentParseError } from "@devcodex/intent-runtime";
+import { createApiExecutor } from "@devcodex/intent-runtime/adapters/api";
 const args = process.argv.slice(2);
 const selected = args.includes("--case")
   ? args[args.indexOf("--case") + 1]

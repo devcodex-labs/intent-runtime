@@ -10,9 +10,9 @@ API 适配器使用 OpenAI SDK 的 Responses API。两种 provider 共用 `creat
 ## 公开入口
 
 ```ts
-import { createApiExecutor, readCompletedResponse } from "@devcodex-labs/intent-runtime/adapters/api";
-import type { ApiExecutorConfig } from "@devcodex-labs/intent-runtime/adapters/api";
-import type { ModelExecutor, ModelRequest, ModelReply } from "@devcodex-labs/intent-runtime";
+import { createApiExecutor, readCompletedResponse } from "@devcodex/intent-runtime/adapters/api";
+import type { ApiExecutorConfig } from "@devcodex/intent-runtime/adapters/api";
+import type { ModelExecutor, ModelRequest, ModelReply } from "@devcodex/intent-runtime";
 
 // createApiExecutor(config: ApiExecutorConfig): ModelExecutor
 // readCompletedResponse(response: unknown, request: ModelRequest): ModelReply
@@ -37,8 +37,8 @@ $env:INTENT_OPENAI_KEY = "<你的本地密钥>"
 ## 完整调用
 
 ```js
-import { Intent, IntentParseError } from "@devcodex-labs/intent-runtime";
-import { createApiExecutor } from "@devcodex-labs/intent-runtime/adapters/api";
+import { Intent, IntentParseError } from "@devcodex/intent-runtime";
+import { createApiExecutor } from "@devcodex/intent-runtime/adapters/api";
 
 const provider = process.env.INTENT_PROVIDER;
 if (provider !== "openai" && provider !== "xai") throw new Error("明确选择 openai 或 xai");

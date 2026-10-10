@@ -79,7 +79,7 @@ async function verifiedMain(main: string): Promise<string | undefined> {
     const actual = await realpath(main);
     if (!actual.replaceAll("\\", "/").endsWith("/dist/transports/mcp/main.js")) return undefined;
     const metadata = JSON.parse(await read(resolve(dirname(actual), "../../..", "package.json")) ?? "{}") as { name?: string };
-    return metadata.name === "@devcodex-labs/intent-runtime" ? actual : undefined;
+    return metadata.name === "@devcodex/intent-runtime" ? actual : undefined;
   } catch { return undefined; }
 }
 async function moduleMain(entry: unknown, ctx?: InstallContext): Promise<string | undefined> {

@@ -1,6 +1,6 @@
 import { s } from "schema-dsl/pure";
-import { Intent } from "@devcodex-labs/intent-runtime";
-import { createApiExecutor } from "@devcodex-labs/intent-runtime/adapters/api";
+import { Intent } from "@devcodex/intent-runtime";
+import { createApiExecutor } from "@devcodex/intent-runtime/adapters/api";
 const provider = process.env.INTENT_PROVIDER;
 if (!["openai", "xai"].includes(provider))
   throw new Error("Set INTENT_PROVIDER to openai or xai.");

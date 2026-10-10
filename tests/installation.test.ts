@@ -18,7 +18,7 @@ async function fixture(client = true) {
   await mkdir(join(root, "dist", "transports", "mcp"), { recursive: true });
   await mkdir(join(root, "integrations", "codex"), { recursive: true });
   await mkdir(cwd, { recursive: true });
-  await writeFile(join(root, "package.json"), JSON.stringify({ name: "@devcodex-labs/intent-runtime", version: "test" }));
+  await writeFile(join(root, "package.json"), JSON.stringify({ name: "@devcodex/intent-runtime", version: "test" }));
   // Filesystem unit tests do not install SDKs; dependency resolution uses the
   // real development package while this dummy root supplies fixture assets.
   await symlink(join(process.cwd(), "node_modules"), join(root, "node_modules"), process.platform === "win32" ? "junction" : "dir");
@@ -72,7 +72,7 @@ it("recognizes a verified npm binary target and restores an independent original
   const legacy = join(base, "legacy");
   const main = join(legacy, "dist", "transports", "mcp", "main.js");
   await mkdir(dirname(main), { recursive: true });
-  await writeFile(join(legacy, "package.json"), '{"name":"@devcodex-labs/intent-runtime"}');
+  await writeFile(join(legacy, "package.json"), '{"name":"@devcodex/intent-runtime"}');
   await writeFile(main, "// independent main");
   const bin = join(base, process.platform === "win32" ? "intent-runtime-mcp.cmd" : "intent-runtime-mcp");
   if (process.platform === "win32") await writeFile(bin, '@ECHO off\n"node" "%dp0%\\legacy\\dist\\transports\\mcp\\main.js" %*\n');
@@ -212,7 +212,7 @@ it("migrates a known manual registration and keeps its trusted config path and s
   const legacy = join(base, "legacy");
   const main = join(legacy, "dist", "transports", "mcp", "main.js");
   await mkdir(join(legacy, "dist", "transports", "mcp"), { recursive: true });
-  await writeFile(join(legacy, "package.json"), '{"name":"@devcodex-labs/intent-runtime"}');
+  await writeFile(join(legacy, "package.json"), '{"name":"@devcodex/intent-runtime"}');
   await writeFile(main, "// legacy source entry");
   const original = { command: process.execPath, args: [main, "--config", config], env: { BUSINESS: "present" }, startup_timeout_sec: 40 };
   await writeFile(paths(ctx).codex, upsert('# keep\n', "intent-runtime", original));
@@ -314,7 +314,7 @@ it("does not overwrite corrupted management records", async () => {
 it("distinguishes top-level global modules from global indirect dependencies", async () => {
   const { base, ctx } = await fixture();
   const prefix = join(base, "prefix");
-  const global = join(prefix, "lib", "node_modules", "@devcodex-labs", "intent-runtime");
+  const global = join(prefix, "lib", "node_modules", "@devcodex", "intent-runtime");
   await mkdir(global, { recursive: true });
   ctx.env.npm_config_global = "true";
   ctx.env.npm_config_prefix = prefix;
@@ -325,7 +325,7 @@ it("distinguishes top-level global modules from global indirect dependencies", a
 it("does not initialize a development npm link", async () => {
   const { base, ctx } = await fixture();
   const prefix = join(base, "linked-prefix");
-  const parent = join(prefix, "lib", "node_modules", "@devcodex-labs");
+  const parent = join(prefix, "lib", "node_modules", "@devcodex");
   await mkdir(parent, { recursive: true });
   await symlink(ctx.root, join(parent, "intent-runtime"), process.platform === "win32" ? "junction" : "dir");
   expect(directGlobal({ ...ctx, platform: "linux", env: { npm_config_global: "true", npm_config_prefix: prefix } })).toBe(false);

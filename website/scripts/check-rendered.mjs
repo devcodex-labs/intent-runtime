@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readdir, readFile, stat } from "node:fs/promises";
-import { join, relative, resolve } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const website = fileURLToPath(new URL("../", import.meta.url));
@@ -29,7 +29,7 @@ for (const path of files) {
     assert.ok(url.pathname.startsWith(base), `Incorrect base in ${path}: ${value}`);
     const name = decodeURIComponent(url.pathname.slice(base.length));
     const target = resolve(dist, url.pathname.endsWith("/") ? name + "index.html" : name);
-    assert.ok(target.startsWith(dist + "/"), "Path escaped build");
+    assert.ok(target.startsWith(dist + sep), "Path escaped build");
     // All documented pages use .html links; anchor-only links keep current file.
     assert.ok((await stat(target).catch(() => undefined))?.isFile(), `Missing ${attribute}: ${value} in ${path}`);
     if (url.hash && target.endsWith(".html")) {

@@ -1,6 +1,6 @@
 {
-  "name": "@devcodex-labs/intent-runtime",
-  "version": "1.0.0",
+  "name": "@devcodex/intent-runtime",
+  "version": "1.0.1",
   "description": "A pure Node.js library for turning natural language or external inputs into standardized, structured, verifiable, extensible, and traceable intent records.",
   "type": "module",
   "license": "MIT",

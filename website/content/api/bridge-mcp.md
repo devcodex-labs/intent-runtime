@@ -11,8 +11,8 @@ Bridge 管理宿主协作的识别任务，宿主负责生成候选。MCP 把该
 
 | 子模块 | 函数、常量与类型 |
 | --- | --- |
-| `@devcodex-labs/intent-runtime/bridge` | `createIntentBridge`；类型 `BridgeConfig`、`BridgeSession`、`BridgeReply`、`PrepareRequest`、`AcceptRequest`、`CancelRequest` |
-| `@devcodex-labs/intent-runtime/mcp` | `serveIntentMcp`、`MCP_TOOLS` |
+| `@devcodex/intent-runtime/bridge` | `createIntentBridge`；类型 `BridgeConfig`、`BridgeSession`、`BridgeReply`、`PrepareRequest`、`AcceptRequest`、`CancelRequest` |
+| `@devcodex/intent-runtime/mcp` | `serveIntentMcp`、`MCP_TOOLS` |
 
 `MCP_TOOLS` 是三个工具的声明集合，包含名称、描述和 inputSchema。需要嵌入宿主时可以读取这些声明，任务执行仍由 Bridge/MCP 服务完成。
 
@@ -21,8 +21,8 @@ Bridge 管理宿主协作的识别任务，宿主负责生成候选。MCP 把该
 下面的函数完成 prepare/accept 循环，返回终态 result 或 error。`generateCandidate(task)` 由宿主提供，必须按实际 task 的 instructions、payload、format 生成完整 JSON 字符串；它不是模块内置的模型客户端。
 
 ```js
-import { Intent } from "@devcodex-labs/intent-runtime";
-import { createIntentBridge } from "@devcodex-labs/intent-runtime/bridge";
+import { Intent } from "@devcodex/intent-runtime";
+import { createIntentBridge } from "@devcodex/intent-runtime/bridge";
 
 export async function recognizeWithHost(input, generateCandidate) {
   const intent = new Intent({ language: "zh-CN" });
@@ -119,7 +119,7 @@ interface BridgeConfig {
 
 ```ts
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import type { BridgeConfig } from "@devcodex-labs/intent-runtime/bridge";
+import type { BridgeConfig } from "@devcodex/intent-runtime/bridge";
 
 // serveIntentMcp(config: BridgeConfig & { transport?: Transport }):
 //   Promise<{ close(): Promise<void> }>

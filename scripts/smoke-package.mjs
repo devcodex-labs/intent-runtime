@@ -57,13 +57,13 @@ try {
   );
   writeFileSync(
     path.join(temp, "check.mjs"),
-    `import assert from 'node:assert/strict';import {Intent} from '@devcodex-labs/intent-runtime';import {createIntentBridge} from '@devcodex-labs/intent-runtime/bridge';
+    `import assert from 'node:assert/strict';import {Intent} from '@devcodex/intent-runtime';import {createIntentBridge} from '@devcodex/intent-runtime/bridge';
 const intent=new Intent({language:'EN-us',schema:{type:'object',properties:{value:{type:'string'}}}});const bridge=createIntentBridge({instances:{test:intent}});const session=bridge.connect();const task=session.prepare({instance:'test',input:'hello'});assert.equal(task.kind,'task');
 const candidate={normalizedInput:'The user expresses thanks; no action requested.',primaryIntent:null,requirements:[],prohibitions:[],intents:[]};
 const next=await session.accept({jobId:task.jobId,stepToken:task.stepToken,candidateText:JSON.stringify(candidate)});assert.equal(next.kind,'task');
 const data={data:{value:'hello'},evidence:[{path:'/data/value',mode:'exact',sources:[{sourceId:'input',quote:'hello'}]}],descriptionChecks:[],fieldResults:[{path:'/data/value',status:'extracted',explanation:'Explicit value'}],issues:[]};
 assert.equal((await session.accept({jobId:next.jobId,stepToken:next.stepToken,candidateText:JSON.stringify(data)})).kind,'result');bridge.close();intent.dispose();
-let blocked=false;try{await import('@devcodex-labs/intent-runtime/dist/core/pipeline.js')}catch{blocked=true}assert.ok(blocked);
+let blocked=false;try{await import('@devcodex/intent-runtime/dist/core/pipeline.js')}catch{blocked=true}assert.ok(blocked);
 `,
   );
   run(process.execPath, ["check.mjs"]);
@@ -76,13 +76,13 @@ let blocked=false;try{await import('@devcodex-labs/intent-runtime/dist/core/pipe
   ]);
   writeFileSync(
     path.join(temp, "api-check.mjs"),
-    `import assert from 'node:assert/strict';import {Intent} from '@devcodex-labs/intent-runtime';import {createApiExecutor} from '@devcodex-labs/intent-runtime/adapters/api';
+    `import assert from 'node:assert/strict';import {Intent} from '@devcodex/intent-runtime';import {createApiExecutor} from '@devcodex/intent-runtime/adapters/api';
 const candidate={normalizedInput:'No operation requested.',primaryIntent:null,requirements:[],prohibitions:[],intents:[]};
 const executor=createApiExecutor({provider:'openai',apiKey:'test',model:'fixture',fetch:async()=>new Response(JSON.stringify({status:'completed',output:[{type:'message',role:'assistant',content:[{type:'output_text',text:JSON.stringify(candidate)}]}]}),{headers:{'content-type':'application/json'}})});
 const intent=new Intent({executor});assert.deepEqual((await intent.parse({input:'谢谢',fields:[]})).intents,[]);intent.dispose();`,
   );
   run(process.execPath, ["api-check.mjs"]);
-  const pkg = path.join(temp, "node_modules/@devcodex-labs/intent-runtime");
+  const pkg = path.join(temp, "node_modules/@devcodex/intent-runtime");
   const metadata = JSON.parse(
     readFileSync(path.join(pkg, "package.json"), "utf8"),
   );

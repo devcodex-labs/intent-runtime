@@ -82,7 +82,7 @@ stage 表示错误发生位置，不能仅凭错误码假定阶段。issues.path
 data 阶段出错时，已验证的默认字段可通过 partialResult 保留，其中 `data` 为 `{}`，不返回已提取成功的部分业务字段。可以显示已经理解的动作或发起澄清，再重新识别以获得完整扩展结果。
 
 ```js
-import { IntentParseError } from "@devcodex-labs/intent-runtime";
+import { IntentParseError } from "@devcodex/intent-runtime";
 
 export function describeFailure(error) {
   if (!(error instanceof IntentParseError)) throw error;

@@ -38,7 +38,7 @@ async function fixture() {
   await mkdir(join(ctx.root, "dist", "transports", "mcp"), { recursive: true });
   await mkdir(join(ctx.root, "integrations", "codex"), { recursive: true });
   await symlink(join(process.cwd(), "node_modules"), join(ctx.root, "node_modules"), process.platform === "win32" ? "junction" : "dir");
-  await writeFile(join(ctx.root, "package.json"), '{"name":"@devcodex-labs/intent-runtime","version":"test"}');
+  await writeFile(join(ctx.root, "package.json"), '{"name":"@devcodex/intent-runtime","version":"test"}');
   await writeFile(paths(ctx).main, "// unit fixture; probe supplied explicitly");
   await writeFile(join(ctx.root, "integrations", "codex", "workflow.md"), "Use the actual MCP tasks.");
   await mkdir(join(ctx.home, ".codex"), { recursive: true });
