@@ -5,7 +5,7 @@ description: 识别当前有效请求，保留动作、条件与禁止事项，�
 hero:
   name: intent-runtime
   text: 从用户请求到结构化意图
-  tagline: 识别当前有效请求，保留动作、条件与禁止事项，使用 schema-dsl 提取可验证的业务字段。
+  tagline: 中文开发预览 · Node.js ≥20.0.0。识别当前有效请求，保留动作、条件与禁止事项，使用 schema-dsl 提取可验证的业务字段。
   actions:
     - theme: brand
       text: 开始使用
@@ -30,15 +30,3 @@ features:
     details: 任务默认不按时间过期；扩展提取失败时保留已经验证的默认字段。业务执行由调用方处理。
     link: /guide/lifecycle.html
 ---
-
-## 安装与开始
-
-当前为中文开发预览。正式版本发布后，全局安装会自动配置已检测到的 Codex 客户端：
-
-```bash
-npm install -g @devcodex-labs/intent-runtime
-```
-
-运行库要求 **Node.js ≥ 20.0.0**，使用 TypeScript / ESM，采用 MIT 许可。当前从源码测试请参考[快速开始](/guide/quick-start)。
-
-模型负责理解请求，模块校验候选与字段来源。真实识别质量需使用目标模型和客户端验收，参见[测试、兼容与准确率](/testing/validation)。
