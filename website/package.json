@@ -13,8 +13,8 @@
   },
   "engines": { "node": ">=24.0.0" },
   "dependencies": {
-    "@rspress/core": "2.0.19",
-    "@rspress/plugin-sitemap": "2.0.19"
+    "@rspress/core": "2.0.23",
+    "@rspress/plugin-sitemap": "2.0.23"
   },
   "devDependencies": {
     "@types/node": "24.0.0",

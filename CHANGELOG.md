@@ -2,6 +2,9 @@
 
 ## Unreleased — global installation
 
+- Enforce release acceptance in the npm publish lifecycle and review every expanded evaluation case variant, including sibling variants of the same parent.
+- Wait for diagnostic MCP subprocess exit before returning and retry transient Windows executable cleanup locks. Update test tooling to Vitest 4.1.11 and Vite 6.4.4 while retaining Node 20.0.0 support.
+- Use the Rspress 2.0.23 default theme for the Chinese documentation site, with native homepage, search and light/dark modes.
 - Preserve exact configuration snapshots during installation/cleanup and serialize stale-lock recovery with a process-owned local guard. Verify package ownership before restoring MCP registrations.
 - Keep bridge sessions active by default through multi-day pauses. Evict completed records first under capacity pressure and preserve active tokens on oversized or over-budget submissions; await asynchronous accept calls.
 - Check dynamic and applicable composed Schema descriptions. Run native validation in bounded, interruptible workers with adversarial-regex, cancellation and installed-package coverage.

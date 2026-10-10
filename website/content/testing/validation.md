@@ -63,6 +63,10 @@ npm run test:mcp
 
 输入拒绝不混入意图识别准确率分母；部分字段正确也不能算完整请求通过。计划中的通过率目标是验收门槛，不能写成已测准确率。
 
+发布验收逐一记录展开后的 `id/variant` 键，例如 `S-62/omitted` 和 `S-62/empty` 分别评审。验收清单中的 `reviews.semantics.reviewedCaseKeys` 必须包含全部 113 个语义键，`reviews.multilingual.reviewedCaseKeys` 必须包含全部 6 个语言键，不能只记录父用例编号，也不能以重复记录补足数量。
+
+从源码执行 `npm publish` 时，发布钩子会核对项目外的已评审验收材料、精确提交和成功的跨平台 CI；开发预览版本会被拒绝。`npm pack` 仍可用于本地客户端测试。正式发布还需要仓库的发布环境审批和发布授权。
+
 ## API 评测命令
 
 设置 `INTENT_PROVIDER`、`INTENT_MODEL` 和对应 `INTENT_OPENAI_KEY` 或 `INTENT_XAI_KEY` 后执行：

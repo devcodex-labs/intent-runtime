@@ -1,9 +1,44 @@
 ---
-pageType: custom
+pageType: home
 title: intent-runtime · 中文文档
 description: 识别当前有效请求，保留动作、条件与禁止事项，使用 schema-dsl 提取可验证的业务字段。
+hero:
+  name: intent-runtime
+  text: 从用户请求到结构化意图
+  tagline: 识别当前有效请求，保留动作、条件与禁止事项，使用 schema-dsl 提取可验证的业务字段。
+  actions:
+    - theme: brand
+      text: 开始使用
+      link: /guide/quick-start.html
+    - theme: alt
+      text: 接入 Codex
+      link: /integrations/codex-cli.html
+    - theme: alt
+      text: GitHub
+      link: https://github.com/devcodex-labs/intent-runtime
+features:
+  - title: 当前有效请求
+    details: 结合明确提供的上下文识别多动作、撤回与条件，保留要求和禁止事项。
+    link: /guide/intent-contract.html
+  - title: 可验证的业务字段
+    details: 用 schema-dsl 定义字段及业务描述，按需提取扩展字段，对缺失、冲突和来源问题给出反馈。
+    link: /guide/schema-fields.html
+  - title: MCP 与模型 API
+    details: 与当前 Codex 模型协作，或显式配置 OpenAI、xAI API，使用同一套意图契约。
+    link: /integrations/openai-xai.html
+  - title: 长期任务与部分结果
+    details: 任务默认不按时间过期；扩展提取失败时保留已经验证的默认字段。业务执行由调用方处理。
+    link: /guide/lifecycle.html
 ---
 
-import { Home } from '../theme/Home';
+## 安装与开始
 
-<Home />
+当前为中文开发预览。正式版本发布后，全局安装会自动配置已检测到的 Codex 客户端：
+
+```bash
+npm install -g @devcodex-labs/intent-runtime
+```
+
+运行库要求 **Node.js ≥ 20.0.0**，使用 TypeScript / ESM，采用 MIT 许可。当前从源码测试请参考[快速开始](/guide/quick-start)。
+
+模型负责理解请求，模块校验候选与字段来源。真实识别质量需使用目标模型和客户端验收，参见[测试、兼容与准确率](/testing/validation)。

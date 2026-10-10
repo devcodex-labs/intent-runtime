@@ -11,5 +11,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["rspress.config.ts", "theme/**/*.ts", "theme/**/*.tsx"]
+  "include": ["rspress.config.ts", "site.ts"]
 }

@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "@rspress/core";
 import { pluginSitemap } from "@rspress/plugin-sitemap";
-import { base, siteUrl, repository, version } from "./theme/site";
+import { base, siteUrl, repository, version } from "./site";
 
 export default defineConfig({
   root: fileURLToPath(new URL("./content", import.meta.url)),
@@ -23,7 +23,6 @@ export default defineConfig({
     ["meta", { name: "twitter:card", content: "summary_large_image" }],
   ],
   themeConfig: {
-    darkMode: false,
     lastUpdated: true,
     editLink: { docRepoBaseUrl: `${repository}/blob/main/website/content` },
     nav: [
