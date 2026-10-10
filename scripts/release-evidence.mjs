@@ -9,7 +9,7 @@ export function releaseHashes(root) {
 }
 const requireValue = (condition, message) => { if (!condition) throw new Error(message); };
 const text = value => typeof value === "string" && value.trim().length > 0;
-export function validateReleaseEvidence(evidence, { repository, commit, version, hashes, caseIds, registryDate, now = Date.now() }) {
+export function validateReleaseEvidence(evidence, { repository, commit, version, hashes, caseKeys, registryDate, now = Date.now() }) {
   requireValue(/^\d+\.\d+\.\d+$/.test(version), "Only a stable version is release-approved; development previews are blocked.");
   requireValue(evidence?.schemaVersion === 1 && evidence.repository === repository && evidence.commit === commit && evidence.version === version, "Release evidence does not match the repository, commit and version.");
   requireValue(/^\d+$/.test(String(evidence.ciRunId)), "Missing CI run ID.");
@@ -20,8 +20,8 @@ export function validateReleaseEvidence(evidence, { repository, commit, version,
     if (name === "openai" || name === "xai") requireValue(text(review.model) && Number.isSafeInteger(review.apiCalls) && review.apiCalls > 0, `Missing actual provider execution for ${name}.`);
     if (name === "codexCli" || name === "codexDesktop") requireValue(text(review.clientVersion) && text(review.os), `Missing actual client environment for ${name}.`);
     if (name === "semantics" || name === "multilingual") {
-      const required = caseIds[name], reviewed = review.reviewedCaseIds;
-      requireValue(Array.isArray(reviewed) && new Set(reviewed).size === reviewed.length && reviewed.length === required.length && required.every(id => reviewed.includes(id)), `Incomplete case review for ${name}.`);
+      const required = caseKeys[name], reviewed = review.reviewedCaseKeys;
+      requireValue(Array.isArray(reviewed) && new Set(reviewed).size === reviewed.length && reviewed.length === required.length && required.every(key => reviewed.includes(key)), `Incomplete case variant review for ${name}.`);
       requireValue(Number.isFinite(review.accuracy) && review.accuracy >= 0 && review.accuracy <= 1 && Number.isFinite(review.minimumAccuracy) && review.minimumAccuracy > 0 && review.minimumAccuracy <= 1 && review.accuracy >= review.minimumAccuracy && review.criticalFailures === 0, `Quality acceptance failed for ${name}.`);
     }
     if (name === "languageRegistry") requireValue(review.fileDate === registryDate && text(review.freshnessDecision), "Missing language registry freshness decision for the shipped snapshot.");

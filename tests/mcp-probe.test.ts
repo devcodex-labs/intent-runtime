@@ -1,16 +1,20 @@
 import { afterEach, expect, it } from "vitest";
-import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, writeFile, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { probeMcp } from "../src/transports/mcp/probe.js";
 
 const roots: string[] = [];
 afterEach(async () => { for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true }); });
-async function server(startupMs: number, listMs = 0) {
+async function server(startupMs: number, listMs = 0, keepAlive = false) {
   const root = await mkdtemp(join(tmpdir(), "intent-probe-"));
   roots.push(root);
   const file = join(root, "server.mjs");
+  const pidFile = join(root, "pid");
   await writeFile(file, `import {createInterface} from "node:readline";
+import {writeFileSync} from "node:fs";
+writeFileSync(${JSON.stringify(pidFile)},String(process.pid));
+${keepAlive ? 'process.on("SIGTERM",()=>{});setInterval(()=>{},1000);' : ""}
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 await pause(${startupMs});
 createInterface({input:process.stdin}).on("line",async line=>{
@@ -21,7 +25,7 @@ createInterface({input:process.stdin}).on("line",async line=>{
   else if(request.method==="tools/call") result={content:[],structuredContent:request.params.name==="intent_prepare"?{kind:"task",jobId:"fixture"}:{kind:"error",error:{code:"MODEL_ABORTED"}}};
   process.stdout.write(JSON.stringify({jsonrpc:"2.0",id:request.id,result})+"\\n");
 });`);
-  return { file, root };
+  return { file, root, pidFile };
 }
 it("accepts an 11-second startup within the automatic 15-second wait", async () => {
   const { file, root } = await server(11000);
@@ -35,3 +39,9 @@ it("gives tool checks their own wait after initialization", async () => {
   const { file, root } = await server(0, 3500);
   expect(await probeMcp(process.execPath, [file], root, undefined, 3000)).toMatchObject({ instances: ["default"] });
 }, 8000);
+it("waits for the diagnostic subprocess to exit even when it ignores EOF and SIGTERM", async () => {
+  const { file, root, pidFile } = await server(0, 0, true);
+  expect(await probeMcp(process.execPath, [file], root)).toMatchObject({ instances: ["default"] });
+  const pid = Number(await readFile(pidFile, "utf8"));
+  expect(() => process.kill(pid, 0)).toThrow(expect.objectContaining({ code: "ESRCH" }));
+}, 12000);

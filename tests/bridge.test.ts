@@ -62,7 +62,7 @@ it.each(["cancel", "close", "dispose"] as const)("does not resurrect data work a
   if (operation !== "dispose") expect(bridge.connect().prepare({ instance: "orders", input: "next", fields: [] }).kind).toBe("task");
 });
 it("does not replay an old successful stage after configured idle expiration", async () => {
-  vi.useFakeTimers();
+  vi.useFakeTimers({ toFake: ["Date", "performance", "setTimeout", "clearTimeout"] });
   const { session } = setup({ jobTtlMs: 100 });
   const first = task(session.prepare({ instance: "orders", input: "000123" }));
   const request = { jobId: first.jobId, stepToken: first.stepToken, candidateText: JSON.stringify(core()) };
@@ -71,7 +71,7 @@ it("does not replay an old successful stage after configured idle expiration", a
   expect(await session.accept(request)).toMatchObject({ kind: "error", error: { code: "BRIDGE_JOB_EXPIRED", partialResult: { data: {} } } });
 });
 it("keeps default active sessions and completed replays across several days", async () => {
-  vi.useFakeTimers();
+  vi.useFakeTimers({ toFake: ["Date", "performance", "setTimeout", "clearTimeout"] });
   const { session } = setup();
   const first = task(session.prepare({ instance: "orders", input: "x", fields: [] }));
   expect(first).not.toHaveProperty("expiresAt");
@@ -222,7 +222,7 @@ it("data cancellation keeps the default result and maps refusal", async () => {
   });
 });
 it("expires jobs and removes terminal bodies after retention", async () => {
-  vi.useFakeTimers();
+  vi.useFakeTimers({ toFake: ["Date", "performance", "setTimeout", "clearTimeout"] });
   const { session } = setup({ jobTtlMs: 10, replayTtlMs: 10 });
   const first = task(session.prepare({ instance: "orders", input: "000123" }));
   vi.advanceTimersByTime(11);

@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { resolve, relative, isAbsolute, sep, join } from "node:path";
 import { releaseHashes, validateReleaseEvidence, verifyReleaseCi } from "./release-evidence.mjs";
+import { loadCases } from "../evaluations/cases.mjs";
 const root = realpathSync(fileURLToPath(new URL("../", import.meta.url)));
 const metadata = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 if (!/^\d+\.\d+\.\d+$/.test(metadata.version)) throw new Error("Development preview is not release-approved. Complete release acceptance before publishing.");
@@ -18,8 +19,7 @@ if (!location || (location !== ".." && !location.startsWith(".." + sep) && !isAb
 const raw = readFileSync(evidencePath);
 if (process.env.INTENT_RELEASE_EVIDENCE_SHA256 && createHash("sha256").update(raw).digest("hex") !== process.env.INTENT_RELEASE_EVIDENCE_SHA256) throw new Error("Release evidence digest does not match the approved artifact.");
 const evidence = JSON.parse(raw);
-const ids = name => readFileSync(join(root, `evaluations/cases/${name}.jsonl`), "utf8").trim().split(/\r?\n/).map(line => JSON.parse(line).id);
 const registryDate = JSON.parse(readFileSync(join(root, "src/language/data/iana-language-subtags.json"), "utf8")).fileDate;
-validateReleaseEvidence(evidence, { repository, commit, version: metadata.version, hashes: releaseHashes(root), caseIds: { semantics: [...ids("semantics"), ...ids("additional")], multilingual: ids("languages") }, registryDate });
+validateReleaseEvidence(evidence, { repository, commit, version: metadata.version, hashes: releaseHashes(root), caseKeys: { semantics: loadCases(["semantics", "additional"]).map(test => test.key), multilingual: loadCases(["languages"]).map(test => test.key) }, registryDate });
 await verifyReleaseCi({ repository, commit, runId: evidence.ciRunId, token: process.env.GH_TOKEN });
 console.log("Exact commit, version, Prompt/dataset/registry hashes, seven reviews and all platform CI checks verified. Publication still requires release authorization.");

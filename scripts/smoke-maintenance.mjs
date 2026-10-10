@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { randomUUID } from "node:crypto";
+import { rm } from "node:fs/promises";
 
 const root = process.cwd();
 const temp = mkdtempSync(path.join(tmpdir(), "intent-maintenance-中文 "));
@@ -167,7 +168,9 @@ try {
   chmodSync(alternative, 0o700);
   execFileSync(alternative, [cli(migrated), "doctor", "--repair", "--json"], { env: { ...process.env, ...migrated.env }, cwd: temp, timeout: 30000 });
   assert.equal(realpathSync(state(migrated).registrations[0].entry.command), realpathSync(alternative));
-  rmSync(alternative);
+  // Windows may briefly retain executable handles after a process has exited.
+  // Retry only unlink errors covered by fs.rm; a persistent lock still fails.
+  await rm(alternative, { force: true, recursive: true, maxRetries: 5, retryDelay: 100 });
   assert.equal(doctor(migrated, false, 1).status, "unhealthy");
   assert.equal(doctor(migrated, true).status, "healthy");
   assert.equal(state(migrated).registrations[0].entry.command, process.execPath);

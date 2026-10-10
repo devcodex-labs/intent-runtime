@@ -60,6 +60,7 @@
     "build": "tsc -p tsconfig.build.json && node scripts/copy-runtime-data.mjs",
     "clean": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\"",
     "prepack": "npm run clean && npm run build",
+    "prepublishOnly": "node scripts/check-release.mjs",
     "test": "vitest run tests",
     "test:integration": "npm run build && node scripts/integration.mjs",
     "test:mcp": "npm run build && node evaluations/mcp-protocol.mjs",
@@ -111,7 +112,7 @@
     "openai": "6.49.0",
     "typescript": "5.9.3",
     "typescript-eslint": "8.55.0",
-    "vitest": "3.2.6",
-    "vite": "6.4.1"
+    "vitest": "4.1.11",
+    "vite": "6.4.4"
   }
 }

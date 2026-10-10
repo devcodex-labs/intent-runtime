@@ -5,6 +5,7 @@ export interface ProbeResult { instances: string[]; tools: string[] }
 export async function probeMcp(command: string, args: string[], cwd: string, env?: Record<string, string>, startupTimeoutMs = 15000): Promise<ProbeResult> {
   const transport = new StdioClientTransport({ command, args, cwd, stderr: "pipe", ...(env ? { env } : {}) });
   const client = new Client({ name: "intent-runtime-diagnostic", version: "1" });
+  const closed = new Promise<void>(resolve => { transport.onclose = resolve; });
   transport.stderr?.on("data", () => {});
   let timer: NodeJS.Timeout | undefined;
   try {
@@ -32,5 +33,23 @@ export async function probeMcp(command: string, args: string[], cwd: string, env
     // terminal error; isError does not mean the cancellation failed.
     if (terminal?.kind !== "error" || terminal.error?.code !== "MODEL_ABORTED") throw new Error("Cancel failed.");
     return { instances: instances as string[], tools };
-  } finally { if (timer) clearTimeout(timer); await client.close(); await transport.close(); }
+  } finally {
+    if (timer) clearTimeout(timer);
+    const spawned = transport.pid !== null;
+    try { await client.close(); }
+    finally {
+      await transport.close();
+      // SDK close() can return immediately after SIGKILL. Wait for the actual
+      // process close before reporting success or letting Windows unlink Node.
+      if (spawned) {
+        let exitTimer: NodeJS.Timeout | undefined;
+        try {
+          await Promise.race([
+            closed,
+            new Promise<never>((_, reject) => { exitTimer = setTimeout(() => reject(new Error("MCP diagnostic process did not exit.")), 5000); }),
+          ]);
+        } finally { clearTimeout(exitTimer); }
+      }
+    }
+  }
 }

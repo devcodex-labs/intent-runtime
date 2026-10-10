@@ -41,12 +41,9 @@ jobs:
           run-id: ${{ vars.RELEASE_EVIDENCE_RUN_ID }}
           github-token: ${{ github.token }}
           path: ${{ runner.temp }}/intent-release-evidence
-      - name: Require accepted semantic and compatibility evidence for this commit
-        run: node scripts/check-release.mjs
-        env:
-          GH_TOKEN: ${{ github.token }}
-          INTENT_RELEASE_EVIDENCE: ${{ runner.temp }}/intent-release-evidence/release-acceptance.json
-          INTENT_RELEASE_EVIDENCE_SHA256: ${{ vars.RELEASE_EVIDENCE_SHA256 }}
       - run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          INTENT_RELEASE_EVIDENCE: ${{ runner.temp }}/intent-release-evidence/release-acceptance.json
+          INTENT_RELEASE_EVIDENCE_SHA256: ${{ vars.RELEASE_EVIDENCE_SHA256 }}
