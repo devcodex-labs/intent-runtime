@@ -89,7 +89,19 @@ npm run test:mcp
 
 推送与 `package.json` 版本完全一致的稳定版本 tag（例如 `v1.0.2`）会触发 npm 发布。自动流程验证版本匹配、该精确提交在 main 分支上的完整 CI，重新执行类型、代码、单元、MCP、安装维护和打包检查，然后发布带 provenance 的 npm 包，并创建包含安装包与 SHA-256 校验和的 GitHub Release。
 
-自动发布不依赖 OpenAI、xAI 或 Codex CLI/Desktop 的真实验收清单，也无需设置 `RELEASE_EVIDENCE_RUN_ID` 或 `RELEASE_EVIDENCE_SHA256`。真实模型和客户端验证仍用于评估实际行为与语义准确率；包已发布不表示这些检查已完成。
+后续版本按候选提交与已发布稳定版本的实际差异决定是否需要真实验收，不仅看版本号：
+
+| 改动范围 | 发布要求 |
+| --- | --- |
+| 仅安装维护、站点/README 文档、版本号或发布与确定性测试工具 | 完整 CI、自动化回归和安装包检查通过即可发布 |
+| 意图识别、业务提取、API/公开契约、Prompt、语言规则、Bridge/MCP、Codex 模型指引、运行依赖或构建行为 | 以上检查通过，并提供真实验收清单 |
+| 未知文件、无法确认已发布基线或无法读取差异 | 要求真实验收清单 |
+
+版本元数据豁免仅允许 `package.json` 的 version，以及 lockfile 顶层与根包的同步 version 变化；依赖、导出、脚本和 Node 约束变化不在此范围。基线必须是仓库中已发布的稳定 GitHub Release，tag 对应版本且位于候选提交的历史中；未发布 tag、草稿和预发布不能作为基线。比较累计差异，并同时检查重命名前的路径。
+
+需要真实验收的版本，先按评测文档完成 OpenAI、xAI、Codex CLI/Desktop、语义、多语言与语言注册表评审，再运行 `Review Release Evidence` 工作流。清单必须绑定候选提交、版本、完整用例键与发布输入摘要。将工作流 run ID 和清单 SHA-256 填入 `npm-release` 环境的 `RELEASE_EVIDENCE_RUN_ID`、`RELEASE_EVIDENCE_SHA256`；发布流程下载并核验该 artifact。
+
+安装维护与文档发布无需上述验收变量。真实模型和客户端验证仍用于评估实际行为与语义准确率；这类版本已发布不表示已经完成真实验收。
 
 需要保存独立验收记录时，可以手动运行仓库中的 `Review Release Evidence` 工作流。`scripts/check-release.mjs` 和从源码执行 `npm publish` 的 `prepublishOnly` 仍校验外部验收清单；tag 发布工作流直接发布经过检查的 tarball。
 

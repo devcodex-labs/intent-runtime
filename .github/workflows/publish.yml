@@ -22,6 +22,8 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
           node-version: "24.x"
@@ -29,6 +31,24 @@ jobs:
           package-manager-cache: false
       - name: Verify stable tag and package version
         run: node scripts/check-release-tag.mjs
+      - name: Determine changes since the published release
+        id: scope
+        run: node scripts/check-release-scope.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Require reviewed evidence for behavior changes
+        if: steps.scope.outputs.requires_review == 'true'
+        env:
+          EVIDENCE_RUN_ID: ${{ vars.RELEASE_EVIDENCE_RUN_ID }}
+          EVIDENCE_SHA256: ${{ vars.RELEASE_EVIDENCE_SHA256 }}
+        run: node --input-type=module -e 'if (!/^\d+$/.test(process.env.EVIDENCE_RUN_ID || "") || !/^[a-f0-9]{64}$/.test(process.env.EVIDENCE_SHA256 || "")) throw new Error("Behavior changes require a reviewed evidence run and SHA-256 in npm-release.");'
+      - uses: actions/download-artifact@v7
+        if: steps.scope.outputs.requires_review == 'true'
+        with:
+          name: release-acceptance
+          run-id: ${{ vars.RELEASE_EVIDENCE_RUN_ID }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/intent-release-evidence
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
@@ -77,6 +97,13 @@ jobs:
           NODE
         env:
           GH_TOKEN: ${{ github.token }}
+      - name: Verify reviewed evidence for behavior changes
+        if: steps.scope.outputs.requires_review == 'true'
+        run: node scripts/check-release.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INTENT_RELEASE_EVIDENCE: ${{ runner.temp }}/intent-release-evidence/release-acceptance.json
+          INTENT_RELEASE_EVIDENCE_SHA256: ${{ vars.RELEASE_EVIDENCE_SHA256 }}
       - uses: actions/upload-artifact@v6
         with:
           name: npm-package

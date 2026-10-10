@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import "./smoke-release-scope.mjs";
 import { validateReleaseEvidence, validateReleaseTag, verifyReleaseCi } from "./release-evidence.mjs";
 import { loadCases } from "../evaluations/cases.mjs";
 const now = Date.parse("2026-10-09T00:00:00Z"), commit = "a".repeat(40);
