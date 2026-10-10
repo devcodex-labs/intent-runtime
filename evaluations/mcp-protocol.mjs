@@ -349,18 +349,28 @@ await group(
     task(await prepare(c));
   },
 );
+// Explicit compatibility TTL only. Leave room for cold validation workers
+// (the default validation budget is 1000 ms) before testing idle expiry.
+const compatibilityTtlMs = 2000;
+const compatibilityReplayMs = 750;
 for (const stage of ["core", "data"])
   await group(
     stage + "阶段过期与终态保留清理",
-    { instance: { schema }, bridge: { jobTtlMs: 150, replayTtlMs: 300 } },
+    {
+      instance: { schema },
+      bridge: {
+        jobTtlMs: compatibilityTtlMs,
+        replayTtlMs: compatibilityReplayMs,
+      },
+    },
     async (c) => {
       let t = task(await prepare(c));
       if (stage === "data") t = task(await accept(c, t, core));
-      await delay(190);
+      await delay(compatibilityTtlMs + 50);
       const r = await accept(c, t, core);
       err(r, "BRIDGE_JOB_EXPIRED", "bridge");
       assert.equal(Boolean(r.error.partialResult), stage === "data");
-      await delay(310);
+      await delay(compatibilityReplayMs + 50);
       err(
         await c.call("intent_cancel", { jobId: t.jobId }),
         "BRIDGE_JOB_NOT_FOUND",
