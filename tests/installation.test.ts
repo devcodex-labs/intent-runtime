@@ -257,14 +257,23 @@ it("protects user modifications during cleanup and reports partial completion", 
   expect(await readFile(paths(ctx).codex, "utf8")).toBe(changed);
   expect(await readFile(first.skills[0]!.path, "utf8")).toBe("user-customized workflow");
 });
-it("cleanup is idempotent and reinstall can configure again", async () => {
+it.each(["\n", "\r\n"])("cleanup and reinstall preserve client text across repeated cycles with %j", async newline => {
   const { ctx, options } = await fixture();
-  const first = await install(ctx, options);
-  await clean(ctx, options);
-  expect(servers(await readFile(paths(ctx).codex, "utf8"))["intent-runtime"]).toBeUndefined();
-  expect(await read(first.skills[0]!.path)).toBeUndefined();
-  expect(await read(paths(ctx).config)).toBeDefined();
+  const before = ['# user settings', 'model="keep"', '', '# keep these blank lines', '', ''].join(newline);
+  await writeFile(paths(ctx).codex, before);
+  for (let cycle = 0; cycle < 3; cycle++) {
+    const installed = await install(ctx, options);
+    const configured = await readFile(paths(ctx).codex, "utf8");
+    await repair(ctx, options);
+    expect(await readFile(paths(ctx).codex, "utf8")).toBe(configured);
+    expect((await clean(ctx, options)).status).toBe("cleaned");
+    expect(await readFile(paths(ctx).codex, "utf8")).toBe(before);
+    expect(servers(await readFile(paths(ctx).codex, "utf8"))["intent-runtime"]).toBeUndefined();
+    expect(await read(installed.skills[0]!.path)).toBeUndefined();
+    expect(await read(paths(ctx).config)).toBeDefined();
+  }
   expect((await clean(ctx, options)).status).toBe("cleaned");
+  expect(await readFile(paths(ctx).codex, "utf8")).toBe(before);
   expect((await install(ctx, options)).status).toBe("configured");
 });
 it("does not restore an old registration that relies on the global package being removed", async () => {
@@ -375,4 +384,24 @@ it("removes nested env tables without deleting surrounding comments or servers",
   expect(result).toContain("# header comment");
   expect(result).toContain("# value comment");
   expect(result).toContain("# next server");
+});
+it.each([
+  "",
+  '# keep\nmodel="keep"\n',
+  '# keep\r\nmodel="keep"\r\n',
+  '# keep\nmodel="keep"\n\n \t\n',
+])("round-trips a managed server without adding or removing unrelated whitespace: %j", before => {
+  let source = before;
+  for (let cycle = 0; cycle < 3; cycle++) {
+    source = upsert(source, "intent-runtime", { command: "node", args: ["main.js", "--config", "config.mjs"], enabled: true });
+    expect(servers(source)["intent-runtime"]).toBeDefined();
+    source = remove(source, "intent-runtime");
+    expect(source).toBe(before);
+  }
+});
+it.each(["\n", "\r\n"])("removes whole managed lines while retaining multiline-value and header comments with %j", newline => {
+  const source = ['# before', '[mcp_servers.intent-runtime] # header comment', 'command="""first', 'second""" # value comment', '  [mcp_servers.intent-runtime.env]', '  A="b"  ', '# next server', '[mcp_servers.other]', 'command="other"', ''].join(newline);
+  const result = remove(source, "intent-runtime");
+  expect(result).toBe(['# before', ' # header comment', ' # value comment', '# next server', '[mcp_servers.other]', 'command="other"', ''].join(newline));
+  expect(servers(result)).toEqual({ other: { command: "other" } });
 });

@@ -66,7 +66,7 @@ export function upsert(source: string, name: string, fields: Record<string, unkn
   const data = parsed(source);
   if (!Object.hasOwn(servers(source), name) && !data.entries.some(e => equal(e.path, ["mcp_servers"]) && e.node.value.type === "TOMLInlineTable")) {
     const newline = source.includes("\r\n") ? "\r\n" : "\n";
-    source += (source && !source.endsWith("\n") ? newline : "") + newline + "[mcp_servers." + JSON.stringify(name) + "]" + newline;
+    source += (source && !source.endsWith("\n") ? newline : "") + "[mcp_servers." + JSON.stringify(name) + "]" + newline;
   }
   for (const [field, value] of Object.entries(fields)) source = set(source, ["mcp_servers", name, field], value);
   servers(source);
@@ -78,6 +78,15 @@ export function fingerprint(source: string, name: string): string {
   const parts = entries.filter(e => prefix(target, e.path)).map(e => source.slice(...e.node.range));
   parts.push(...tables.filter(t => prefix(target, t.resolvedKey as Path)).map(t => source.slice(t.range[0], t.key.range[1])));
   return digest(JSON.stringify(parts));
+}
+function removalRange(source: string, start: number, end: number): [number, number] {
+  const lineStart = source.lastIndexOf("\n", start - 1) + 1;
+  const newline = source.indexOf("\n", end);
+  const lineEnd = newline === -1 ? source.length : newline;
+  // Remove the line break only when the line has no surrounding user content.
+  if (/^[ \t\r]*$/.test(source.slice(lineStart, start)) && /^[ \t\r]*$/.test(source.slice(end, lineEnd)))
+    return [lineStart, newline === -1 ? lineEnd : newline + 1];
+  return [start, end];
 }
 export function remove(source: string, name: string): string {
   const { entries, tables } = parsed(source);
@@ -94,11 +103,12 @@ export function remove(source: string, name: string): string {
   } else {
     const ranges: [number, number][] = entries.filter(e => prefix(target, e.path) && !entries.some(parent => parent !== e && prefix(target, parent.path) && parent.node.range[0] <= e.node.range[0] && parent.node.range[1] >= e.node.range[1])).map(e => e.node.range);
     for (const t of tables.filter(t => prefix(target, t.resolvedKey as Path))) {
-      // Delete only the header tokens, retaining surrounding comments.
+      // Keep comments beside a header; comment-free lines can be removed whole.
       const end = source.indexOf("]", t.key.range[1]) + 1;
       ranges.push([t.range[0], end]);
     }
-    for (const [start, end] of ranges.sort((a, b) => b[0] - a[0])) source = source.slice(0, start) + source.slice(end);
+    const removals = ranges.map(([start, end]) => removalRange(source, start, end));
+    for (const [start, end] of removals.sort((a, b) => b[0] - a[0])) source = source.slice(0, start) + source.slice(end);
   }
   parsed(source);
   return source;
