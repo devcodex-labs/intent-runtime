@@ -14,7 +14,7 @@ Once this preview is released to npm's default tag, install from any directory:
 npm install -g @devcodex-labs/intent-runtime
 ~~~
 
-Direct global installation automatically configures supported local clients (currently Codex), installs the recognition Skill and checks the actual MCP connection. Local or indirect dependency installation does not change client configuration. Optional maintenance: intent-runtime doctor, doctor --repair and clean. See [installation](docs/installation.md) for configuration preservation, lifecycle-script requirements and client reloads.
+Direct global installation automatically configures supported local clients (currently Codex CLI and desktop), installs the recognition Skill and checks the actual MCP connection. Local or indirect dependency installation does not change client configuration. Automatic configuration requires npm lifecycle scripts to run; if they were disabled, run `intent-runtime doctor --repair`. Reload the client after installation. Optional maintenance: `intent-runtime doctor`, `doctor --repair` and `clean`. Updates preserve existing business configuration and user-edited instructions.
 
 ## Develop
 
@@ -66,11 +66,11 @@ try {
 - ready is an understanding status, never an authorization or execution gate.
 - Schema validation and source matches do not prove semantic truth. Review actual model outputs.
 
-## Codex desktop
+## Codex
 
-The MCP path uses the current desktop model through prepare/accept tools. It does not need a model API key. The MCP SDK is installed with the module. Global installation registers the user-level stdio entry and recognition Skill; source development can also configure the entry manually. Explicitly activate the workflow to validate actual model use.
+The MCP path uses the current Codex model through prepare/accept tools. It does not need a model API key. The MCP SDK is installed with the module. Global installation registers the user-level stdio entry and recognition Skill for Codex CLI and desktop; source development can also configure the entry manually. Explicitly activate the workflow to validate actual model use.
 
-See [本地配置与手动测试](docs/local-testing.md), [Codex workflow](integrations/codex/workflow.md), [usage](docs/usage.md), [errors](docs/errors.md) and [compatibility](docs/compatibility.md).
+See the [Codex workflow](integrations/codex/workflow.md), [configuration example](examples/codex/intent.config.mjs) and [evaluation tools](evaluations/README.md).
 
 ## Public entries
 
@@ -83,6 +83,6 @@ See [本地配置与手动测试](docs/local-testing.md), [Codex workflow](integ
 | intent-runtime-mcp --config path.mjs | Trusted config + stdio MCP service |
 | intent-runtime doctor / clean | Optional client diagnostics, repair and owned-configuration cleanup |
 
-Only dist, selected usage documents and integration examples are packaged. No credentials or evaluation outputs are published.
+Only runtime files, package metadata, integration instructions and examples are packaged. No credentials or evaluation outputs are published.
 
 MIT.

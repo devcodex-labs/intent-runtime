@@ -34,7 +34,7 @@ node evaluations/mcp-session.mjs ../intent-runtime-results/runs/<新的补充目
 {"operation":"close"}
 ```
 
-有 data 或 repair task 时，读取后继续 accept，直到 result/error。澄清问题是 `{question, options}` 对象。建议每批不超过 10 条并在有效期内完成；默认活动任务上限 32。原始 instructions、格式、参数、候选摘要和回复写入 `transcript.jsonl`。控制台仅缩略相同 instructions，原始记录完整保留。
+有 data 或 repair task 时，读取后继续 accept，直到 result/error。澄清问题是 `{question, options}` 对象。建议每批不超过 10 条；默认活动任务上限 32，任务不按时间自动过期，但需要保持原 MCP 连接。原始 instructions、格式、参数、候选摘要和回复写入 `transcript.jsonl`。控制台仅缩略相同 instructions，原始记录完整保留。
 
 驱动不自动生成候选，不自动批准语义，也不连接 Codex 桌面客户端。`review` 始终记录为当前助手自评、`independent:false`。`summary.json` 保留 `independentReview:pending`。
 
@@ -67,6 +67,6 @@ node evaluations/probe-semantic-guards.mjs
 
 ## 独立 API 评测
 
-按 [本地测试](../docs/local-testing.md) 设置 provider/model/key，然后运行 `npm run evaluate` 与 `npm run evaluate -- --languages`。每个模型路径独立记录；退出码正常不代表语义已验收。
+设置环境变量 `INTENT_PROVIDER`（`openai` 或 `xai`）、`INTENT_MODEL` 和对应的 `INTENT_OPENAI_KEY` 或 `INTENT_XAI_KEY`，然后运行 `npm run evaluate` 与 `npm run evaluate -- --languages`。API 适配器需要安装可选依赖 `openai`；从源码运行 `npm ci` 已包含它。每个模型路径独立记录；退出码正常不代表语义已验收。
 
 `--additional` 运行补充 24 条；`--all` 运行全部 119 条；`--repeat 5` 让每例重新请求五次，也可配合 `--case X-01 --additional`。每次真实 API 请求记录完整任务、instructions SHA-256、候选回复及阶段耗时，并记录 parse 总耗时。每条结束立即写入外部 JSONL，密钥和 HTTP 请求头不进入记录。输出可能包含原始业务材料，按本地数据管理要求保存。预设动作/状态/data/issues 的比对只覆盖指定维度，整体语义仍记 pending；按独立裁决结果计算准确率。

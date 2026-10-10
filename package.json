@@ -47,11 +47,6 @@
     "README.md",
     "LICENSE",
     "CHANGELOG.md",
-    "docs/usage.md",
-    "docs/errors.md",
-    "docs/compatibility.md",
-    "docs/local-testing.md",
-    "docs/installation.md",
     "scripts/postinstall.mjs",
     "integrations",
     "examples"
