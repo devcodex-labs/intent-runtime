@@ -1,4 +1,4 @@
-import { appendFile, mkdir } from "node:fs/promises";
+import { appendFile, mkdir, lstat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { createRequire } from "node:module";
@@ -15,6 +15,10 @@ export interface InstallOptions {
 export interface MaintenanceResult { status: string; checks: Check[]; warnings: string[]; statePath: string }
 const DEFAULT_CONFIG = "export default { instances: { default: {} } };\n";
 const adapters = (options: InstallOptions) => options.adapters ?? [codex];
+async function linked(path: string): Promise<boolean> {
+  try { return (await lstat(path)).isSymbolicLink(); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return false; throw error; }
+}
 async function probe(entry: Record<string, unknown>, ctx: InstallContext, options: InstallOptions): Promise<ProbeResult> {
   if (options.probe) return options.probe(entry, ctx);
   if (typeof entry.command !== "string" || !Array.isArray(entry.args) || entry.args.some(a => typeof a !== "string") || typeof entry.cwd !== "string") throw new InstallError("MCP_ENTRY_INVALID", "Invalid MCP command, arguments or working directory.");
@@ -24,9 +28,12 @@ async function probe(entry: Record<string, unknown>, ctx: InstallContext, option
     const key = typeof value === "string" ? value : record(value) && value.source !== "remote" && typeof value.name === "string" ? value.name : undefined;
     if (key && ctx.env[key] !== undefined) env[key] = ctx.env[key]!;
   }
+  const startupSeconds = entry.startup_timeout_sec ?? 15;
+  if (typeof startupSeconds !== "number" || !Number.isFinite(startupSeconds) || startupSeconds <= 0 || startupSeconds * 1000 > 2147483647)
+    throw new InstallError("MCP_ENTRY_INVALID", "Invalid MCP startup wait.");
   try {
     const { probeMcp } = await import("../transports/mcp/probe.js");
-    return await probeMcp(entry.command, entry.args as string[], entry.cwd, env);
+    return await probeMcp(entry.command, entry.args as string[], entry.cwd, env, Math.ceil(startupSeconds * 1000));
   } catch { throw new InstallError("MCP_PROBE_FAILED", "MCP handshake/task check failed. Check the Node executable, trusted config and runtime dependencies."); }
 }
 async function log(ctx: InstallContext, event: Record<string, unknown>) {
@@ -98,7 +105,7 @@ export async function install(ctx = context(), options: InstallOptions = {}): Pr
             await clientTx.change(configFile, DEFAULT_CONFIG, { expected: undefined });
           }
           next.configFile = configFile;
-          const fields: Record<string, unknown> = { command: ctx.node, args: [paths(ctx).main, "--config", configFile], cwd: dirname(configFile), enabled: true };
+          const fields: Record<string, unknown> = { command: ctx.node, args: [paths(ctx).main, "--config", configFile], cwd: selected.entry?.cwd ?? dirname(configFile), enabled: true };
           if (selected.entry?.startup_timeout_sec === undefined) fields.startup_timeout_sec = 15;
           const updated = adapter.write(source, selected.name, fields);
           const entry = adapter.entries(updated)[selected.name];
@@ -119,11 +126,12 @@ export async function install(ctx = context(), options: InstallOptions = {}): Pr
             const instruction = adapter.instruction(ctx, skillName, body);
             const oldContent = await read(instruction.path);
             const managed = previous?.skills.find(s => s.path === instruction.path);
-            if (managed && oldContent !== undefined && digest(oldContent) !== managed.hash) {
+            const symlink = await linked(instruction.path);
+            if (managed && (symlink || (oldContent !== undefined && digest(oldContent) !== managed.hash))) {
               next.warnings.push("User-edited instruction preserved: " + instruction.path);
               break;
             }
-            if (oldContent !== undefined && !managed) { skillName = "intent-runtime-" + suffix++; continue; }
+            if ((oldContent !== undefined || symlink) && !managed) { skillName = "intent-runtime-" + suffix++; continue; }
             await clientTx.change(instruction.path, instruction.content, { expected: oldContent });
             next.skills = next.skills.filter(s => s.path !== instruction.path);
             next.skills.push({ path: instruction.path, name: skillName, hash: digest(instruction.content) });
@@ -163,6 +171,24 @@ export async function install(ctx = context(), options: InstallOptions = {}): Pr
     }
   });
 }
+export async function repair(ctx = context(), options: InstallOptions = {}): Promise<MaintenanceResult> {
+  // Reuse successful probes only within this repair, while the registration
+  // and the trusted config text remain unchanged. There is no persistent cache.
+  const verified: { entry: Record<string, unknown>; config: string; text: string | undefined; result: ProbeResult }[] = [];
+  const checking: InstallOptions = { ...options, probe: async entry => {
+    const config = configFromEntry(entry, paths(ctx).codex);
+    if (!config) return probe(entry, ctx, options);
+    const text = await read(config);
+    const cached = verified.find(item => item.config === config && item.text === text && isDeepStrictEqual(item.entry, entry));
+    if (cached) return cached.result;
+    const snapshot = structuredClone(entry);
+    const result = await probe(entry, ctx, options);
+    if (text === await read(config)) verified.push({ entry: snapshot, config, text, result });
+    return result;
+  } };
+  await install(ctx, checking);
+  return doctor(ctx, checking);
+}
 export async function doctor(ctx = context(), options: InstallOptions = {}): Promise<MaintenanceResult> {
   const result: MaintenanceResult = { status: "healthy", checks: [], warnings: [], statePath: paths(ctx).state };
   result.checks.push({ name: "node", ok: supportedNode(), detail: process.version + "; required >=20.0.0" });
@@ -201,7 +227,7 @@ export async function doctor(ctx = context(), options: InstallOptions = {}): Pro
   for (const skill of previous?.skills ?? []) {
     const content = await read(skill.path);
     result.checks.push({ name: "instruction", ok: content !== undefined, detail: skill.path });
-    if (content !== undefined && digest(content) !== skill.hash) result.warnings.push("User-edited instruction preserved: " + skill.path);
+    if (await linked(skill.path) || (content !== undefined && digest(content) !== skill.hash)) result.warnings.push("User-edited instruction preserved: " + skill.path);
   }
   result.warnings.push(...(previous?.warnings ?? []));
   if (result.checks.some(c => !c.ok)) result.status = "unhealthy";
@@ -236,6 +262,7 @@ export async function clean(ctx = context(), options: InstallOptions = {}): Prom
         result.checks.push({ name: "registration", ok: true, detail: r.path + " / " + r.name });
       }
       for (const skill of previous.skills) {
+        if (await linked(skill.path)) { result.warnings.push("User-edited instruction preserved: " + skill.path); continue; }
         const content = await read(skill.path);
         if (content !== undefined && digest(content) !== skill.hash) { result.warnings.push("User-edited instruction preserved: " + skill.path); continue; }
         if (content !== undefined) await tx.change(skill.path, undefined, { expected: content });

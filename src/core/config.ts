@@ -58,12 +58,12 @@ export function prepareConfig(value: IntentConfig): Runtime {
     }
   }
   const timeoutMs =
-    input.timeoutMs === undefined ? 120000 : (input.timeoutMs as number);
+    input.timeoutMs === undefined ? 0 : (input.timeoutMs as number);
   if (limits.maxValidationMs > 2147483647)
     fail("CONFIG_INVALID", "config", "maxValidationMs exceeds the timer range.");
   if (
     !Number.isSafeInteger(timeoutMs) ||
-    timeoutMs <= 0 ||
+    timeoutMs < 0 ||
     timeoutMs > 2147483647
   )
     fail("CONFIG_INVALID", "config", "Invalid timeoutMs.");

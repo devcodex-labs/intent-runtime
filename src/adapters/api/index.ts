@@ -111,11 +111,13 @@ export function createApiExecutor(config: ApiExecutorConfig): ModelExecutor {
   const fetchOverride = config.fetch;
   // Optional peer is loaded only when the API path is actually used.
   let clientPromise: Promise<import("openai").default> | undefined;
+  let sdkTimeout: typeof import("openai").APIConnectionTimeoutError | undefined;
   function client(): Promise<import("openai").default> {
     clientPromise ??= import("openai")
       .then(
-        ({ default: OpenAI }) =>
-          new OpenAI({
+        ({ default: OpenAI, APIConnectionTimeoutError }) => {
+          sdkTimeout = APIConnectionTimeoutError;
+          return new OpenAI({
             apiKey,
             baseURL:
               provider === "openai"
@@ -123,7 +125,8 @@ export function createApiExecutor(config: ApiExecutorConfig): ModelExecutor {
                 : "https://api.x.ai/v1",
             maxRetries: 0,
             ...(fetchOverride ? { fetch: fetchOverride } : {}),
-          }),
+          });
+        },
       )
       .catch(() => {
         fail(
@@ -186,15 +189,16 @@ export function createApiExecutor(config: ApiExecutorConfig): ModelExecutor {
         return readCompletedResponse(response, request);
       } catch (error) {
         if (error instanceof IntentParseError) throw error;
-        if (request.signal.aborted)
-          throw (
-            request.signal.reason ??
-            new IntentParseError(
-              "MODEL_ABORTED",
-              request.stage,
-              "Model request aborted.",
-            )
+        if (request.signal.aborted) {
+          if (request.signal.reason instanceof IntentParseError) throw request.signal.reason;
+          throw new IntentParseError(
+            request.signal.reason instanceof Error && request.signal.reason.name === "TimeoutError" ? "MODEL_TIMEOUT" : "MODEL_ABORTED",
+            request.stage,
+            "Model request aborted by its caller.",
           );
+        }
+        if (sdkTimeout && error instanceof sdkTimeout)
+          throw new IntentParseError("MODEL_TIMEOUT", request.stage, "Provider request timed out.");
         const status =
           isObject(error) || error instanceof Error
             ? (error as { status?: number }).status

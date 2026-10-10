@@ -127,8 +127,12 @@ try {
   mkdirSync(business);
   symlinkSync(path.join(root, "node_modules"), path.join(business, "node_modules"), process.platform === "win32" ? "junction" : "dir");
   writeFileSync(path.join(business, "schema.mjs"), 'import {s} from "schema-dsl/pure";export const schema=s({orderId:s("string!")});\n');
-  const config = path.join(business, "intent.config.mjs");
-  const configText = 'import {schema} from "./schema.mjs";\nif(process.env.INTENT_ENV_INLINE!=="inline-ok"||process.env.INTENT_ENV_PASS!=="pass-ok")throw new Error("fixture environment missing");\nexport default {instances:{orders:{schema},secondary:{}}};\n';
+  const configDirectory = path.join(business, "configs");
+  mkdirSync(configDirectory);
+  const config = path.join(configDirectory, "intent.config.mjs");
+  const startups = path.join(business, "startups.log");
+  writeFileSync(path.join(business, "rules.json"), "business rules");
+  const configText = 'import {schema} from "../schema.mjs";\nimport {existsSync,appendFileSync,readFileSync} from "node:fs";\nif(readFileSync("rules.json","utf8")!=="business rules")throw new Error("fixture working directory changed");\nif(process.env.INTENT_ENV_INLINE!=="inline-ok"||process.env.INTENT_ENV_PASS!=="pass-ok")throw new Error("fixture environment missing");\nconst first=!existsSync(' + JSON.stringify(startups) + ');\nappendFileSync(' + JSON.stringify(startups) + ',"start\\n");\nif(first)await new Promise(resolve=>setTimeout(resolve,11000));\nexport default {instances:{orders:{schema},secondary:{}}};\n';
   writeFileSync(config, configText);
   writeFileSync(path.join(migrated.codex, "config.toml"), '[mcp_servers.intent-runtime]\ncommand=' + JSON.stringify(process.execPath) + '\nargs=' + JSON.stringify([path.join(root, "dist", "transports", "mcp", "main.js"), "--config", config]) + '\ncwd=' + JSON.stringify(business) + '\nenv={INTENT_ENV_INLINE="inline-ok"}\nenv_vars=["INTENT_ENV_PASS"]\nstartup_timeout_sec=30\n');
   migrated.env.INTENT_ENV_PASS = "pass-ok";
@@ -136,8 +140,10 @@ try {
   assert.equal(state(migrated).configFile, config);
   assert.deepEqual(state(migrated).instances, ["orders", "secondary"]);
   assert.equal(state(migrated).registrations[0].entry.startup_timeout_sec, 30);
+  assert.equal(state(migrated).registrations[0].entry.cwd, business);
+  assert.equal(readFileSync(startups, "utf8").trim().split("\n").length, 1);
   assert.equal(readFileSync(config, "utf8"), configText);
-  checks.push("actual legacy migration retains relative/bare imports, env/env_vars, startup timeout and multiple instances through the real MCP child");
+  checks.push("actual legacy migration retains cwd distinct from config directory, relative/bare imports, env/env_vars and multiple instances; an 11-second startup succeeds and repair probes once");
 
   const candidate = path.join(temp, "version candidate");
   cpSync(installed(migrated), candidate, { recursive: true, filter: source => path.relative(installed(migrated), source).split(path.sep)[0] !== "node_modules" });

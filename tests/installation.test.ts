@@ -3,7 +3,7 @@ import { access, mkdtemp, mkdir, writeFile, readFile, rm, symlink, lstat } from 
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { context, paths, directGlobal, supportedNode } from "../src/installation/environment.js";
-import { install, doctor, clean, type InstallOptions } from "../src/installation/installer.js";
+import { install, doctor, repair, clean, type InstallOptions } from "../src/installation/installer.js";
 import { codex, belongsToModule, type ClientAdapter } from "../src/installation/codex.js";
 import { servers, upsert, remove } from "../src/installation/toml.js";
 import { read } from "../src/installation/files.js";
@@ -110,6 +110,42 @@ it("reinstall is idempotent and preserves customized business configuration", as
   expect(await readFile(paths(ctx).config, "utf8")).toBe(custom);
   expect(result.registrations).toHaveLength(1);
   expect(result.instances).toEqual(["orders"]);
+});
+it("preserves a migrated working directory when the config lives elsewhere", async () => {
+  const { base, ctx, options } = await fixture();
+  const business = join(base, "business"), config = join(base, "configs", "intent.mjs");
+  await mkdir(business, { recursive: true });
+  await mkdir(dirname(config), { recursive: true });
+  await writeFile(join(business, "rules.json"), "business rules");
+  await writeFile(config, "export default {instances:{default:{}}};");
+  await writeFile(paths(ctx).codex, upsert("", "intent-runtime", { command: ctx.node, args: [paths(ctx).main, "--config", config], cwd: business }));
+  const checking: InstallOptions = { ...options, probe: async entry => {
+    expect(await readFile(join(entry.cwd as string, "rules.json"), "utf8")).toBe("business rules");
+    return { instances: ["default"], tools: [] };
+  } };
+  expect((await install(ctx, checking)).registrations[0]!.entry.cwd).toBe(business);
+  expect((await install(ctx, checking)).registrations[0]!.entry.cwd).toBe(business);
+  expect((await doctor(ctx, checking)).status).toBe("healthy");
+});
+it("performs one protocol probe per unchanged repair and probes again for standalone diagnosis", async () => {
+  const { ctx, options } = await fixture();
+  let calls = 0;
+  const checking: InstallOptions = { ...options, probe: async (entry, candidate) => { calls++; return options.probe!(entry, candidate); } };
+  expect((await repair(ctx, checking)).status).toBe("healthy");
+  expect(calls).toBe(1);
+  expect((await doctor(ctx, checking)).status).toBe("healthy");
+  expect(calls).toBe(2);
+});
+it("does not reuse a probe after the trusted configuration changes", async () => {
+  const { ctx, options } = await fixture();
+  let calls = 0;
+  const checking: InstallOptions = { ...options, probe: async (entry, candidate) => {
+    const result = await options.probe!(entry, candidate);
+    if (++calls === 1) await writeFile(paths(ctx).config, "export default {instances:{orders:{}}};");
+    return result;
+  } };
+  expect((await repair(ctx, checking)).status).toBe("healthy");
+  expect(calls).toBe(2);
 });
 it("records waiting for a client without claiming successful configuration", async () => {
   const { ctx, options } = await fixture(false);

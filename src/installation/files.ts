@@ -86,36 +86,25 @@ export class RecoveryJournal {
   }
 }
 export class Transaction {
-  private changes: { path: string; before: string | undefined; after: string | undefined }[] = [];
+  private changeCount = 0;
   readonly backup: string;
   private readonly owner = randomUUID();
-  constructor(base: string, private readonly recovery?: RecoveryJournal) { this.backup = join(base, "backups", Date.now() + "-" + randomUUID()); }
+  constructor(base: string, private readonly recovery: RecoveryJournal) { this.backup = join(base, "backups", Date.now() + "-" + randomUUID()); }
   async change(path: string, after: string | undefined, check?: { expected: string | undefined }): Promise<void> {
     const before = await read(path);
     if (check && before !== check.expected) throw new InstallError("CONFIG_CHANGED", "Configuration changed since the update was calculated: " + path);
     if (before === after) return;
     await mkdir(this.backup, { recursive: true, mode: 0o700 });
-    await writeFile(join(this.backup, this.changes.length + ".json"), JSON.stringify({ path, content: before ?? null }), { flag: "wx", mode: 0o600 });
+    await writeFile(join(this.backup, this.changeCount++ + ".json"), JSON.stringify({ path, content: before ?? null }), { flag: "wx", mode: 0o600 });
     if (await read(path) !== before) throw new InstallError("CONFIG_CHANGED", "Configuration changed while preparing the update: " + path);
-    await this.recovery?.record({ owner: this.owner, path, before: before ?? null, after: after ?? null, backup: this.backup });
+    await this.recovery.record({ owner: this.owner, path, before: before ?? null, after: after ?? null, backup: this.backup });
     if (after === undefined) {
       if (await read(path) !== before) throw new InstallError("CONFIG_CHANGED", "Configuration changed while preparing the update: " + path);
       await unlink(path);
     } else await atomic(path, after, { expected: before });
-    this.changes.push({ path, before, after });
   }
   async rollback(): Promise<void> {
-    if (this.recovery) { await this.recovery.rollback(this.owner); return; }
-    const conflicts: string[] = [];
-    for (const { path, before, after } of [...this.changes].reverse()) {
-      try {
-        const current = await read(path);
-        if (current === before) continue;
-        if (current !== after) { conflicts.push(path); continue; }
-        if (before === undefined) await unlink(path); else await atomic(path, before, { expected: current });
-      } catch { conflicts.push(path); }
-    }
-    if (conflicts.length) throw new InstallError("ROLLBACK_INCOMPLETE", "Some files changed or could not be restored; backups: " + this.backup);
+    await this.recovery.rollback(this.owner);
   }
 }
 export async function locked<T>(ctx: InstallContext, action: () => Promise<T>): Promise<T> {

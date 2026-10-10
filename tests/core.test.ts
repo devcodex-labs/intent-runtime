@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { s } from "schema-dsl/pure";
 import {
   Intent,
@@ -302,6 +302,38 @@ describe("public request and core pipeline", () => {
     });
     expect(executor.generate.mock.calls[0]![0].signal.aborted).toBe(true);
     intent.dispose();
+  });
+  it.each([undefined, 0])("adds no model deadline when timeoutMs is %s", async timeoutMs => {
+    vi.useFakeTimers();
+    let intent: Intent | undefined;
+    try {
+      let complete!: (reply: ModelReply) => void;
+      const executor = fakeExecutor();
+      executor.generate.mockImplementation(() => new Promise(resolve => { complete = resolve; }));
+      intent = new Intent({ executor, ...(timeoutMs === undefined ? {} : { timeoutMs }) });
+      const pending = intent.parse({ input: "x", fields: [] }).then(result => ({ result }), error => ({ error }));
+      await vi.advanceTimersByTimeAsync(5 * 86400000);
+      expect(executor.generate).toHaveBeenCalledTimes(1);
+      expect(executor.generate.mock.calls[0]![0].signal.aborted).toBe(false);
+      complete({ outcome: "complete", text: JSON.stringify(core()) });
+      expect(await pending).toMatchObject({ result: { data: {} } });
+    } finally { intent?.dispose(); vi.useRealTimers(); }
+  });
+  it("honors an explicitly selected deadline after a synchronous executor blocks the timer", async () => {
+    const executor = fakeExecutor();
+    executor.generate.mockImplementation(async () => {
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50);
+      return { outcome: "complete", text: JSON.stringify(core()) };
+    });
+    const intent = new Intent({ executor, timeoutMs: 10 });
+    try { await expect(intent.parse({ input: "x", fields: [] })).rejects.toMatchObject({ code: "MODEL_TIMEOUT" }); }
+    finally { intent.dispose(); }
+  });
+  it.each(["AbortError", "TimeoutError"])("normalizes a standard executor %s", async name => {
+    const intent = new Intent({ executor: fakeExecutor(new DOMException("controlled fixture", name)) });
+    try {
+      await expect(intent.parse({ input: "x", fields: [] })).rejects.toMatchObject({ code: name === "AbortError" ? "MODEL_ABORTED" : "MODEL_TIMEOUT" });
+    } finally { intent.dispose(); }
   });
   it("disposal cancels active calls, is idempotent and refuses future calls", async () => {
     const executor = fakeExecutor();

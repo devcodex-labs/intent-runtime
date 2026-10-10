@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { mkdtemp, mkdir, writeFile, readFile, rm, symlink, lstat, chmod } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile, readlink, rm, symlink, lstat, chmod } from "node:fs/promises";
 import { writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { join } from "node:path";
@@ -188,6 +188,31 @@ it("never replaces a missing established business config with a fresh default", 
   await expect(install(ctx, options)).rejects.toMatchObject({ code: "TRUSTED_CONFIG_MISSING" });
   expect(await read(paths(ctx).config)).toBeUndefined();
   expect(await readFile(paths(ctx).codex, "utf8")).toBe(before);
+});
+it("preserves a same-content user Skill symlink through cleanup failure and repair", async ({ skip }) => {
+  const { ctx, options, base } = await fixture();
+  const previous = await install(ctx, options);
+  const skill = previous.skills[0]!.path, target = join(base, "user-instructions.md");
+  const content = await readFile(skill, "utf8");
+  await writeFile(target, content);
+  await rm(skill);
+  try { await symlink(target, skill, "file"); }
+  catch (error) {
+    if (process.platform === "win32" && (error as NodeJS.ErrnoException).code === "EPERM") skip();
+    throw error;
+  }
+  const registration = await readFile(paths(ctx).codex, "utf8");
+  expect((await doctor(ctx, options)).warnings).toContain("User-edited instruction preserved: " + skill);
+  fail("writeFile", "state.json.", "ENOSPC");
+  await expect(clean(ctx, options)).rejects.toMatchObject({ code: "ENOSPC" });
+  faults.hook = undefined;
+  expect((await lstat(skill)).isSymbolicLink()).toBe(true);
+  expect(await readlink(skill)).toBe(target);
+  expect(await readFile(target, "utf8")).toBe(content);
+  expect(await readFile(paths(ctx).codex, "utf8")).toBe(registration);
+  expect((await install(ctx, options)).warnings).toContain("User-edited instruction preserved: " + skill);
+  expect((await clean(ctx, options)).status).toBe("partial");
+  expect((await lstat(skill)).isSymbolicLink()).toBe(true);
 });
 it("reclaims a failed lock write without retaining an invalid lock", async () => {
   const { ctx } = await fixture();

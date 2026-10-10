@@ -103,11 +103,13 @@ export function asIntentError(
   error: unknown,
   stage: ErrorStage,
 ): IntentParseError {
-  return error instanceof IntentParseError
-    ? error
-    : new IntentParseError(
-        "MODEL_REQUEST_FAILED",
-        stage,
-        "Processing failed; no complete result was produced.",
-      );
+  if (error instanceof IntentParseError) return error;
+  if (error instanceof Error && ["AbortError", "TimeoutError"].includes(error.name))
+    return new IntentParseError(error.name === "AbortError" ? "MODEL_ABORTED" : "MODEL_TIMEOUT", stage,
+      error.name === "AbortError" ? "Model request aborted." : "Model request timed out.");
+  return new IntentParseError(
+    "MODEL_REQUEST_FAILED",
+    stage,
+    "Processing failed; no complete result was produced.",
+  );
 }

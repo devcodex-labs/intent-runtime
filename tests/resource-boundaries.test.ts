@@ -120,6 +120,18 @@ it.each(["maxEvidenceEntries", "maxIssueCount"] as const)(
   },
 );
 
+it.each([false, true])("bounds combined description and explicit issues (explicit=%s)", async explicit => {
+  const schema = { ...orderSchema, description: "An explicitly supplied order." };
+  const candidate = data();
+  candidate.descriptionChecks[0]!.verdict = "violated";
+  candidate.descriptionChecks.push({ ...candidate.descriptionChecks[0]!, path: "/data" });
+  const value = explicit ? { ...candidate, descriptionChecks: [candidate.descriptionChecks[0]], issues: [{ code: "DATA_CONFLICT", category: "business_information", path: "/data/orderId", message: "Conflicting identifiers." }] } : candidate;
+  const intent = new Intent({ schema, executor: fakeExecutor(core(), value), limits: { maxIssueCount: 1 } });
+  try {
+    await expect(intent.parse({ input: "000123" })).rejects.toMatchObject({ code: "LIMIT_EXCEEDED", stage: "data", partialResult: { data: {} } });
+  } finally { intent.dispose(); }
+});
+
 it("rejects an oversized data request before generation, retains core and releases capacity", async () => {
   const largeCore = core("Order 000123 " + "x".repeat(16000));
   const executor = fakeExecutor(largeCore, core());

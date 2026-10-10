@@ -38,6 +38,58 @@ function completed(value: unknown) {
     ],
   };
 }
+const failureStages = (["openai", "xai"] as const).flatMap(provider => (["core", "data"] as const).map(stage => ({ provider, stage })));
+it.each(failureStages)("classifies an SDK connection timeout from $provider in $stage", async ({ provider, stage }) => {
+  let calls = 0;
+  const transport: typeof fetch = vi.fn(async () => {
+    if (++calls === 1 && stage === "data") return new Response(JSON.stringify(completed(core())), { headers: { "content-type": "application/json" } });
+    throw new Error("connection timed out");
+  });
+  const intent = new Intent({ schema: orderSchema, executor: createApiExecutor({ provider, model: "fixture", apiKey: "fixture", fetch: transport }) });
+  try {
+    await expect(intent.parse({ input: "000123" })).rejects.toMatchObject({ code: "MODEL_TIMEOUT", stage, ...(stage === "data" ? { partialResult: { data: {}, intents: [{ action: "query" }] } } : {}) });
+    expect(transport).toHaveBeenCalledTimes(stage === "core" ? 1 : 2);
+  } finally { intent.dispose(); }
+});
+it.each(failureStages)("propagates standard external cancellation through $provider in $stage", async ({ provider, stage }) => {
+  const external = new AbortController();
+  let reached!: () => void;
+  const entered = new Promise<void>(resolve => { reached = resolve; });
+  let calls = 0;
+  const transport: typeof fetch = vi.fn(async (_url, init) => {
+    if (++calls === 1 && stage === "data") return new Response(JSON.stringify(completed(core())), { headers: { "content-type": "application/json" } });
+    const signal = init!.signal!;
+    reached();
+    return new Promise<Response>((_resolve, reject) => {
+      if (signal.aborted) reject(signal.reason);
+      else signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+    });
+  });
+  const api = createApiExecutor({ provider, model: "fixture", apiKey: "fixture", fetch: transport });
+  const executor = { ...api, async generate(request: ModelRequest) {
+    const combined = new AbortController();
+    const fromExternal = () => combined.abort(external.signal.reason);
+    const fromRuntime = () => combined.abort(request.signal.reason);
+    external.signal.addEventListener("abort", fromExternal, { once: true });
+    request.signal.addEventListener("abort", fromRuntime, { once: true });
+    if (external.signal.aborted) fromExternal();
+    if (request.signal.aborted) fromRuntime();
+    try { return await api.generate({ ...request, signal: combined.signal }); }
+    finally {
+      external.signal.removeEventListener("abort", fromExternal);
+      request.signal.removeEventListener("abort", fromRuntime);
+    }
+  } };
+  const intent = new Intent({ schema: orderSchema, executor });
+  try {
+    const pending = intent.parse({ input: "000123" });
+    const rejected = expect(pending).rejects.toMatchObject({ code: "MODEL_ABORTED", stage, ...(stage === "data" ? { partialResult: { data: {}, intents: [{ action: "query" }] } } : {}) });
+    await entered;
+    external.abort();
+    await rejected;
+    expect(transport).toHaveBeenCalledTimes(stage === "core" ? 1 : 2);
+  } finally { intent.dispose(); }
+});
 it.each(["openai", "xai"] as const)(
   "maps %s Responses requests and yields the public result",
   async (provider) => {

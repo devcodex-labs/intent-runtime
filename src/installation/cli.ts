@@ -12,10 +12,9 @@ if (!command || command === "--help") {
   process.exitCode = 2;
 } else {
   try {
-    const { install, doctor, clean } = await import("./installer.js");
+    const { repair, doctor, clean } = await import("./installer.js");
     const ctx = context();
-    if (command === "doctor" && args.includes("--repair")) await install(ctx);
-    const result = command === "clean" ? await clean(ctx) : await doctor(ctx);
+    const result = command === "clean" ? await clean(ctx) : args.includes("--repair") ? await repair(ctx) : await doctor(ctx);
     if (json) console.log(JSON.stringify(result, null, 2));
     else {
       console.log("intent-runtime: " + result.status);

@@ -44,27 +44,34 @@ export class Intent {
     const aborted = new Promise<never>((_, reject) => {
       rejectAbort = reject;
     });
+    // A synchronous cancellation can precede the first Promise.race.
+    void aborted.catch(() => {});
     const onAbort = () => rejectAbort(state.controller.signal.reason);
     state.controller.signal.addEventListener("abort", onAbort, { once: true });
-    const timer = setTimeout(
-      () =>
-        state.controller.abort(
-          new IntentParseError(
-            "MODEL_TIMEOUT",
-            state.stage,
-            "Total parse deadline exceeded.",
-          ),
-        ),
-      this.runtime.timeoutMs,
+    const deadline = this.runtime.timeoutMs ? performance.now() + this.runtime.timeoutMs : undefined;
+    const timeout = () => state.controller.abort(
+      new IntentParseError(
+        "MODEL_TIMEOUT",
+        state.stage,
+        "Total parse deadline exceeded.",
+      ),
     );
+    const timer = this.runtime.timeoutMs ? setTimeout(timeout, this.runtime.timeoutMs) : undefined;
+    const checkDeadline = () => {
+      if (deadline !== undefined && performance.now() >= deadline && !state.controller.signal.aborted) timeout();
+      state.controller.signal.throwIfAborted();
+    };
     try {
       while (!state.terminal) {
+        checkDeadline();
         const modelRequest = nextRequest(state);
         const reply: ModelReply = await Promise.race([
           Promise.resolve().then(() => executor.generate(modelRequest)),
           aborted,
         ]);
+        checkDeadline();
         const result = await Promise.race([acceptCandidate(state, reply), aborted]);
+        checkDeadline();
         if (result) return result;
       }
       fail(

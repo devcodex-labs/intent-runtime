@@ -119,6 +119,7 @@ export interface IntentConfig {
   language?: string;
   schema?: JSONSchema;
   executor?: ModelExecutor;
+  /** Optional caller-selected total deadline. Omitted or zero adds no deadline. */
   timeoutMs?: number;
   repairAttempts?: 0 | 1;
   limits?: Partial<IntentLimits>;

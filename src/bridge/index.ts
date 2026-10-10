@@ -16,9 +16,9 @@ export type BridgeReply =
 export interface BridgeConfig {
   instances: Record<string, Intent>;
   maxJobs?: number;
-  /** Optional idle lifetime. Omitted or zero disables expiration. */
+  /** @deprecated Compatibility only; normal sessions do not expire by time. */
   jobTtlMs?: number;
-  /** Optional completed-reply lifetime. Omitted or zero uses capacity only. */
+  /** @deprecated Compatibility only; completed replies use capacity by default. */
   replayTtlMs?: number;
   maxReplayEntries?: number;
   maxReplayBytes?: number;

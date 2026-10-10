@@ -178,6 +178,8 @@ export async function validateData(
     }
     issues.push(entry as unknown as IntentIssue);
   }
+  if (issues.length > runtime.limits.maxIssueCount)
+    fail("LIMIT_EXCEEDED", "data", "Combined issue count exceeds maxIssueCount.");
   const fieldPaths = new Set<string>();
   for (const entry of value.fieldResults) {
     if (!isObject(entry)) invalid("Invalid field result.");
