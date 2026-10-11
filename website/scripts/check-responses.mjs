@@ -42,6 +42,12 @@ for (const [name, values] of [["IntentAction", ACTIONS], ["IntentStatus", STATUS
 }
 
 const examples = new Map();
+const homeExamples = JSON.parse(await readFile(join(root, "website/components/home-examples.json"), "utf8"));
+for (const example of homeExamples) {
+  const key = `response:home-${example.id}`;
+  assert.ok(!examples.has(key), `Duplicate homepage example: ${key}`);
+  examples.set(key, { kind: "response", value: example.result });
+}
 const exampleKinds = new Set(["response", "bridge-reply", "error-response", "mcp-response", "model-candidate", "business-schema", "parse-request"]);
 for (const path of await documentationFiles(root)) {
   for (const block of codeBlocks(await readFile(path, "utf8")).filter(block => block.language === "json")) {
@@ -56,6 +62,7 @@ for (const path of await documentationFiles(root)) {
 }
 const get = key => { assert.ok(examples.has(key), `Missing documented response: ${key}`); return examples.get(key).value; };
 const expectedKeys = [
+  ...["requirements", "context", "clarification"].map(name => `response:home-${name}`),
   ...["default", "clarification", "confirmation", "conditional", "multiple", "no-intent", "data", "quick-start", "context"].map(name => `response:${name}`),
   ...["intent-contract", "global-requirements", "phases", "compound-conditions", "combined-blockers", "modify", "other", "constraints-only", "data-values", "partial-fields"].map(name => `response:${name}`),
   ...["task", "result", "error"].map(name => `bridge-reply:${name}`),
@@ -121,8 +128,10 @@ for (const [key, example] of examples) {
   assert.equal(request.input, expected.input, `Documented input drift: ${key}`);
   if (hasData && !fixture) assert.deepEqual(Object.keys(expected.data), ["orderId"], `Missing business fixture for ${key}`);
   const extension = structuredClone(fixture?.extension ?? dataCandidate);
-  if (key === "response:context") {
-    const contextRequest = codeBlocks(contextPage).filter(block => block.language === "json").map(block => JSON.parse(block.code)).find(value => value.context && value.input === expected.input);
+  if (key === "response:context" || key === "response:home-context") {
+    const contextRequest = key === "response:home-context"
+      ? homeExamples.find(example => example.id === "context")
+      : codeBlocks(contextPage).filter(block => block.language === "json").map(block => JSON.parse(block.code)).find(value => value.context && value.input === expected.input);
     assert.ok(contextRequest, "Context example must include explicit material");
     request.context = contextRequest.context;
     for (const entry of [...extension.evidence, ...extension.descriptionChecks]) for (const source of entry.sources) source.sourceId = "context:0";

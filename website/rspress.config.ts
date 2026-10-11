@@ -9,7 +9,7 @@ export default defineConfig({
   outDir: "dist",
   lang: "zh",
   title: "intent-runtime",
-  description: "从当前有效请求到结构化意图，使用 schema-dsl 提取可验证的业务字段。",
+  description: "面向应用与 AI 客户端的大模型意图结构化组件，识别当前请求、保留约束并按 Schema 提取业务字段。",
   logo: "/logo.svg",
   logoText: "intent-runtime",
   icon: "/favicon.svg",
@@ -18,7 +18,7 @@ export default defineConfig({
   head: [
     ["meta", { property: "og:type", content: "website" }],
     ["meta", { property: "og:title", content: "intent-runtime · 中文文档" }],
-    ["meta", { property: "og:description", content: "识别当前有效请求，保留约束与来源，连接 Codex 和模型 API。" }],
+    ["meta", { property: "og:description", content: "识别当前请求、保留动作与约束、按 Schema 提取业务字段，为应用和 AI 客户端交付统一的理解结果。" }],
     ["meta", { property: "og:image", content: `${siteUrl}/og-card.svg` }],
     ["meta", { name: "twitter:card", content: "summary_large_image" }],
   ],

@@ -1,32 +1,26 @@
 ---
-pageType: home
+pageType: custom
 title: intent-runtime · 中文文档
-description: 识别当前有效请求，保留动作、条件与禁止事项，使用 schema-dsl 提取可验证的业务字段。
+description: 面向应用与 AI 客户端的大模型意图结构化组件，识别当前请求、保留约束并按 Schema 提取业务字段。
 hero:
   name: intent-runtime
-  text: 从用户请求到结构化意图
-  tagline: Node.js ≥20.0.0。识别当前有效请求，保留动作、条件与禁止事项，使用 schema-dsl 提取可验证的业务字段。
+  text: 把用户请求转为结构化意图
+  tagline: 大模型驱动的意图结构化组件。识别当前请求、保留动作与约束，按 Schema 提取业务字段，为应用与 AI 客户端交付统一、可校验的理解结果。
   actions:
     - theme: brand
-      text: 开始使用
+      text: 快速开始
       link: /guide/quick-start.html
     - theme: alt
-      text: 接入 Codex
-      link: /integrations/codex-cli.html
+      text: 查看响应结构
+      link: /api/response.html
     - theme: alt
       text: GitHub
       link: https://github.com/devcodex-labs/intent-runtime
-features:
-  - title: 当前有效请求
-    details: 结合明确提供的上下文识别多动作、撤回与条件，保留要求和禁止事项。
-    link: /guide/intent-contract.html
-  - title: 可验证的业务字段
-    details: 用 schema-dsl 定义字段及业务描述，按需提取扩展字段，对缺失、冲突和来源问题给出反馈。
-    link: /guide/schema-fields.html
-  - title: MCP 与模型 API
-    details: 与当前 Codex 模型协作，或显式配置 OpenAI、xAI API，使用同一套意图契约。
-    link: /integrations/openai-xai.html
-  - title: 长期任务与部分结果
-    details: 任务默认不按时间过期；扩展提取失败时保留已经验证的默认字段。业务执行由调用方处理。
-    link: /guide/lifecycle.html
 ---
+
+import { HomeHero, HomeFooter } from "@rspress/core/theme";
+import { HomeOverview } from "../components/HomeOverview";
+
+<div className="intent-home-hero"><HomeHero /></div>
+<HomeOverview />
+<HomeFooter />

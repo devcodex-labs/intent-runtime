@@ -92,6 +92,8 @@ parse 只接受一个请求对象；请求和 context 消息中的未知参数�
 
 ## ModelExecutor
 
+这里的执行器负责调用模型生成识别候选，四个 capabilities 描述模型输出格式、回合隔离与取消支持。它们不是完成用户目标所需的业务能力目录；模块也不通过该接口调用业务工具或执行业务动作。
+
 自定义执行器需提供 `id`、四个 boolean capabilities 和异步 `generate(request)`：
 
 ```ts

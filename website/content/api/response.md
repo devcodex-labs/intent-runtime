@@ -111,6 +111,8 @@ interface IntentResult {
 
 总预算、总期限保留为一次全局要求，不拆成每个动作分别享有同样预算。阶段限制保留在相应动作中，例如“分析阶段不修改”不会取消用户明确请求的后续修改。复合前提和可选措辞完整保存在 requirements 中，不新增依赖或决定用户未作出的选择。
 
+IntentResult 交付识别结果。`intents` 不包含根据目标自动推断的实施步骤，`requirements` 也不是能力或工具清单；当前契约没有 steps、plan 或 capabilities 等规划字段。需要规划与执行时，由上层应用读取结果后处理，见[动作列表与实施计划](../guide/intent-contract.md#动作列表与实施计划)。
+
 ## data 的省略与 null
 
 data 只返回所选的顶层业务字段，字段内部保留 Schema 要求的完整结构。可选字段缺少材料时省略该属性，不能自动补为 false、0、空字符串或 null。null 必须同时得到 Schema 许可和明确空值材料支持。必填字段缺失时按[提取失败](./errors.md#完整失败示例)处理。

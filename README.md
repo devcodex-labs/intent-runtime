@@ -1,6 +1,6 @@
 # intent-runtime
 
-A TypeScript / Node.js library for expressing the current effective user request as default intents plus selected schema-dsl business fields.
+A model-driven TypeScript / Node.js component for turning the current user request and explicit context into structured intent records and selected business fields defined by JSON Schema or schema-dsl. Applications and AI clients use its shared result contract, candidate validation and recognition lifecycle.
 
 Requires Node.js >=20.0.0. ESM only. The package identity is @devcodex/intent-runtime.
 
@@ -101,7 +101,9 @@ try {
 - Default structured language is en; tags must specify an output language supported by the shipped BCP 47 registry snapshot.
 - Omitted fields attempts all defined top-level extensions; [] skips data and keeps the entire default result.
 - Context is explicit text or chronological user/assistant/tool messages.
+- Omitting context still recognizes the current input. The module does not collect history or maintain cross-request memory.
 - The library does not execute actions, load files/history, infer permission, or choose tools.
+- Intent items express the requested actions; completion steps, capability discovery and execution planning belong to the application.
 - ready is an understanding status, never an authorization or execution gate.
 - Schema validation and source matches do not prove semantic truth. Review actual model outputs.
 

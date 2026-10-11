@@ -1,0 +1,162 @@
+.intent-home-hero .rp-home-hero__subtitle {
+  text-wrap: balance;
+}
+
+.intent-home {
+  --intent-border: var(--rp-c-divider);
+  --intent-muted: var(--rp-c-text-2);
+  max-width: 1152px;
+  margin: -30px auto 80px;
+  padding: 0 40px;
+}
+
+.intent-home *, .intent-home *::before, .intent-home *::after {
+  box-sizing: border-box;
+}
+
+.intent-home-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 52px;
+  color: var(--intent-muted);
+  font-size: 13px;
+}
+
+.intent-home-meta span, .intent-home-path-tag {
+  padding: 5px 11px;
+  border: 1px solid var(--intent-border);
+  border-radius: 7px;
+}
+
+.intent-home-heading { margin-bottom: 24px; }
+.intent-home-eyebrow {
+  margin: 0 0 10px;
+  color: var(--rp-c-brand);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+.intent-home h2 { margin: 0; font-size: 27px; font-weight: 650; line-height: 1.45; }
+.intent-home h3 { margin: 18px 0 12px; font-size: 23px; font-weight: 650; }
+.intent-home-heading > p:last-child { margin: 12px 0 0; color: var(--intent-muted); line-height: 1.8; }
+.intent-home a { color: var(--rp-c-brand); font-size: 14px; font-weight: 500; }
+.intent-home a:hover { text-decoration: underline; }
+.intent-home a:focus-visible, .intent-home button:focus-visible, .intent-home pre:focus-visible {
+  outline: 2px solid var(--rp-c-brand);
+  outline-offset: 4px;
+}
+
+.intent-home-choices { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.intent-home-choices button {
+  padding: 8px 16px;
+  border: 1px solid var(--intent-border);
+  border-radius: 8px;
+  color: var(--intent-muted);
+  background: var(--rp-c-bg);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.intent-home-choices button:hover { border-color: var(--rp-c-brand); }
+.intent-home-choices button[aria-pressed="true"] {
+  border-color: var(--rp-c-brand);
+  color: var(--rp-c-brand);
+  background: var(--rp-c-brand-tint);
+}
+
+.intent-home-example {
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  overflow: hidden;
+  border: 1px solid var(--intent-border);
+  border-radius: 16px;
+  background: var(--rp-c-bg);
+  box-shadow: 0 8px 32px rgb(0 0 0 / 3%);
+}
+.intent-home-input { min-width: 0; padding: 30px; }
+.intent-home-panel-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 16px;
+  color: var(--intent-muted);
+  font-size: 13px;
+}
+.intent-home-panel-label code { color: var(--rp-c-brand); font-size: 12px; }
+.intent-home-input blockquote {
+  margin: 0 0 24px;
+  padding: 0;
+  border: 0;
+  color: var(--rp-c-text-1);
+  font-size: 23px;
+  font-weight: 550;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+.intent-home-context { margin-bottom: 20px; padding: 14px 16px; border-radius: 8px; background: var(--rp-c-bg-soft); }
+.intent-home-context p { margin: 0; font-size: 14px; line-height: 1.7; }
+.intent-home-context .intent-home-panel-label { margin-bottom: 8px; font-size: 12px; }
+.intent-home-context code { color: var(--intent-muted); margin-right: 6px; }
+.intent-home-configuration { margin: 0 0 12px; color: var(--intent-muted); font-size: 12px; line-height: 1.8; overflow-wrap: anywhere; }
+.intent-home-note { margin: 0 0 24px; color: var(--intent-muted); font-size: 14px; line-height: 1.9; }
+.intent-home-output { min-width: 0; border-left: 1px solid var(--intent-border); background: var(--rp-c-bg-soft); }
+.intent-home-output-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 24px;
+  border-bottom: 1px solid var(--intent-border);
+  color: var(--intent-muted);
+  font-size: 12px;
+}
+.intent-home-output-heading code { color: var(--rp-c-brand); }
+.intent-home-output pre {
+  height: 350px;
+  margin: 0;
+  padding: 22px 24px;
+  overflow: auto;
+  color: var(--rp-c-text-1);
+  font-size: 12px;
+  line-height: 1.85;
+  tab-size: 2;
+}
+.intent-home pre code { font-family: var(--rp-font-family-mono); }
+
+.intent-home-capabilities { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin: 44px 0 76px; }
+.intent-home-capability { min-width: 0; }
+.intent-home-number { color: var(--rp-c-brand); font-family: var(--rp-font-family-mono); font-size: 13px; }
+.intent-home-capability h2 { margin-top: 12px; font-size: 18px; }
+.intent-home-capability p { margin: 12px 0 18px; color: var(--intent-muted); font-size: 14px; line-height: 1.9; }
+.intent-home-paths { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.intent-home-path { min-width: 0; padding: 28px; border: 1px solid var(--intent-border); border-radius: 12px; }
+.intent-home-path-tag { display: inline-block; color: var(--rp-c-brand); background: var(--rp-c-bg-soft); font-size: 12px; }
+.intent-home-path > p { color: var(--intent-muted); font-size: 14px; line-height: 1.9; }
+.intent-home-path pre { margin: 20px 0 16px; padding: 14px 16px; overflow-x: auto; border-radius: 8px; background: var(--rp-c-bg-soft); font-size: 12px; line-height: 1.8; }
+.intent-home-path .intent-home-path-note { font-size: 12px; }
+.intent-home-links { display: flex; flex-wrap: wrap; gap: 22px; margin-top: 22px; }
+.intent-home-boundary { display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 48px; margin-top: 68px; padding-top: 32px; border-top: 1px solid var(--intent-border); }
+.intent-home-boundary h2 { font-size: 23px; }
+.intent-home-boundary p:not(.intent-home-eyebrow) { margin: 0 0 16px; color: var(--intent-muted); font-size: 14px; line-height: 1.9; }
+
+@media (max-width: 1000px) {
+  .intent-home { margin-top: 20px; }
+  .intent-home-meta { justify-content: center; }
+}
+
+@media (max-width: 700px) {
+  .intent-home { padding: 0 20px; margin-bottom: 48px; }
+  .intent-home-meta { gap: 6px; margin-bottom: 36px; font-size: 11px; }
+  .intent-home h2 { font-size: 23px; }
+  .intent-home-example, .intent-home-paths, .intent-home-boundary { grid-template-columns: 1fr; }
+  .intent-home-input { padding: 22px; }
+  .intent-home-input blockquote { font-size: 20px; }
+  .intent-home-output { border-left: 0; border-top: 1px solid var(--intent-border); }
+  .intent-home-output pre { height: 300px; padding: 18px 20px; font-size: 11px; }
+  .intent-home-output-heading { padding: 14px 20px; }
+  .intent-home-capabilities { grid-template-columns: 1fr; gap: 26px; margin: 36px 0 48px; }
+  .intent-home-capability h2 { font-size: 18px; }
+  .intent-home-path { padding: 22px; }
+  .intent-home-path h3 { font-size: 21px; }
+  .intent-home-boundary { gap: 20px; margin-top: 42px; }
+}

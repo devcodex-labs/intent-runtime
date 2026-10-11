@@ -49,7 +49,7 @@ npm run docs:build
 npm --prefix website run check:rendered
 ```
 
-check:examples 检查站点与根 README 的 JavaScript 示例，包含响应契约检查：完整公共类型与源码对照、文档 JSON 按公共类型校验，并用实际构建包和 MCP SDK 核对四种状态、全局与局部要求、七类动作、显式上下文、业务字段的省略/空值/嵌套、部分字段语义、部分结果与工具封装。可以单独运行 `npm --prefix website run check:responses`；它同样需要先构建根包。候选使用受控材料，这些检查验证文档与接口一致，不测模型语义准确率。
+check:examples 检查站点与根 README 的 JavaScript 示例，包含响应契约检查：完整公共类型与源码对照、文档 JSON 及首页内置响应示例按公共类型校验，并用实际构建包和 MCP SDK 核对四种状态、全局与局部要求、七类动作、显式上下文、业务字段的省略/空值/嵌套、部分字段语义、部分结果与工具封装。可以单独运行 `npm --prefix website run check:responses`；它同样需要先构建根包。候选使用受控材料，这些检查验证文档与接口一致，不测模型语义准确率。
 
 ## 无密钥 MCP 链路
 

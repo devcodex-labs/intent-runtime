@@ -5,6 +5,8 @@ description: 选择 Codex MCP 或 API 路径，完成安装、配置与第一次
 
 # 快速开始
 
+本页完成一次意图结构化识别：得到动作、约束、理解状态及所选业务数据，再由应用使用这些结果。
+
 先选择接入方式：希望使用当前 Codex 模型，走 MCP；希望从 Node.js 应用直接请求指定模型，走 API。
 
 ## Codex：全局安装
@@ -27,6 +29,8 @@ npm install -g @devcodex/intent-runtime
 自动生成的 instance 名为 `default`，默认不含业务 Schema，结构化说明语言为 `en`。要提取 `orderId` 或改为中文说明，按[配置与多实例](./configuration.md)编辑业务配置后重载客户端。
 
 MCP 成功回复为 `{ kind: "result", result: ... }`，SDK 工具结果中的完整意图位于 `structuredContent.result`。字段与状态见[响应结构](../api/response.md)，外层封装见 [Bridge 与 MCP](../api/bridge-mcp.md#mcp-外层返回)。
+
+未传 context 时仍识别当前 input。需要结合前文确定对象、修正或撤回时，显式提供相关 context；模块不会自动读取会话历史，见[上下文示例](../examples/context-fields.md)。
 
 ## 从当前源码本地测试
 
