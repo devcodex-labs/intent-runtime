@@ -1,7 +1,7 @@
 {
   "name": "@devcodex/intent-runtime",
   "version": "1.0.2",
-  "description": "A pure Node.js library for turning natural language or external inputs into standardized, structured, verifiable, extensible, and traceable intent records.",
+  "description": "A model-driven Node.js component that structures user intent and extracts schema-defined data for applications and MCP servers.",
   "type": "module",
   "license": "MIT",
   "author": "devcodex-labs",
@@ -43,6 +43,10 @@
     "./mcp": {
       "types": "./dist/transports/mcp/index.d.ts",
       "import": "./dist/transports/mcp/index.js"
+    },
+    "./mcp/adapter": {
+      "types": "./dist/transports/mcp/adapter.d.ts",
+      "import": "./dist/transports/mcp/adapter.js"
     }
   },
   "main": "./dist/index.js",
@@ -64,6 +68,7 @@
     "test": "vitest run tests",
     "test:integration": "npm run build && node scripts/integration.mjs",
     "test:mcp": "npm run build && node evaluations/mcp-protocol.mjs",
+    "test:consumer": "npm run build && node tests/consumers/vextjs/run.mjs",
     "evaluate": "npm run build && node evaluations/run.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src tests && node scripts/check-imports.mjs",

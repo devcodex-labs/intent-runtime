@@ -17,6 +17,9 @@ description: 区分确定性测试、真实 MCP 链路、目标客户端和模�
 | API SDK | 可选 openai peer `>=6.49.0 <7` |
 | OpenAI / xAI | 显式选择支持任务格式的模型，各路径独立联调 |
 | 本文档站构建 | Node 24.x，独立 website 依赖；不提高库的运行版本 |
+| 已有 MCP SDK v1 | 1.32.1：真实 SDK client/Server、原工具/资源/Prompt、取消和有/无 outputSchema |
+| 拆分 MCP SDK | server 2.0.0/client 2.3.1：隔离锁文件消费验证，不替换主库 v1 依赖 |
+| 实际 vextjs 源码 | 2.0.0、commit 2458a718179d58e8fabc6e5577f58e4da6be6f1e；消费者遵守其 Node ^20.19.0 / >=22.12.0 |
 
 最新执行证据查看 [GitHub CI](https://github.com/devcodex-labs/intent-runtime/actions/workflows/ci.yml)。矩阵定义不等于每次运行成功，应检查你测试的精确提交。
 
@@ -62,7 +65,7 @@ npm run test:mcp
 | 检查 | 入口与覆盖 | 证据边界 |
 | --- | --- | --- |
 | `test:mcp` | 专用服务入口，18 组协议与资源场景 | 受控候选、真实 SDK/stdio；不等于正式 CLI 启动验证 |
-| `smoke:package` | 安装实际 tarball，启动正式 MCP CLI，检查工具和 prepare/cancel | 验证打包与启动，不表示全部模型场景覆盖 |
+| `smoke:package` | 安装实际 tarball；SDK/自定义/Bridge/两模式/生产 CLI 共七次完整受控例子；新子路径 SDK 加载隔离 | 验证打包、完整调用与清理，不证明真实模型语义或 Codex 使用 |
 | `smoke:installation` / `smoke:maintenance` | 实际安装、诊断、修复与清理；探查配置指向的入口 | 不启动真实 Codex CLI/Desktop，不测语义准确率 |
 | 目标客户端验收 | 用户实际 Codex CLI 与 Desktop，分别保存工具往返 | 安装诊断或测试服务不能替代 |
 | API 语义验收 | 明确的 OpenAI、xAI 模型实际生成与独立评审 | SDK 受控 fetch 不能替代 |
@@ -129,3 +132,28 @@ node evaluations/benchmark-mcp.mjs
 ## 结果保存
 
 评测产物默认放在项目同级 `intent-runtime-results/runs/`，每次使用新运行目录。可用 `INTENT_EVALUATION_DIR` 指定其他项目外路径。报告、真实业务材料、凭据和运行日志不进入源码仓库或公开文档站。
+
+
+## MCP 嵌入验收标准
+
+每项记录前提、操作、预期回复/状态/资源、精确版本或提交及 pass/fail/unrun/deferred。覆盖矩阵不是测试结果。
+
+| 组 | 操作与通过判据 |
+| --- | --- |
+| A-01 工具共存 | list/call 可见并调用原工具与新工具；resources/prompts/onclose 保留；冲突拒绝、未知工具回退 |
+| A-02 executor | 一次 intent_parse 得到七字段；缺 executor/非法实例或字段/拒绝/不完整/data partialResult 按契约可读 |
+| A-03 host | 使用实际 token 完成 core/data/repair；同提交重放一致，不同候选冲突；非终态拒绝能继续 |
+| A-04 取消/隔离 | 预先/队列/core/data 取消；两个共享实例请求只取消一个；无效/旧 accept 不取消新步骤；跨会话失败；close 竞态不复活任务，监听/计数恢复 |
+| A-05 Schema/错误 | SDK v1/v2 成功 Schema 正常消费错误文本；不兼容 structuredContent 的负向用例按预期拒绝 |
+| A-06 实际消费者 | 固定实际 createVextMcpServer，原 7 工具/11 资源/4 Prompt 与两模式共存；源、锁文件和安装版本对应 |
+| A-07 包/示例 | tarball 的公开入口/类型/例子和生产 CLI 可运行；本地/间接安装不写用户配置 |
+| A-08 文档 | 英文 README、中文站点、API/config/response/error 和完整示例与源码一致，页面/锚点/链接有效 |
+| A-09 HTTP | P1 deferred；实施后用真实 HTTP client 验证稳定逻辑 session、临时断流后继续、取消/关闭和端口清理 |
+
+### 实际 vextjs 源码消费者
+
+在固定源码可用时运行 npm run test:consumer，并将 VEXTJS_SOURCE_ROOT 指向原始 LF 源码目录。fixture 绑定 src/包/许可共 398 个文件的 SHA-256，隔离安装 SDK，打包消费主模块，构建真实工厂，检查身份前后一致；不改 vextjs 产品仓库。缺源码退出 2，计为未运行。
+
+该消费验证已通过 host/executor、原知识工具调用、原资源和 Prompt、最终订单结果、错误文本及 SDK2 outputSchema。它使用受控候选，provider API 调用为 0，不能冒称已发布 vextjs 产品自带集成或真实模型验收。完整前提与脚本见 tests/consumers/vextjs/README.md。
+
+真实模型语义、真实 Codex CLI/Desktop 使用独立记录，未运行就标未验证，不以工程固定候选或文档结构 PASS 替代。发布沿用仓库按改动范围的既有规则，本轮实现与文档检查不会自动发布。

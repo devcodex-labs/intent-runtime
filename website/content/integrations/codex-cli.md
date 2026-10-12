@@ -5,6 +5,8 @@ description: 在 Codex CLI 中检查 MCP 与 Skill，完成真实工具往返并
 
 # Codex CLI
 
+本页介绍独立 stdio host 模式和全局客户端安装。在其他项目本地安装依赖时不会自动改写 Codex 配置；自定义 stdio 接入见[独立 stdio MCP](./stdio-mcp.md)，已有服务器工具注册见[嵌入已有 MCP](./existing-mcp.md)。
+
 Codex CLI 支持本模块的 stdio MCP 路径。当前会话中的模型按工具返回的任务生成候选，不需要 OpenAI 或 xAI API key。
 
 ## 安装和注册检查

@@ -9,8 +9,10 @@ import { documentationFiles, codeBlocks } from "./markdown.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const page = name => readFile(join(root, "website/content", name), "utf8");
-const [responsePage, bridgePage, errorPage, contextPage] = await Promise.all([
+const [responsePage, bridgePage, errorPage, contextPage, intentPage, adapterPage, apiPage] = await Promise.all([
   page("api/response.md"), page("api/bridge-mcp.md"), page("api/errors.md"), page("examples/context-fields.md"),
+  page("api/intent.md"), page("api/mcp-adapter.md"),
+  page("integrations/openai-xai.md"),
 ]);
 const printer = ts.createPrinter({ removeComments: true });
 function declarations(source) {
@@ -21,11 +23,15 @@ const typeBlocks = text => codeBlocks(text).filter(block => block.language === "
 const publicTypes = declarations(await readFile(join(root, "src/contracts/public.ts"), "utf8"));
 const bridgeTypes = declarations(await readFile(join(root, "src/bridge/index.ts"), "utf8"));
 const errorTypes = declarations(await readFile(join(root, "src/errors.ts"), "utf8"));
-const docTypes = declarations(typeBlocks(responsePage + bridgePage + errorPage));
+const adapterTypes = declarations(await readFile(join(root, "src/transports/mcp/types.ts"), "utf8"));
+const apiTypes = declarations(await readFile(join(root, "src/adapters/api/index.ts"), "utf8"));
+const docTypes = declarations(typeBlocks(responsePage + bridgePage + errorPage + intentPage + adapterPage + apiPage));
 for (const [source, names] of [
-  [publicTypes, ["JsonValue", "Clarification", "ItemBase", "IntentItem", "IntentResult"]],
-  [bridgeTypes, ["BridgeReply", "PrepareRequest", "AcceptRequest", "CancelRequest", "BridgeSession"]],
+  [publicTypes, ["JsonValue", "Clarification", "ItemBase", "IntentItem", "IntentResult", "ContextMessage", "IntentContext", "IntentParseRequest", "IntentParseOptions", "IntentConfig", "ExecutorCapabilities", "ModelExecutor", "ModelRequest", "ModelReply"]],
+  [bridgeTypes, ["BridgeConfig", "BridgeReply", "PrepareRequest", "AcceptRequest", "CancelRequest", "BridgeSession"]],
   [errorTypes, ["IssueCategory", "IntentIssue", "SerializedIntentError"]],
+  [adapterTypes, ["IntentMcpAdapterConfig", "IntentMcpToolDefinition", "IntentMcpToolResult", "IntentMcpSession", "IntentMcpAdapter"]],
+  [apiTypes, ["ApiExecutorConfig"]],
 ]) {
   for (const name of names) {
     assert.ok(source.has(name) && docTypes.has(name), `Missing response type: ${name}`);
@@ -240,4 +246,4 @@ try {
   assert.deepEqual(await call("intent_accept", { ...accept(noIntent), candidateText: JSON.stringify(candidate(expected.structuredContent.result)) }), expected);
 } finally { await client.close(); await service.close(); intent.dispose(); }
 
-console.log(`Response contracts: 13 type definitions and 2 enums match source; ${examples.size} documented JSON examples checked; ${results.length} API results, global/local constraints, all actions/statuses, nullable/nested/omitted data, partial-field root checks, full errors and real SDK task/repair/result/error envelopes verified with controlled candidates.`);
+console.log(`Public contracts: 29 type definitions and 2 enums match source; ${examples.size} documented JSON examples checked; ${results.length} API results, global/local constraints, all actions/statuses, nullable/nested/omitted data, partial-field root checks, full errors and real SDK task/repair/result/error envelopes verified with controlled candidates.`);

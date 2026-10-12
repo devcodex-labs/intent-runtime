@@ -88,6 +88,51 @@ const intent=new Intent({executor});assert.deepEqual((await intent.parse({input:
   );
   for (const entry of Object.values(metadata.exports))
     assert.ok(existsSync(path.join(pkg, entry.types)));
+  writeFileSync(path.join(temp, "contract-check.mts"), `
+import {Intent} from '@devcodex/intent-runtime';
+import type {IntentParseOptions,IntentResult} from '@devcodex/intent-runtime';
+import {createIntentBridge} from '@devcodex/intent-runtime/bridge';
+import type {BridgeReply} from '@devcodex/intent-runtime/bridge';
+import {createIntentMcpAdapter} from '@devcodex/intent-runtime/mcp/adapter';
+import type {IntentMcpAdapter,IntentMcpAdapterConfig,IntentMcpSession,IntentMcpToolDefinition,IntentMcpToolResult} from '@devcodex/intent-runtime/mcp/adapter';
+const intent = new Intent();
+const options:IntentParseOptions = {signal:new AbortController().signal};
+const config:IntentMcpAdapterConfig = {mode:'executor',instances:{general:intent},toolPrefix:'project_'};
+const adapter:IntentMcpAdapter = createIntentMcpAdapter(config);
+const tools:readonly IntentMcpToolDefinition[] = adapter.tools;
+const session:IntentMcpSession = adapter.connect();
+const reply:Promise<IntentMcpToolResult|undefined> = session.callTool('project_intent_parse',{instance:'general',input:'x',context:[{role:'user',content:'explicit context'}],fields:[]},options);
+const parsed:Promise<IntentResult> = intent.parse({input:'x'},options);
+const bridge = createIntentBridge({instances:{general:intent}});
+const accepted:Promise<BridgeReply> = bridge.connect().accept({jobId:'x',stepToken:'x',candidateText:'{}'},options);
+session.close();adapter.close();bridge.close();intent.dispose();
+`);
+  run(process.execPath, [path.join(root, "node_modules/typescript/bin/tsc"), "--noEmit", "--strict", "--skipLibCheck", "--target", "ES2022", "--module", "NodeNext", "--moduleResolution", "NodeNext", "contract-check.mts"]);
+  // Importing the thin adapter must not pull in a model or MCP Server SDK.
+  const loader = path.join(temp, "block-sdk-loader.mjs");
+  writeFileSync(loader, `export async function resolve(name,context,next){if(name.startsWith('@modelcontextprotocol/')||name==='openai')throw new Error('Unexpected SDK load: '+name);return next(name,context);}`);
+  writeFileSync(path.join(temp, "adapter-check.mjs"), `import assert from 'node:assert/strict';import {Intent} from '@devcodex/intent-runtime';import {createIntentMcpAdapter} from '@devcodex/intent-runtime/mcp/adapter';
+const intent=new Intent();const adapter=createIntentMcpAdapter({instances:{default:intent}});assert.equal(adapter.tools.length,3);adapter.close();intent.dispose();`);
+  run(process.execPath, ["--experimental-loader", loader, "adapter-check.mjs"]);
+  const examples = [
+    ["api/parse.mjs", "--fixture"],
+    ["api/parse.mjs", "--fixture", "--no-data"],
+    ["api/custom-executor.mjs", "--fixture"],
+    ["bridge/recognize.mjs", "--fixture"],
+    ["mcp/executor/client.mjs", "--fixture"],
+    ["mcp/host/client.mjs", "--fixture", "--repair"],
+    ["mcp/stdio/client.mjs", "--fixture"],
+  ];
+  for (const [file, ...args] of examples) {
+    assert.ok(existsSync(path.join(pkg, "examples", file)), "Missing packaged example: " + file);
+    const value = JSON.parse(run(process.execPath, [path.join(pkg, "examples", file), ...args]));
+    const result = value.kind === "result" ? value.result : value;
+    assert.equal(result.intents[0].action, "query", file);
+    assert.deepEqual(result.requirements, ["Return the result in Chinese."], file);
+    assert.deepEqual(result.intents[0].requirements, ["Include the order status."], file);
+    assert.deepEqual(result.prohibitions, ["Do not modify or cancel the order."], file);
+    assert.deepEqual(result.data, args.includes("--no-data") ? {} : { orderId: "000123" }, file);
+  }
   const main = path.join(pkg, "dist/transports/mcp/main.js");
   writeFileSync(
     path.join(temp, "mcp-check.mjs"),
@@ -97,7 +142,7 @@ const client=new Client({name:'package-check',version:'1'});try{await client.con
   );
   run(process.execPath, ["mcp-check.mjs"]);
   console.log(
-    "Installed package: core with bundled MCP dependency, bridge, data snapshots, exports/declarations, optional API adapter and stdio MCP verified.",
+    "Installed package: core/bridge/isolated adapter, consumer declaration typecheck, optional API, seven complete controlled example runs and production stdio MCP verified. No real model or Codex client was executed.",
   );
 } finally {
   rmSync(temp, { recursive: true, force: true });

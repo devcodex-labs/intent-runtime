@@ -7,6 +7,25 @@ on:
       - main
 
 jobs:
+  sdk-v2-consumer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24.x"
+          cache: npm
+      - run: npm ci
+      - name: Fetch fixed VextJS source outside the checkout
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/intent-runtime-consumer/source"
+          curl --fail --location --retry 3 https://api.github.com/repos/devcodex-labs/vextjs/tarball/2458a718179d58e8fabc6e5577f58e4da6be6f1e -o "$RUNNER_TEMP/intent-runtime-consumer/vextjs.tar.gz"
+          tar -xzf "$RUNNER_TEMP/intent-runtime-consumer/vextjs.tar.gz" --strip-components=1 -C "$RUNNER_TEMP/intent-runtime-consumer/source"
+      - name: Verify installed package with the actual VextJS MCP factory
+        env:
+          VEXTJS_SOURCE_ROOT: ${{ runner.temp }}/intent-runtime-consumer/source
+        run: npm run test:consumer
   docs:
     runs-on: ubuntu-latest
     steps:

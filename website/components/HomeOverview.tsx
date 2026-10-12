@@ -97,7 +97,7 @@ export function HomeOverview() {
       <section className="intent-home-integrations" aria-labelledby="intent-integrations-title">
         <div className="intent-home-heading">
           <p className="intent-home-eyebrow">按你的使用场景接入</p>
-          <h2 id="intent-integrations-title">两条路径，共用一套意图契约</h2>
+          <h2 id="intent-integrations-title">接入你的客户端、应用或已有 MCP</h2>
           <p>语义理解由接入的大模型完成，模块负责识别流程、候选校验与结果组装。</p>
         </div>
         <div className="intent-home-paths">
@@ -121,6 +121,7 @@ export function HomeOverview() {
             <div className="intent-home-links">
               <Link href="/integrations/openai-xai.html">API 接入 <span aria-hidden="true">→</span></Link>
               <Link href="/api/intent.html#modelexecutor">自定义执行器 <span aria-hidden="true">→</span></Link>
+              <Link href="/integrations/existing-mcp.html">嵌入已有 MCP <span aria-hidden="true">→</span></Link>
             </div>
           </article>
         </div>

@@ -9,6 +9,16 @@ description: 选择 Codex MCP 或 API 路径，完成安装、配置与第一次
 
 先选择接入方式：希望使用当前 Codex 模型，走 MCP；希望从 Node.js 应用直接请求指定模型，走 API。
 
+| 场景 | 安装/入口 | 完整流程 |
+| --- | --- | --- |
+| Node.js 应用 | 项目依赖，Intent.parse + executor | 本页 API 示例；[API/自定义驱动](../examples/index.md) |
+| 自有模型协作，不用 MCP | 项目依赖，createIntentBridge | [Bridge 循环](../api/bridge-mcp.md#完整-bridge-流程) |
+| 独立 MCP，标准客户端 | 本地依赖或全局命令，生产 stdio CLI | [独立 stdio](../integrations/stdio-mcp.md) |
+| Codex 当前模型 | 直接全局安装 + 明确启用工作流 | 本页 Codex 流程 |
+| 其他项目已有 MCP | 项目依赖，新 Adapter 注册/分发 | [两种模型模式](../integrations/existing-mcp.md)；新增接口随下一兼容版本发布 |
+
+本地安装只引入依赖，不自动注册其他服务器的工具或改写 Codex；宿主负责注册和生命周期。
+
 ## Codex：全局安装
 
 安装 Node.js ≥20.0.0，并至少启动一次 Codex 客户端后执行：

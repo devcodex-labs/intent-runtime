@@ -5,6 +5,8 @@ description: 在 Codex 桌面客户端完成自动配置检查或按表单手动
 
 # Codex Desktop
 
+本页使用独立 stdio host 模式。业务项目本地安装后不会自动注册客户端；将模块加入已有 MCP 的 tools 列表见[嵌入已有 MCP](./existing-mcp.md)，独立服务配置见[stdio MCP](./stdio-mcp.md)。
+
 桌面路径通过 stdio MCP 与当前会话模型协作。自动全局安装使用用户级 Codex 配置，并安装识别 Skill；客户端必须重新加载配置才能看到变更。
 
 ## 自动安装后的检查

@@ -13,6 +13,7 @@ Bridge 管理宿主协作的识别任务，宿主负责生成候选。MCP 把该
 | --- | --- |
 | `@devcodex/intent-runtime/bridge` | `createIntentBridge`；类型 `BridgeConfig`、`BridgeSession`、`BridgeReply`、`PrepareRequest`、`AcceptRequest`、`CancelRequest` |
 | `@devcodex/intent-runtime/mcp` | `serveIntentMcp`、`MCP_TOOLS` |
+| `@devcodex/intent-runtime/mcp/adapter` | 新增 `createIntentMcpAdapter` 及工具/配置/会话/结果类型，见 [Adapter 参考](./mcp-adapter.md) |
 
 `MCP_TOOLS` 是三个工具的声明集合，包含名称、描述和 inputSchema。需要嵌入宿主时可以读取这些声明，任务执行仍由 Bridge/MCP 服务完成。
 
@@ -63,10 +64,10 @@ export async function recognizeWithHost(input, generateCandidate) {
 interface BridgeConfig {
   instances: Record<string, Intent>;
   maxJobs?: number;
-  maxReplayEntries?: number;
-  maxReplayBytes?: number;
   /** @deprecated */ jobTtlMs?: number;
   /** @deprecated */ replayTtlMs?: number;
+  maxReplayEntries?: number;
+  maxReplayBytes?: number;
 }
 ```
 
@@ -96,7 +97,7 @@ interface BridgeConfig {
 完整请求类型如下。context 的消息角色和 fields 的选择规则见 [parse 请求](./intent.md#parserequest)。
 
 ```ts
-import type { IntentParseRequest } from "@devcodex/intent-runtime";
+import type { IntentParseRequest, IntentParseOptions } from "@devcodex/intent-runtime";
 
 interface PrepareRequest extends IntentParseRequest {
   instance: string;
@@ -113,13 +114,15 @@ interface CancelRequest {
 }
 interface BridgeSession {
   prepare(request: PrepareRequest): BridgeReply;
-  accept(request: AcceptRequest): Promise<BridgeReply>;
+  accept(request: AcceptRequest, options?: IntentParseOptions): Promise<BridgeReply>;
   cancel(request: CancelRequest): BridgeReply;
   close(): void;
 }
 ```
 
 取消 outcome 为 `cancelled`、`refusal`、`incomplete`，默认 cancelled。detail 最多 **2048 UTF-8 字节**；例如 682 个“中”为 2046 字节，683 个为 2049 字节，会被拒绝。
+
+accept 第二个原生 options.signal 属于下一兼容版本新增接口。当前源码先核验连接归属、参数、token/候选冲突，再绑定取消；已完成步骤重放不绑定新监听，旧步骤信号不会停止后续步骤。同一活动 job 的相同提交共用处理，其中有效等待者取消会结束该 job。信号不进入 MCP JSON，完整取消与关闭规则见[生命周期](../guide/lifecycle.md)。
 
 活动任务取消分别返回 `MODEL_ABORTED`、`MODEL_REFUSED`、`MODEL_OUTPUT_INCOMPLETE`。已终态且仍保留的任务在参数有效时返回原终态，可能仍是 result；任务被回收后返回 `BRIDGE_JOB_NOT_FOUND`。MCP 的 isError 为 true 不意味着取消失败。
 

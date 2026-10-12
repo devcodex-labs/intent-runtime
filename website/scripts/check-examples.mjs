@@ -182,5 +182,62 @@ try {
   assert.match(MCP_TOOLS.find(tool => tool.name === "intent_cancel").inputSchema.properties.detail.description, /2048 UTF-8 bytes/);
 } finally { bridge.close(); intent.dispose(); }
 
+const adapterBlocks = codeBlocks(await readFile(join(content, "api/mcp-adapter.md"), "utf8")).filter(block => block.language === "js");
+assert.equal(adapterBlocks.length, 2, "Adapter setup and reply-reader examples");
+const adapterSetup = spawnSync(process.execPath, ["--input-type=module", "--eval", adapterBlocks[0].code], { cwd: root, encoding: "utf8" });
+assert.equal(adapterSetup.status, 0, adapterSetup.stderr);
+assert.match(adapterSetup.stdout, /kind: 'task'/);
+const readerRun = spawnSync(process.execPath, ["--input-type=module", "--eval", `
+import assert from 'node:assert/strict';
+import {Intent} from '@devcodex/intent-runtime';
+import {createIntentMcpAdapter} from '@devcodex/intent-runtime/mcp/adapter';
+${adapterBlocks[1].code}
+const intent = new Intent();
+const host = createIntentMcpAdapter({instances:{general:intent}});
+const executor = createIntentMcpAdapter({mode:'executor',instances:{general:intent}});
+try {
+  const session = host.connect();
+  const task = await session.callTool('intent_prepare',{instance:'general',input:'x',fields:[]});
+  const success = readIntentToolReply(task);
+  assert.equal(success.ok,true); assert.equal(success.value.kind,'task');
+  const hostError = await session.callTool('intent_prepare',{instance:'general',input:' '});
+  const executorError = await executor.connect().callTool('intent_parse',{instance:'general',input:'x',fields:[]});
+  for (const result of [hostError,executorError]) {
+    assert.equal(result.structuredContent,undefined);
+    const read = readIntentToolReply(result);
+    assert.equal(read.ok,false); assert.ok(read.error.code);
+  }
+  const legacyValue = JSON.parse(hostError.content[0].text);
+  assert.deepEqual(readIntentToolReply({...hostError,structuredContent:legacyValue}),readIntentToolReply(hostError));
+} finally {host.close();executor.close();intent.dispose();}
+`], { cwd: root, encoding: "utf8" });
+assert.equal(readerRun.status, 0, readerRun.stderr);
+
+// Run the actual documented registration program over stdio, so a typechecked
+// excerpt cannot silently replace the working protocol example.
+const registration = codeBlocks(await readFile(join(content, "integrations/existing-mcp.md"), "utf8")).find(block => block.language === "js")?.code;
+assert.ok(registration, "Complete existing-server registration example");
+const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
+const { StdioClientTransport } = await import("@modelcontextprotocol/sdk/client/stdio.js");
+const docTransport = new StdioClientTransport({ command: process.execPath, args: ["--input-type=module", "--eval", registration], cwd: root, stderr: "pipe" });
+const docClient = new Client({name:"documentation-registration",version:"1.0.0"});
+let serverErrors = "";
+docTransport.stderr?.on("data", chunk => { serverErrors += chunk.toString(); });
+try {
+  await docClient.connect(docTransport);
+  const tools = (await docClient.listTools()).tools;
+  assert.deepEqual(tools.map(tool => tool.name),["echo","intent_prepare","intent_accept","intent_cancel"]);
+  const echoed = await docClient.callTool({name:"echo",arguments:{text:"original tool"}});
+  assert.equal(echoed.content[0].text,"original tool");
+  const task = (await docClient.callTool({name:"intent_prepare",arguments:{instance:"general",input:"x",fields:[]}})).structuredContent;
+  assert.equal(task.kind,"task");
+  const invalid = await docClient.callTool({name:"intent_accept",arguments:{jobId:task.jobId,stepToken:"wrong",candidateText:"{}"}});
+  assert.equal(invalid.isError,true); assert.equal(invalid.structuredContent,undefined);
+  assert.equal(JSON.parse(invalid.content[0].text).error.code,"BRIDGE_STEP_CONFLICT");
+  const result = (await docClient.callTool({name:"intent_accept",arguments:{jobId:task.jobId,stepToken:task.stepToken,candidateText:JSON.stringify(core("x"))}})).structuredContent;
+  assert.equal(result.kind,"result"); assert.deepEqual(result.result.data,{});
+} finally {await docClient.close();await docTransport.close();}
+assert.equal(serverErrors, "");
+
 await import("./check-responses.mjs");
-console.log(`${samples.size} JavaScript snippets, including README, typechecked against public exports; 4 documented API examples executed with actual SDK and controlled fetch; README missing-environment guard, provider wire-format table, Bridge repair/continuation and 6 public behavior groups verified. No provider API calls or semantic accuracy measurement.`);
+console.log(`${samples.size} JavaScript snippets, including README, typechecked against public exports; 4 documented API examples executed with actual SDK and controlled fetch; README guard, provider wire formats, Bridge repair/continuation, 6 behavior groups, actual Adapter snippets and documented stdio registration verified. No provider API calls or semantic accuracy measurement.`);

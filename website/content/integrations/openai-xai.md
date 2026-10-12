@@ -11,8 +11,17 @@ API 适配器使用 OpenAI SDK 的 Responses API。两种 provider 共用 `creat
 
 ```ts
 import { createApiExecutor, readCompletedResponse } from "@devcodex/intent-runtime/adapters/api";
-import type { ApiExecutorConfig } from "@devcodex/intent-runtime/adapters/api";
 import type { ModelExecutor, ModelRequest, ModelReply } from "@devcodex/intent-runtime";
+
+// ApiExecutorConfig is also exported as a type from the API adapter entry.
+interface ApiExecutorConfig {
+  provider: "openai" | "xai";
+  apiKey: string;
+  model: string;
+  nativeJsonSchema?: boolean;
+  maxOutputTokens?: number;
+  fetch?: typeof globalThis.fetch;
+}
 
 // createApiExecutor(config: ApiExecutorConfig): ModelExecutor
 // readCompletedResponse(response: unknown, request: ModelRequest): ModelReply
@@ -90,6 +99,8 @@ OpenAI 将任务说明放在 `instructions`；xAI 使用 system/user input。两
 模块默认不增加 parse 总时限，SDK 和服务商仍有自己的等待限制。SDK 请求超时映射为 `MODEL_TIMEOUT`，请求取消映射为 `MODEL_ABORTED`；鉴权和限流分别对应 `MODEL_AUTH_FAILED`、`MODEL_RATE_LIMITED`。
 
 处理异常使用 `IntentParseError` 的 code、stage、issues 和 partialResult。不要从错误 message 文案建立稳定分支，参见[错误参考](../api/errors.md)。
+
+当前源码支持 `intent.parse(request, { signal })` 的单次原生取消，API 适配器将流水线信号传给实际 SDK 请求；选项不放入请求 JSON。此接口的版本范围和完整类型见 [Intent](../api/intent.md#parserequest)。已有 MCP 的 executor 模式同样使用此执行器，详见[嵌入已有 MCP](./existing-mcp.md)。完整 API 与自定义执行器文件、运行命令见[示例索引](../examples/index.md)。
 
 ## 测试边界
 

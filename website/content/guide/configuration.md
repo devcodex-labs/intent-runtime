@@ -7,6 +7,22 @@ description: 用户级 MCP 与业务配置的路径、命名实例、工作目�
 
 自动安装分开维护客户端注册与业务定义。客户端注册告诉 Codex 如何启动 MCP；业务配置决定有哪些 instance、使用什么语言和 Schema。
 
+## 配置分层参考
+
+| 层 | 参数与默认值 | 合法范围与使用位置 |
+| --- | --- | --- |
+| IntentConfig | language=en、schema=空对象、executor=未配置、repairAttempts=1、limits=DEFAULT_LIMITS | 全部类型/限制见 [Intent API](../api/intent.md)；未知键 CONFIG_INVALID，parse 必须有 executor |
+| 兼容总时限 | timeoutMs=0 | 安全整数 0–2147483647；0/省略不增加总期限，常规接入无需配置 |
+| AdapterConfig | mode=host、instances 必填、toolPrefix=空 | 新增接口；instances 为同包 Intent，模式/前缀见 [Adapter 配置](../api/mcp-adapter.md#配置参考) |
+| host 容量 | maxJobs=32、maxReplayEntries=128、maxReplayBytes=8388608 | 同一 Bridge 全部 session 共享；正安全整数且不超过 2147483647；executor 不接受 |
+| 兼容 TTL | jobTtlMs/replayTtlMs=0 | 已弃用；不设置即无时间 TTL，常规接入无需配置 |
+| 工具 JSON | instance/input 必填，fields/context 可选 | 实例原样匹配；fields 省略全部、子集或[]；context 显式 text 或 user/assistant/tool 消息；未知字段 UNKNOWN_FIELD |
+| 原生调用选项 | signal=未设置 | 新增第二 parse/accept 或第三 callTool 参数；原生 AbortSignal，不进入 JSON/payload |
+| CLI 配置 | default export instances | 值为 IntentConfig 或同包 Intent；Adapter 要求已创建 Intent，不混用 |
+| 模型环境 | provider/model/key 无默认值 | API 由调用方明确提供；host 由宿主生成候选，模块不需要 executor/key |
+
+JSON Schema/DSL、顶层字段选择和重复字段去重见 [Schema 与字段选择](./schema-fields.md)。实例初始化后固定；更换 Schema/模型时创建新实例，不通过修改原配置对象更新。没有隐式 default 实例选择。
+
 ## 默认路径
 
 | 用途 | 路径 |

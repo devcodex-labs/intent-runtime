@@ -5,7 +5,7 @@ description: IntentResult 的完整类型、字段、四种状态、空值规则
 
 # 响应结构
 
-`await intent.parse(request)` 成功时直接返回 `IntentResult`。Bridge 成功时返回 `{ kind: "result", result: IntentResult }`；MCP 工具把该回复放在 `structuredContent` 中，最终结果位于 `structuredContent.result`。完整外层结构见 [Bridge 与 MCP](./bridge-mcp.md#回复类型)。
+`await intent.parse(request)` 成功时直接返回 `IntentResult`。Bridge/旧 stdio/host Adapter 成功时返回 `{ kind: "result", result: IntentResult }`，最终意图位于 `structuredContent.result`；新 executor Adapter 的 intent_parse 则在 structuredContent 直接返回七字段 IntentResult。完整外层结构见 [Bridge 与 MCP](./bridge-mcp.md#回复类型)和[Adapter 返回](./mcp-adapter.md#返回错误与-outputschema)。
 
 API 失败时抛出 `IntentParseError`；Bridge/MCP 返回 error 分支，见[错误与部分结果](./errors.md)。下面的成功结果均包含七个根字段。说明文字的具体措辞由模型生成，示例用于展示结构，不代表真实模型已通过语义验收。
 

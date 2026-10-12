@@ -73,6 +73,10 @@ export interface IntentParseRequest {
   fields?: readonly string[];
   context?: IntentContext;
 }
+export interface IntentParseOptions {
+  /** Cancels this call only; never serialized into the recognition request. */
+  signal?: AbortSignal;
+}
 export interface ModelRequest {
   stage: "core" | "data";
   instructions: string;

@@ -21,14 +21,19 @@ intent-runtime 是面向开发者与 AI 客户端的大模型意图结构化组�
 
 例如“分析这个项目”，模块识别分析意图、对象与用户表达的约束。仅凭这个目标，当前实现不会补出“读取代码、运行测试、分析依赖”等实施步骤，也不会输出所需能力或工具清单。用户明确提出多个动作时，会保留这些动作及其顺序和前提；这与推断一个完成目标的计划不同。
 
-## 两种接入方式
+## 接入方式与模型来源
 
 | 路径 | 候选由谁生成 | 需要的配置 |
 | --- | --- | --- |
 | Codex MCP | 当前 Codex 会话中的模型 | 命名 instance、MCP 注册、识别 Skill；无需模型 API key |
 | 应用调用 | 执行器接入的模型 | 内置 API 适配器显式配置 provider、model、apiKey；也可提供自定义 ModelExecutor |
+| 独立 stdio MCP | 宿主模型 | 本地依赖、可信配置、标准客户端启动生产 CLI |
+| 已有 MCP host Adapter | 宿主模型 | 在原工具列表注册三个协作工具，绑定逻辑 session |
+| 已有 MCP executor Adapter | 服务器 executor | 在原工具列表注册 intent_parse，明确模型与业务实例 |
 
-两条路径共享同一套公共结果与本地校验逻辑。应用调用通过 `Intent.parse()` 完成；内置 API 适配器支持 OpenAI 与 xAI。MCP 路径由宿主重复执行 `prepare → accept`，直到结果或错误；注册工具后仍需明确启用识别流程。
+各接入路径共享同一套公共结果与本地校验逻辑。应用 parse 或 MCP executor 模式使用显式配置的执行器完成识别，内置 API 适配器支持 OpenAI 与 xAI。MCP host 模式由宿主重复执行 `prepare → accept`，直到结果或错误；注册工具后仍需明确启用识别流程。
+
+已有 MCP 的 Adapter 为下一兼容版本新增接口；当前源码支持，npm 1.0.2 保留 SDK/Bridge/独立 stdio。它复用同一流水线，不要求宿主更换 SDK 或复制核心逻辑，见[嵌入已有 MCP](../integrations/existing-mcp.md)。HTTP 监听由外部宿主提供，本轮不增加 CLI HTTP 参数。
 
 ## 两阶段流程
 
@@ -53,6 +58,6 @@ intent-runtime 是面向开发者与 AI 客户端的大模型意图结构化组�
 
 ## 运行要求
 
-本文档适用于 1.0.x 公共接口。包名为 `@devcodex/intent-runtime`，要求 Node.js **≥20.0.0**，使用 ESM；具体包版本见站点导航和发布记录。
+包名为 `@devcodex/intent-runtime`，要求 Node.js **≥20.0.0**，使用 ESM；已发布版本见站点导航和发布记录。新增 Adapter/原生取消选项的适用版本在参考页单列，源码能力不等于 npm 1.0.2 已发布能力。
 
 接下来阅读[快速开始](./quick-start.md)、[意图契约](./intent-contract.md)或[测试与兼容](../testing/validation.md)。

@@ -1,6 +1,7 @@
 import type {
   IntentConfig,
   IntentParseRequest,
+  IntentParseOptions,
   IntentResult,
   ModelReply,
 } from "./contracts/public.js";
@@ -15,20 +16,22 @@ import {
   stopPipeline,
 } from "./core/pipeline.js";
 import { IntentParseError, asIntentError, fail } from "./errors.js";
+import { readSignalOptions } from "./internal/signal.js";
 export class Intent {
   private readonly runtime: Runtime;
   constructor(config: IntentConfig = {}) {
     this.runtime = prepareConfig(config);
     registerRuntime(this, this.runtime);
   }
-  async parse(request: IntentParseRequest): Promise<IntentResult> {
-    if (arguments.length !== 1)
+  async parse(request: IntentParseRequest, options?: IntentParseOptions): Promise<IntentResult> {
+    if (arguments.length < 1 || arguments.length > 2)
       fail(
         "INPUT_INVALID",
         "input",
-        "parse accepts exactly one request object.",
+        "parse accepts a request and optional native call options.",
       );
     const task = prepareTask(this.runtime, request);
+    const signal = readSignalOptions(options, "input");
     const executor = this.runtime.executor;
     if (!executor)
       fail(
@@ -36,6 +39,7 @@ export class Intent {
         "input",
         "Configure a ModelExecutor for parse; host collaboration uses bridge.",
       );
+    if (signal?.aborted) fail("MODEL_ABORTED", "core", "Parse request cancelled.");
     if (this.runtime.parses >= this.runtime.limits.maxConcurrentParses)
       fail("LIMIT_EXCEEDED", "input", "Instance concurrency limit exceeded.");
     this.runtime.parses++;
@@ -48,6 +52,11 @@ export class Intent {
     void aborted.catch(() => {});
     const onAbort = () => rejectAbort(state.controller.signal.reason);
     state.controller.signal.addEventListener("abort", onAbort, { once: true });
+    const cancel = () => state.controller.abort(new IntentParseError(
+      "MODEL_ABORTED", state.stage, "Parse request cancelled.",
+    ));
+    signal?.addEventListener("abort", cancel, { once: true });
+    if (signal?.aborted) cancel();
     const deadline = this.runtime.timeoutMs ? performance.now() + this.runtime.timeoutMs : undefined;
     const timeout = () => state.controller.abort(
       new IntentParseError(
@@ -66,7 +75,10 @@ export class Intent {
         checkDeadline();
         const modelRequest = nextRequest(state);
         const reply: ModelReply = await Promise.race([
-          Promise.resolve().then(() => executor.generate(modelRequest)),
+          Promise.resolve().then(() => {
+            checkDeadline();
+            return executor.generate(modelRequest);
+          }),
           aborted,
         ]);
         checkDeadline();
@@ -74,7 +86,7 @@ export class Intent {
         checkDeadline();
         if (result) return result;
       }
-      fail(
+      return fail(
         "MODEL_OUTPUT_INVALID",
         state.stage,
         "Pipeline ended without a result.",
@@ -92,6 +104,7 @@ export class Intent {
       this.runtime.parses--;
       clearTimeout(timer);
       state.controller.signal.removeEventListener("abort", onAbort);
+      signal?.removeEventListener("abort", cancel);
       stopPipeline(state);
       state.controller.abort();
     }

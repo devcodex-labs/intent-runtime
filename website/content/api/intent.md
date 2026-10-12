@@ -9,13 +9,13 @@ description: IntentConfig、parse、dispose、默认资源限制及自定义 Mod
 
 ```ts
 import { Intent, IntentParseError, DEFAULT_LIMITS } from "@devcodex/intent-runtime";
-import type { IntentConfig, IntentParseRequest, IntentResult, ModelExecutor } from "@devcodex/intent-runtime";
+import type { IntentConfig, IntentLimits, IntentParseRequest, IntentParseOptions, IntentResult, ContextMessage, IntentContext, JSONSchema, ModelExecutor, ExecutorCapabilities, ModelRequest, ModelReply } from "@devcodex/intent-runtime";
 ```
 
 | 公开导出 | 名称 |
 | --- | --- |
 | 实例与常量 | `Intent`、`ACTIONS`、`STATUSES`、`DEFAULT_LIMITS` |
-| 请求与结果类型 | `IntentConfig`、`IntentLimits`、`IntentParseRequest`、`IntentResult`、`IntentItem`、`IntentAction`、`IntentStatus`、`Clarification` |
+| 请求与结果类型 | `IntentConfig`、`IntentLimits`、`IntentParseRequest`、`IntentParseOptions`、`IntentResult`、`IntentItem`、`IntentAction`、`IntentStatus`、`Clarification` |
 | 材料与 Schema 类型 | `ContextMessage`、`IntentContext`、`JsonValue`、`JSONSchema` |
 | 执行器类型 | `ModelExecutor`、`ExecutorCapabilities`、`ModelRequest`、`ModelReply` |
 | 错误类与常量 | `IntentParseError`、`IntentDataError`、`ERROR_CODES`、`DATA_ISSUE_CODES` |
@@ -36,27 +36,47 @@ import type { IntentConfig, IntentParseRequest, IntentResult, ModelExecutor } fr
 
 Schema、language、timeoutMs、repairAttempts 和 limits 在初始化时确定；修改原配置或 Schema 不会更新实例。
 
+```ts
+interface IntentConfig {
+  language?: string;
+  schema?: JSONSchema;
+  executor?: ModelExecutor;
+  timeoutMs?: number;
+  repairAttempts?: 0 | 1;
+  limits?: Partial<IntentLimits>;
+}
+```
+
+language 和 Schema 的合法范围见对应指南；timeoutMs 为 0–2147483647 的安全整数，repairAttempts 只接受 0/1，limits 值为正安全整数，未知键 CONFIG_INVALID。无 executor 可创建实例供 Bridge/host 模式使用。
+
 自定义 `executor` 保存原对象引用：重新赋值 `config.executor` 不会替换实例使用的执行器，但修改原执行器的 `generate` 或 capabilities 会影响后续调用。构造后保持执行器行为稳定；需要更换定义或执行器时创建新 Intent 实例。
 
 ## parse(request)
 
 ```ts
+interface ContextMessage {
+  role: "user" | "assistant" | "tool";
+  content: string;
+}
+type IntentContext = string | readonly ContextMessage[];
 interface IntentParseRequest {
   input: string;
   fields?: readonly string[];
-  context?: string | readonly {
-    role: "user" | "assistant" | "tool";
-    content: string;
-  }[];
+  context?: IntentContext;
 }
-// intent.parse(request): Promise<IntentResult>
+interface IntentParseOptions {
+  signal?: AbortSignal;
+}
+// intent.parse(request, options?): Promise<IntentResult>
 ```
 
 `input` 必须包含非空白文字。`fields` 选择顶层字段；省略、部分选择与 `[]` 的行为见 [Schema 与字段选择](../guide/schema-fields.md)。`context` 是显式文字或按时间顺序排列的消息，不隐式加载宿主历史。
 
-parse 只接受一个请求对象；请求和 context 消息中的未知参数会被拒绝。重复 fields 会去重。返回 Promise 在成功时得到完整结果，在失败时抛出 `IntentParseError` 或其子类。
+parse 接收一个请求对象及第二个可选原生 options；更多参数、非法 options、请求和 context 消息中的未知参数会被拒绝。重复 fields 会去重。返回 Promise 在成功时得到完整结果，在失败时抛出 `IntentParseError` 或其子类。
 
-未配置 executor 时，parse 抛出 `EXECUTOR_NOT_CONFIGURED`。接口没有公开的单次 parse signal 参数；自定义 executor 接收模块提供的 `ModelRequest.signal`。
+未配置 executor 时，parse 抛出 `EXECUTOR_NOT_CONFIGURED`。第二参数 signal 属于下一兼容版本新增接口，当前源码支持；npm 1.0.2 仅接收一个请求。signal 只接受原生 AbortSignal，不进入请求 JSON、context 或模型 payload。请求/选项/执行器校验后，有效请求已取消时返回 MODEL_ABORTED，模型执行前的队列取消也不调用 generate。
+
+执行中取消只停止当前流水线，data 阶段可保留 partialResult；其他共享实例调用继续。调用方 signal 不被库修改，监听在结束时移除。默认仍不增加总时限；不能用 dispose 替代单次请求取消。
 
 ## dispose()
 
@@ -97,14 +117,15 @@ parse 只接受一个请求对象；请求和 context 消息中的未知参数�
 自定义执行器需提供 `id`、四个 boolean capabilities 和异步 `generate(request)`：
 
 ```ts
+interface ExecutorCapabilities {
+  nativeJsonSchema: boolean;
+  nativeJsonObject: boolean;
+  isolatedTurn: boolean;
+  supportsAbort: boolean;
+}
 interface ModelExecutor {
   readonly id: string;
-  readonly capabilities: {
-    nativeJsonSchema: boolean;
-    nativeJsonObject: boolean;
-    isolatedTurn: boolean;
-    supportsAbort: boolean;
-  };
+  readonly capabilities: ExecutorCapabilities;
   generate(request: ModelRequest): Promise<ModelReply>;
 }
 ```
@@ -132,3 +153,5 @@ type ModelReply =
 返回值为 `{ outcome: "complete", text: "完整候选 JSON" }`，或 `{ outcome: "refusal" | "incomplete", detail?: string }`。声明的能力必须与实际执行器一致。内置 API 适配器见 [OpenAI 与 xAI](../integrations/openai-xai.md)。
 
 core 和 data 的候选结构与最终 IntentResult 不同；任务 payload、候选和修复示例见 [Bridge 与 MCP：任务与候选](./bridge-mcp.md#任务与候选)。执行器将 instructions 与 payload 交给模型，按本次 format 生成完整候选；最终结果由模块验证并组装。
+
+完整自定义模型函数例子在 examples/api/custom-executor.mjs，候选驱动和完整文件前提见[示例索引](../examples/index.md)。已有 MCP 的单次识别工具也复用此 parse 契约，见 [Adapter](./mcp-adapter.md)。

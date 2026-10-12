@@ -294,14 +294,18 @@ describe("public request and core pipeline", () => {
     intent.dispose();
   });
   it("deadline settles even when executor ignores abort", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
     const executor = fakeExecutor();
     executor.generate.mockImplementation(() => new Promise(() => {}));
     const intent = new Intent({ executor, timeoutMs: 15 });
-    await expect(intent.parse({ input: "x" })).rejects.toMatchObject({
-      code: "MODEL_TIMEOUT",
-    });
-    expect(executor.generate.mock.calls[0]![0].signal.aborted).toBe(true);
-    intent.dispose();
+    try {
+      const rejected = expect(intent.parse({ input: "x" })).rejects.toMatchObject({ code: "MODEL_TIMEOUT" });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(executor.generate).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(15);
+      await rejected;
+      expect(executor.generate.mock.calls[0]![0].signal.aborted).toBe(true);
+    } finally { intent.dispose(); vi.useRealTimers(); }
   });
   it.each([undefined, 0])("adds no model deadline when timeoutMs is %s", async timeoutMs => {
     vi.useFakeTimers();

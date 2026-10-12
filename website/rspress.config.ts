@@ -27,9 +27,9 @@ export default defineConfig({
     editLink: { docRepoBaseUrl: `${repository}/blob/main/website/content` },
     nav: [
       { text: "指南", link: "/guide/introduction", activeMatch: "^/guide/" },
-      { text: "集成", link: "/integrations/codex-cli", activeMatch: "^/integrations/" },
+      { text: "集成", link: "/integrations/existing-mcp", activeMatch: "^/integrations/" },
       { text: "API 参考", link: "/api/intent", activeMatch: "^/api/" },
-      { text: "示例", link: "/examples/orders", activeMatch: "^/examples/" },
+      { text: "示例", link: "/examples/index", activeMatch: "^/examples/" },
       { text: "测试与兼容", link: "/testing/validation", activeMatch: "^/testing/" },
       { text: `v${version}`, link: `${repository}/blob/main/CHANGELOG.md` },
     ],
@@ -47,6 +47,8 @@ export default defineConfig({
           { text: "任务与生命周期", link: "/guide/lifecycle" },
         ] },
         { text: "接入模型", items: [
+          { text: "嵌入已有 MCP", link: "/integrations/existing-mcp" },
+          { text: "独立 stdio MCP", link: "/integrations/stdio-mcp" },
           { text: "Codex CLI", link: "/integrations/codex-cli" },
           { text: "Codex Desktop", link: "/integrations/codex-desktop" },
           { text: "OpenAI 与 xAI", link: "/integrations/openai-xai" },
@@ -55,9 +57,11 @@ export default defineConfig({
           { text: "Intent 与执行器", link: "/api/intent" },
           { text: "响应结构", link: "/api/response" },
           { text: "Bridge 与 MCP", link: "/api/bridge-mcp" },
+          { text: "MCP Adapter", link: "/api/mcp-adapter" },
           { text: "错误与部分结果", link: "/api/errors" },
         ] },
         { text: "示例与验证", items: [
+          { text: "接入示例索引", link: "/examples/index" },
           { text: "订单字段提取", link: "/examples/orders" },
           { text: "上下文与字段选择", link: "/examples/context-fields" },
           { text: "测试、兼容与准确率", link: "/testing/validation" },

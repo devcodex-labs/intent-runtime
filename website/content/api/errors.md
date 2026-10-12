@@ -5,7 +5,9 @@ description: 通过稳定错误码、阶段、issues 和 partialResult 处理配
 
 # 错误与部分结果
 
-API 路径使用 `IntentParseError`，data 信息不满足定义时可能为其子类 `IntentDataError`；MCP 返回 `{ kind: "error", error: ... }`。按 code 分支，message 用于说明。
+API 路径使用 `IntentParseError`，data 信息不满足定义时可能为其子类 `IntentDataError`。Bridge、旧 stdio 与新 host Adapter 的错误 JSON 为 `{ kind: "error", error: ... }`；新 executor Adapter 为直接 SerializedIntentError。按 code 分支，message 用于说明。
+
+旧 stdio 保留错误 structuredContent；新 Adapter 错误仅提供 JSON 文本和 isError=true，以便与宿主成功-only outputSchema 配合。不要假定全部路径的错误都位于 structuredContent.error；完整可运行读取函数和 Schema 规则见 [Adapter](./mcp-adapter.md#返回错误与-outputschema)。
 
 ## 序列化结构
 

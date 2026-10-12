@@ -6,84 +6,12 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { createIntentBridge } from "../../bridge/index.js";
-import type {
-  AcceptRequest,
-  BridgeConfig,
-  CancelRequest,
-  PrepareRequest,
-} from "../../bridge/index.js";
-import { isObject } from "../../internal/object.js";
-import { IntentParseError } from "../../errors.js";
+import type { BridgeConfig } from "../../bridge/index.js";
+import { MCP_TOOLS } from "./definitions.js";
+import { dispatchHost, toolResult } from "./dispatch.js";
+export { MCP_TOOLS } from "./definitions.js";
 import { readFileSync } from "node:fs";
 const packageVersion = (JSON.parse(readFileSync(new URL("../../../package.json", import.meta.url), "utf8")) as { version: string }).version;
-const contextSchema = {
-  anyOf: [
-    { type: "string" },
-    {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          role: { type: "string", enum: ["user", "assistant", "tool"] },
-          content: { type: "string" },
-        },
-        required: ["role", "content"],
-        additionalProperties: false,
-      },
-    },
-  ],
-};
-export const MCP_TOOLS = [
-  {
-    name: "intent_prepare",
-    description:
-      "Start intent recognition from the exact current user input, explicit related context and selected fields. Returns a core task; finish this call before generating and submitting a candidate. Do not execute the recognized business operation.",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        instance: { type: "string" },
-        input: { type: "string" },
-        fields: { type: "array", items: { type: "string" } },
-        context: contextSchema,
-      },
-      required: ["instance", "input"],
-      additionalProperties: false,
-    },
-  },
-  {
-    name: "intent_accept",
-    description:
-      "Submit the complete JSON candidateText for the returned jobId and stepToken. Follow another task until result/error. Tokens must come from the actual previous reply.",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        jobId: { type: "string" },
-        stepToken: { type: "string" },
-        candidateText: { type: "string" },
-      },
-      required: ["jobId", "stepToken", "candidateText"],
-      additionalProperties: false,
-    },
-  },
-  {
-    name: "intent_cancel",
-    description:
-      "End a job without submitting a candidate. Use refusal or incomplete when applicable; defaults to cancelled.",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        jobId: { type: "string" },
-        outcome: {
-          type: "string",
-          enum: ["cancelled", "refusal", "incomplete"],
-        },
-        detail: { type: "string", maxLength: 2048, description: "Cancellation detail, at most 2048 UTF-8 bytes." },
-      },
-      required: ["jobId"],
-      additionalProperties: false,
-    },
-  },
-] as const;
 export async function serveIntentMcp(
   config: BridgeConfig & { transport?: Transport },
 ): Promise<{ close(): Promise<void> }> {
@@ -102,37 +30,8 @@ export async function serveIntentMcp(
     tools: [...MCP_TOOLS],
   }));
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const args = request.params.arguments;
-    let reply;
-    if (!isObject(args))
-      reply = {
-        kind: "error",
-        error: new IntentParseError(
-          "INPUT_INVALID",
-          "bridge",
-          "Expected tool arguments.",
-        ).toJSON(),
-      };
-    else if (request.params.name === "intent_prepare")
-      reply = connection.prepare(args as unknown as PrepareRequest);
-    else if (request.params.name === "intent_accept")
-      reply = await connection.accept(args as unknown as AcceptRequest);
-    else if (request.params.name === "intent_cancel")
-      reply = connection.cancel(args as unknown as CancelRequest);
-    else
-      reply = {
-        kind: "error",
-        error: new IntentParseError(
-          "INPUT_INVALID",
-          "bridge",
-          "Unknown intent tool.",
-        ).toJSON(),
-      };
-    return {
-      content: [{ type: "text" as const, text: JSON.stringify(reply) }],
-      structuredContent: { ...reply },
-      isError: reply.kind === "error",
-    };
+    const reply = await dispatchHost(connection, request.params.name, request.params.arguments);
+    return { ...toolResult(reply, reply.kind === "error", true) };
   });
   server.onclose = () => {
     connection.close();

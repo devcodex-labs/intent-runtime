@@ -10,6 +10,7 @@ export type {
   ContextMessage,
   IntentContext,
   IntentParseRequest,
+  IntentParseOptions,
   IntentConfig,
   IntentLimits,
   ModelRequest,

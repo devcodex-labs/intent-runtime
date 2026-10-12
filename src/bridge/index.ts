@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type { Intent } from "../intent.js";
-import type { IntentParseRequest, IntentResult, ModelRequest } from "../contracts/public.js";
+import type { IntentParseRequest, IntentParseOptions, IntentResult, ModelRequest } from "../contracts/public.js";
 import { getRuntime } from "../core/config.js";
 import { prepareTask } from "../core/input.js";
 import { acceptCandidate, attachPartial, nextRequest, startPipeline, stopPipeline } from "../core/pipeline.js";
@@ -8,6 +8,7 @@ import type { Pipeline } from "../core/pipeline.js";
 import { IntentParseError, asIntentError, fail } from "../errors.js";
 import type { SerializedIntentError } from "../errors.js";
 import { bytes, isObject, onlyKeys } from "../internal/object.js";
+import { readSignalOptions } from "../internal/signal.js";
 
 export type BridgeReply =
   | { kind: "task"; jobId: string; stepToken: string; stage: "core" | "data"; instructions: string; payload: string; format: ModelRequest["format"]; expiresAt?: string }
@@ -28,7 +29,7 @@ export interface AcceptRequest { jobId: string; stepToken: string; candidateText
 export interface CancelRequest { jobId: string; outcome?: "cancelled" | "refusal" | "incomplete"; detail?: string }
 export interface BridgeSession {
   prepare(request: PrepareRequest): BridgeReply;
-  accept(request: AcceptRequest): Promise<BridgeReply>;
+  accept(request: AcceptRequest, options?: IntentParseOptions): Promise<BridgeReply>;
   cancel(request: CancelRequest): BridgeReply;
   close(): void;
 }
@@ -211,11 +212,12 @@ export function createIntentBridge(config: BridgeConfig): { connect(): BridgeSes
             }
           });
         },
-        async accept(request): Promise<BridgeReply> {
+        async accept(request, options): Promise<BridgeReply> {
           try {
             checkOpen();
             if (!isObject(request)) fail("INPUT_INVALID", "bridge", "Expected accept request.");
             onlyKeys(request, ["jobId", "stepToken", "candidateText"], "bridge", "INPUT_INVALID");
+            const signal = readSignalOptions(options, "bridge");
             const job = lookup(request.jobId, owner);
             if (typeof request.stepToken !== "string" || typeof request.candidateText !== "string")
               fail("INPUT_INVALID", "bridge", "Token and candidateText must be strings.");
@@ -235,12 +237,28 @@ export function createIntentBridge(config: BridgeConfig): { connect(): BridgeSes
             if (job.pending) {
               if (job.pending.token !== request.stepToken || job.pending.digest !== digest)
                 fail("BRIDGE_STEP_CONFLICT", "bridge", "A different submission is already in progress.");
-              return clone(await job.pending.promise);
             }
-            const pending = { token: request.stepToken, digest, promise: Promise.resolve().then(() => advance(job, request, digest)) };
-            job.pending = pending;
-            try { return clone(await pending.promise); }
-            finally { if (job.pending === pending) job.pending = undefined; }
+            const token = request.stepToken;
+            const cancel = () => {
+              // Cancellation belongs to a validated active step. Replays and
+              // callbacks arriving after advancement must not cancel new work.
+              if (jobs.get(job.id) !== job || job.terminal || job.token !== token) return;
+              const error = attachPartial(job.state, new IntentParseError(
+                "MODEL_ABORTED", job.state.stage, "Candidate submission cancelled.",
+              ));
+              terminal(job, errorReply(error));
+              job.state.controller.abort(error);
+            };
+            signal?.addEventListener("abort", cancel, { once: true });
+            if (signal?.aborted) cancel();
+            try {
+              if (job.terminal) return clone(job.terminal);
+              if (job.pending) return clone(await job.pending.promise);
+              const pending = { token, digest, promise: Promise.resolve().then(() => advance(job, request, digest)) };
+              job.pending = pending;
+              try { return clone(await pending.promise); }
+              finally { if (job.pending === pending) job.pending = undefined; }
+            } finally { signal?.removeEventListener("abort", cancel); }
           } catch (error) { return errorReply(error); }
         },
         cancel(request): BridgeReply {
