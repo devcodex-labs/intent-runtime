@@ -28,15 +28,24 @@ export interface Observation {
   ownerKey: string | null; container: 'inputs' | 'facts' | 'extensions'; field: string;
   presence: 'known' | 'unknown' | 'not_provided' | 'absent' | 'present_unknown' | 'not_applicable';
   valueJson: string | null; rawText: string | null; sources: SourceRef[];
+  semantic: null | {status: 'valid' | 'invalid' | 'unknown'; explanation: string; sources: SourceRef[];
+    dependencies: Array<{field: string; requires: 'value' | 'presence'}>};
+}
+export interface FieldTarget {container: Observation['container']; field: string; path: string}
+export interface CandidateMessages {
+  changed: string; notApplicable: string; noValue: string; noDeclaration: string;
+  explicitNull: string; invalid: string; open: string; mixed: string;
+  semanticUnknown: string; unresolved: string; relationConflict: string;
 }
 export interface Locator { kind: 'intent' | 'constraint' | 'relation' | 'fact'; key: string | null; path: string }
 export interface CandidateDraft {
   version: 'candidate-2'; kind: 'request' | 'amendment' | 'confirmation' | 'rejection' | 'withdrawal' | 'answer' | 'statement' | 'mixed' | 'unclear';
   normalizedInput: string; relatedKeys: string[]; historyCoverage: 'complete' | 'partial' | 'unavailable'; usedHistory: boolean;
+  messages: CandidateMessages;
   nodes: NodeDraft[]; constraints: ConstraintDraft[]; references: ReferenceDraft[]; relations: RelationDraft[];
   priorTargets: Array<{ kind: 'intent' | 'constraint' | 'relation'; key: string; priorRef: SourceRef }>;
   changes: ChangeDraft[]; observations: Observation[];
-  issues: Array<{ key: string; ownerKey: string | null; code: string; category: IntentIssue['category']; message: string; sources: SourceRef[];
+  issues: Array<{ key: string; ownerKey: string | null; fieldTarget: FieldTarget | null; code: string; category: IntentIssue['category']; message: string; sources: SourceRef[];
     candidates: Array<{ key: string; description: string; intentKey: string | null; sources: SourceRef[] }>;
     questions: Array<{ question: string; optionKeys: string[] }> }>;
   inferences: Array<{ target: Locator; candidateJson: string | null; explanation: string; sources: SourceRef[] }>;

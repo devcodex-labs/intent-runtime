@@ -1,49 +1,12 @@
-# Integration examples
+# V2 接入示例
 
-Use Node >=20.0.0. These examples use public intent-runtime exports. Run source
-examples after `npm ci && npm run build`, or run the corresponding files included
-in an installed package. MCP clients use SDK v1 1.32.1. The v2 registration file
-requires the host's separate server 2.0.0; no upgrade of the core dependency is required.
+这些示例使用 V2 的公开导出。安装当前构建的 tarball 或对应 V2 发行包和 `schema-dsl@3.0.4` 后运行。
 
-| Path | Run | Result |
-| --- | --- | --- |
-| SDK API | `node examples/api/parse.mjs --fixture` | Direct seven-field result |
-| Custom model function | `node examples/api/custom-executor.mjs --fixture` | Direct seven-field result |
-| Bridge host collaboration | `node examples/bridge/recognize.mjs --fixture` | Complete task/data/result loop |
-| Existing MCP, server executor | `node examples/mcp/executor/client.mjs --fixture` | Original tools/resources/prompts plus single-call intent_parse |
-| Existing MCP, host candidates | `node examples/mcp/host/client.mjs --fixture --repair` | Original tools and three recognition tools, including controlled repair |
-| Production stdio CLI | `node examples/mcp/stdio/client.mjs --fixture` | Production CLI list/call and complete host-candidate loop |
-| SDK v2 registration | `examples/mcp/sdk-v2/registration.mjs` | Copy into the host's SDK2 registration environment; call it with the original tool-name registry |
+- `api/parse.mjs`：配置环境中的模型名称与凭据，用 Responses API 识别订单请求。
+- `codex/intent.host.config.mjs`：仅使用当前 Codex 模型的 stdio 配置，不配置额外 API 执行器。
+- `mcp/intent.executor.config.mjs`：独立 MCP 使用已配置 API 执行器。
+- `mcp/attach.mjs`：给已有 MCP tools 增加识别能力，保留原工具、资源与 Prompt 的路由和所有权。
 
-`--fixture` explicitly uses controlled candidates for the exact documented order
-request. It verifies the engineering path and never measures semantic accuracy.
-The offline data contains global and action requirements, prohibitions and an
-identifier with leading zeros. `--no-data` on the API example selects fields=[];
-`--repair` on the host example deliberately submits malformed JSON once and is
-allowed only with --fixture.
+`intent-runtime-mcp --config /absolute/path/intent.host.config.mjs` 启动服务。不要向 stdio 的 stdout 写日志。配置模块是调用方明确选中的可信 Node.js 代码。
 
-The API example forwards a native per-call signal and maps Ctrl+C to that call's
-cancellation. It removes its signal handler and disposes its own instance after
-settlement; shared application instances should remain owned by their caller.
-
-For real API calls, omit --fixture and set INTENT_PROVIDER (openai or xai),
-INTENT_MODEL, and INTENT_OPENAI_KEY or INTENT_XAI_KEY locally. Install the optional
-`openai@6` SDK. No model name is inferred. The Bridge/client examples use this
-explicit driver to simulate a host; an actual Codex host generates its own
-candidates without configuring a model executor inside the library.
-
-For a custom model function, set INTENT_MODEL_DRIVER to a trusted local module
-exporting `generateText(request)`. It receives instructions, JSON payload, format,
-stage and a native signal. Return complete JSON text or `{outcome:"refusal"}` /
-`{outcome:"incomplete"}`. Use an isolated model turn and honor the signal.
-
-The stdio CLI client expects the installed intent-runtime-mcp executable in the
-consumer's node_modules/.bin or PATH. Source users can first pack the module and
-install that archive in a separate consumer project. This is tested by
-`npm run smoke:package`; it is not replaced by a test-only server.
-
-Each client closes its own connection. Servers dispose the instances they created;
-the adapter itself never disposes caller-owned instances or closes their servers.
-Sample generators cancel their owned job when generation fails. Recognition never
-executes the requested business action. Read the Chinese site for configuration,
-wire results, cancellation, error text and the actual VextJS source fixture.
+全局安装后显式执行 `intent-runtime setup --host codex --config /absolute/path/intent.host.config.mjs`。安装本身不修改宿主配置。

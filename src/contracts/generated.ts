@@ -45,13 +45,13 @@ export const INTENT_RESULT_SCHEMA = {
         "changes": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).IntentChange"
+            "$ref": "#/definitions/D0"
           }
         },
         "facts": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).JsonValue"
+            "$ref": "#/definitions/D3"
           }
         }
       },
@@ -89,7 +89,7 @@ export const INTENT_RESULT_SCHEMA = {
         "intents": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).StructuredIntent"
+            "$ref": "#/definitions/D7"
           }
         },
         "constraints": {
@@ -113,10 +113,10 @@ export const INTENT_RESULT_SCHEMA = {
                 "type": "string"
               },
               "scope": {
-                "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).ConstraintScope"
+                "$ref": "#/definitions/D4"
               },
               "expression": {
-                "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).StructuredExpression"
+                "$ref": "#/definitions/D5"
               }
             },
             "additionalProperties": false,
@@ -451,7 +451,7 @@ export const INTENT_RESULT_SCHEMA = {
             "type": "string"
           },
           "candidate": {
-            "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).JsonValue"
+            "$ref": "#/definitions/D3"
           },
           "explanation": {
             "type": "string"
@@ -598,7 +598,7 @@ export const INTENT_RESULT_SCHEMA = {
     "turn"
   ],
   "definitions": {
-    "import(\"/workspace/intent-runtime/src/contracts/public\",{with:{\"resolution-mode\":\"import\"}}).IntentChange": {
+    "D0": {
       "anyOf": [
         {
           "additionalProperties": false,
@@ -615,7 +615,7 @@ export const INTENT_RESULT_SCHEMA = {
               "type": "string"
             },
             "target": {
-              "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).ChangeTarget"
+              "$ref": "#/definitions/D1"
             },
             "description": {
               "type": "string"
@@ -658,7 +658,7 @@ export const INTENT_RESULT_SCHEMA = {
             "deltas": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).IntentDelta"
+                "$ref": "#/definitions/D2"
               }
             }
           },
@@ -685,7 +685,7 @@ export const INTENT_RESULT_SCHEMA = {
               "type": "string"
             },
             "target": {
-              "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).ChangeTarget"
+              "$ref": "#/definitions/D1"
             },
             "description": {
               "type": "string"
@@ -753,7 +753,7 @@ export const INTENT_RESULT_SCHEMA = {
               "type": "string"
             },
             "target": {
-              "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).ChangeTarget"
+              "$ref": "#/definitions/D1"
             },
             "description": {
               "type": "string"
@@ -807,7 +807,7 @@ export const INTENT_RESULT_SCHEMA = {
         }
       ]
     },
-    "import(\"/workspace/intent-runtime/src/contracts/public\",{with:{\"resolution-mode\":\"import\"}}).ChangeTarget": {
+    "D1": {
       "anyOf": [
         {
           "type": "object",
@@ -849,7 +849,7 @@ export const INTENT_RESULT_SCHEMA = {
         }
       ]
     },
-    "import(\"/workspace/intent-runtime/src/contracts/public\",{with:{\"resolution-mode\":\"import\"}}).IntentDelta": {
+    "D2": {
       "anyOf": [
         {
           "type": "object",
@@ -862,10 +862,10 @@ export const INTENT_RESULT_SCHEMA = {
               "const": "set"
             },
             "before": {
-              "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).JsonValue"
+              "$ref": "#/definitions/D3"
             },
             "after": {
-              "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).JsonValue"
+              "$ref": "#/definitions/D3"
             }
           },
           "additionalProperties": false,
@@ -886,7 +886,7 @@ export const INTENT_RESULT_SCHEMA = {
               "const": "remove"
             },
             "before": {
-              "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).JsonValue"
+              "$ref": "#/definitions/D3"
             }
           },
           "additionalProperties": false,
@@ -897,18 +897,18 @@ export const INTENT_RESULT_SCHEMA = {
         }
       ]
     },
-    "import(\"/workspace/intent-runtime/src/contracts/public\",{with:{\"resolution-mode\":\"import\"}}).JsonValue": {
+    "D3": {
       "anyOf": [
         {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).JsonValue"
+            "$ref": "#/definitions/D3"
           }
         },
         {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).JsonValue"
+            "$ref": "#/definitions/D3"
           }
         },
         {
@@ -933,7 +933,7 @@ export const INTENT_RESULT_SCHEMA = {
         }
       ]
     },
-    "import(\"/workspace/intent-runtime/src/contracts/public\",{with:{\"resolution-mode\":\"import\"}}).ConstraintScope": {
+    "D4": {
       "anyOf": [
         {
           "type": "object",
@@ -991,7 +991,7 @@ export const INTENT_RESULT_SCHEMA = {
         }
       ]
     },
-    "import(\"/workspace/intent-runtime/src/contracts/public\",{with:{\"resolution-mode\":\"import\"}}).StructuredExpression": {
+    "D5": {
       "anyOf": [
         {
           "type": "object",
@@ -1001,7 +1001,7 @@ export const INTENT_RESULT_SCHEMA = {
               "const": "comparison"
             },
             "left": {
-              "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).ExpressionOperand"
+              "$ref": "#/definitions/D6"
             },
             "operator": {
               "enum": [
@@ -1015,7 +1015,7 @@ export const INTENT_RESULT_SCHEMA = {
               "type": "string"
             },
             "right": {
-              "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).ExpressionOperand"
+              "$ref": "#/definitions/D6"
             }
           },
           "additionalProperties": false,
@@ -1039,7 +1039,7 @@ export const INTENT_RESULT_SCHEMA = {
             "items": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).StructuredExpression"
+                "$ref": "#/definitions/D5"
               }
             }
           },
@@ -1057,7 +1057,7 @@ export const INTENT_RESULT_SCHEMA = {
               "const": "not"
             },
             "item": {
-              "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).StructuredExpression"
+              "$ref": "#/definitions/D5"
             }
           },
           "additionalProperties": false,
@@ -1068,7 +1068,7 @@ export const INTENT_RESULT_SCHEMA = {
         }
       ]
     },
-    "import(\"/workspace/intent-runtime/src/contracts/public\",{with:{\"resolution-mode\":\"import\"}}).ExpressionOperand": {
+    "D6": {
       "anyOf": [
         {
           "type": "object",
@@ -1078,7 +1078,7 @@ export const INTENT_RESULT_SCHEMA = {
               "const": "literal"
             },
             "value": {
-              "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).JsonValue"
+              "$ref": "#/definitions/D3"
             }
           },
           "additionalProperties": false,
@@ -1152,7 +1152,7 @@ export const INTENT_RESULT_SCHEMA = {
         }
       ]
     },
-    "import(\"/workspace/intent-runtime/src/contracts/public\",{with:{\"resolution-mode\":\"import\"}}).StructuredIntent": {
+    "D7": {
       "type": "object",
       "properties": {
         "id": {
@@ -1233,10 +1233,10 @@ export const INTENT_RESULT_SCHEMA = {
                 "type": "string"
               },
               "scope": {
-                "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).ConstraintScope"
+                "$ref": "#/definitions/D4"
               },
               "expression": {
-                "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).StructuredExpression"
+                "$ref": "#/definitions/D5"
               }
             },
             "additionalProperties": false,
@@ -1251,7 +1251,7 @@ export const INTENT_RESULT_SCHEMA = {
         "inputs": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).JsonValue"
+            "$ref": "#/definitions/D3"
           }
         },
         "optional": {
@@ -1343,13 +1343,13 @@ export const INTENT_RESULT_SCHEMA = {
         "children": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).StructuredIntent"
+            "$ref": "#/definitions/D7"
           }
         },
         "extensions": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).JsonValue"
+            "$ref": "#/definitions/D3"
           }
         }
       },
@@ -1396,7 +1396,7 @@ export const BASELINE_SCHEMA = {
     "intents": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).StructuredIntent"
+        "$ref": "#/definitions/D4"
       }
     },
     "constraints": {
@@ -1420,10 +1420,10 @@ export const BASELINE_SCHEMA = {
             "type": "string"
           },
           "scope": {
-            "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).ConstraintScope"
+            "$ref": "#/definitions/D0"
           },
           "expression": {
-            "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).StructuredExpression"
+            "$ref": "#/definitions/D1"
           }
         },
         "additionalProperties": false,
@@ -1490,7 +1490,7 @@ export const BASELINE_SCHEMA = {
     "unresolved"
   ],
   "definitions": {
-    "import(\"/workspace/intent-runtime/src/contracts/public\",{with:{\"resolution-mode\":\"import\"}}).ConstraintScope": {
+    "D0": {
       "anyOf": [
         {
           "type": "object",
@@ -1548,7 +1548,7 @@ export const BASELINE_SCHEMA = {
         }
       ]
     },
-    "import(\"/workspace/intent-runtime/src/contracts/public\",{with:{\"resolution-mode\":\"import\"}}).StructuredExpression": {
+    "D1": {
       "anyOf": [
         {
           "type": "object",
@@ -1558,7 +1558,7 @@ export const BASELINE_SCHEMA = {
               "const": "comparison"
             },
             "left": {
-              "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).ExpressionOperand"
+              "$ref": "#/definitions/D2"
             },
             "operator": {
               "enum": [
@@ -1572,7 +1572,7 @@ export const BASELINE_SCHEMA = {
               "type": "string"
             },
             "right": {
-              "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).ExpressionOperand"
+              "$ref": "#/definitions/D2"
             }
           },
           "additionalProperties": false,
@@ -1596,7 +1596,7 @@ export const BASELINE_SCHEMA = {
             "items": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).StructuredExpression"
+                "$ref": "#/definitions/D1"
               }
             }
           },
@@ -1614,7 +1614,7 @@ export const BASELINE_SCHEMA = {
               "const": "not"
             },
             "item": {
-              "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).StructuredExpression"
+              "$ref": "#/definitions/D1"
             }
           },
           "additionalProperties": false,
@@ -1625,7 +1625,7 @@ export const BASELINE_SCHEMA = {
         }
       ]
     },
-    "import(\"/workspace/intent-runtime/src/contracts/public\",{with:{\"resolution-mode\":\"import\"}}).ExpressionOperand": {
+    "D2": {
       "anyOf": [
         {
           "type": "object",
@@ -1635,7 +1635,7 @@ export const BASELINE_SCHEMA = {
               "const": "literal"
             },
             "value": {
-              "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).JsonValue"
+              "$ref": "#/definitions/D3"
             }
           },
           "additionalProperties": false,
@@ -1709,18 +1709,18 @@ export const BASELINE_SCHEMA = {
         }
       ]
     },
-    "import(\"/workspace/intent-runtime/src/contracts/public\",{with:{\"resolution-mode\":\"import\"}}).JsonValue": {
+    "D3": {
       "anyOf": [
         {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).JsonValue"
+            "$ref": "#/definitions/D3"
           }
         },
         {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).JsonValue"
+            "$ref": "#/definitions/D3"
           }
         },
         {
@@ -1745,7 +1745,7 @@ export const BASELINE_SCHEMA = {
         }
       ]
     },
-    "import(\"/workspace/intent-runtime/src/contracts/public\",{with:{\"resolution-mode\":\"import\"}}).StructuredIntent": {
+    "D4": {
       "type": "object",
       "properties": {
         "id": {
@@ -1826,10 +1826,10 @@ export const BASELINE_SCHEMA = {
                 "type": "string"
               },
               "scope": {
-                "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).ConstraintScope"
+                "$ref": "#/definitions/D0"
               },
               "expression": {
-                "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).StructuredExpression"
+                "$ref": "#/definitions/D1"
               }
             },
             "additionalProperties": false,
@@ -1844,7 +1844,7 @@ export const BASELINE_SCHEMA = {
         "inputs": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).JsonValue"
+            "$ref": "#/definitions/D3"
           }
         },
         "optional": {
@@ -1936,13 +1936,13 @@ export const BASELINE_SCHEMA = {
         "children": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).StructuredIntent"
+            "$ref": "#/definitions/D4"
           }
         },
         "extensions": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).JsonValue"
+            "$ref": "#/definitions/D3"
           }
         }
       },
@@ -2005,28 +2005,31 @@ export const CANDIDATE_SCHEMA = {
     "usedHistory": {
       "type": "boolean"
     },
+    "messages": {
+      "$ref": "#/definitions/D0"
+    },
     "nodes": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fmodel%2Fcandidate%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).NodeDraft"
+        "$ref": "#/definitions/D1"
       }
     },
     "constraints": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fmodel%2Fcandidate%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).ConstraintDraft"
+        "$ref": "#/definitions/D2"
       }
     },
     "references": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fmodel%2Fcandidate%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).ReferenceDraft"
+        "$ref": "#/definitions/D3"
       }
     },
     "relations": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fmodel%2Fcandidate%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).RelationDraft"
+        "$ref": "#/definitions/D4"
       }
     },
     "priorTargets": {
@@ -2085,13 +2088,13 @@ export const CANDIDATE_SCHEMA = {
     "changes": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fmodel%2Fcandidate%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).ChangeDraft"
+        "$ref": "#/definitions/D5"
       }
     },
     "observations": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fmodel%2Fcandidate%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).Observation"
+        "$ref": "#/definitions/D6"
       }
     },
     "issues": {
@@ -2113,6 +2116,16 @@ export const CANDIDATE_SCHEMA = {
                     "type": "string"
                   }
                 ]
+              }
+            ]
+          },
+          "fieldTarget": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/D7"
+              },
+              {
+                "type": "null"
               }
             ]
           },
@@ -2257,6 +2270,7 @@ export const CANDIDATE_SCHEMA = {
           "candidates",
           "category",
           "code",
+          "fieldTarget",
           "key",
           "message",
           "ownerKey",
@@ -2271,7 +2285,7 @@ export const CANDIDATE_SCHEMA = {
         "type": "object",
         "properties": {
           "target": {
-            "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fmodel%2Fcandidate%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).Locator"
+            "$ref": "#/definitions/D8"
           },
           "candidateJson": {
             "allOf": [
@@ -2337,7 +2351,7 @@ export const CANDIDATE_SCHEMA = {
         "type": "object",
         "properties": {
           "target": {
-            "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fmodel%2Fcandidate%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).Locator"
+            "$ref": "#/definitions/D8"
           },
           "sources": {
             "type": "array",
@@ -2419,6 +2433,7 @@ export const CANDIDATE_SCHEMA = {
     "inferences",
     "issues",
     "kind",
+    "messages",
     "nodes",
     "normalizedInput",
     "observations",
@@ -2431,7 +2446,59 @@ export const CANDIDATE_SCHEMA = {
     "version"
   ],
   "definitions": {
-    "import(\"/workspace/intent-runtime/src/model/candidate\",{with:{\"resolution-mode\":\"import\"}}).NodeDraft": {
+    "D0": {
+      "type": "object",
+      "properties": {
+        "changed": {
+          "type": "string"
+        },
+        "notApplicable": {
+          "type": "string"
+        },
+        "noValue": {
+          "type": "string"
+        },
+        "noDeclaration": {
+          "type": "string"
+        },
+        "explicitNull": {
+          "type": "string"
+        },
+        "invalid": {
+          "type": "string"
+        },
+        "open": {
+          "type": "string"
+        },
+        "mixed": {
+          "type": "string"
+        },
+        "semanticUnknown": {
+          "type": "string"
+        },
+        "unresolved": {
+          "type": "string"
+        },
+        "relationConflict": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "changed",
+        "explicitNull",
+        "invalid",
+        "mixed",
+        "noDeclaration",
+        "noValue",
+        "notApplicable",
+        "open",
+        "relationConflict",
+        "semanticUnknown",
+        "unresolved"
+      ]
+    },
+    "D1": {
       "type": "object",
       "properties": {
         "key": {
@@ -2607,7 +2674,7 @@ export const CANDIDATE_SCHEMA = {
         "understanding"
       ]
     },
-    "import(\"/workspace/intent-runtime/src/model/candidate\",{with:{\"resolution-mode\":\"import\"}}).ConstraintDraft": {
+    "D2": {
       "type": "object",
       "properties": {
         "key": {
@@ -2756,7 +2823,7 @@ export const CANDIDATE_SCHEMA = {
         "text"
       ]
     },
-    "import(\"/workspace/intent-runtime/src/model/candidate\",{with:{\"resolution-mode\":\"import\"}}).ReferenceDraft": {
+    "D3": {
       "type": "object",
       "properties": {
         "key": {
@@ -2898,7 +2965,7 @@ export const CANDIDATE_SCHEMA = {
         "sources"
       ]
     },
-    "import(\"/workspace/intent-runtime/src/model/candidate\",{with:{\"resolution-mode\":\"import\"}}).RelationDraft": {
+    "D4": {
       "type": "object",
       "properties": {
         "key": {
@@ -3012,7 +3079,7 @@ export const CANDIDATE_SCHEMA = {
         "toKey"
       ]
     },
-    "import(\"/workspace/intent-runtime/src/model/candidate\",{with:{\"resolution-mode\":\"import\"}}).ChangeDraft": {
+    "D5": {
       "type": "object",
       "properties": {
         "operation": {
@@ -3140,7 +3207,7 @@ export const CANDIDATE_SCHEMA = {
         "targetKind"
       ]
     },
-    "import(\"/workspace/intent-runtime/src/model/candidate\",{with:{\"resolution-mode\":\"import\"}}).Observation": {
+    "D6": {
       "type": "object",
       "properties": {
         "ownerKey": {
@@ -3237,6 +3304,90 @@ export const CANDIDATE_SCHEMA = {
               "root"
             ]
           }
+        },
+        "semantic": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "enum": [
+                    "invalid",
+                    "unknown",
+                    "valid"
+                  ],
+                  "type": "string"
+                },
+                "explanation": {
+                  "type": "string"
+                },
+                "sources": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "root": {
+                        "enum": [
+                          "baseline",
+                          "context",
+                          "extensionSchema",
+                          "input",
+                          "referenceTime",
+                          "schema",
+                          "semantics"
+                        ],
+                        "type": "string"
+                      },
+                      "pointer": {
+                        "type": "string"
+                      },
+                      "quote": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                      "pointer",
+                      "root"
+                    ]
+                  }
+                },
+                "dependencies": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "field": {
+                        "type": "string"
+                      },
+                      "requires": {
+                        "enum": [
+                          "presence",
+                          "value"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                      "field",
+                      "requires"
+                    ]
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "dependencies",
+                "explanation",
+                "sources",
+                "status"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "additionalProperties": false,
@@ -3246,11 +3397,37 @@ export const CANDIDATE_SCHEMA = {
         "ownerKey",
         "presence",
         "rawText",
+        "semantic",
         "sources",
         "valueJson"
       ]
     },
-    "import(\"/workspace/intent-runtime/src/model/candidate\",{with:{\"resolution-mode\":\"import\"}}).Locator": {
+    "D7": {
+      "type": "object",
+      "properties": {
+        "container": {
+          "enum": [
+            "extensions",
+            "facts",
+            "inputs"
+          ],
+          "type": "string"
+        },
+        "field": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "container",
+        "field",
+        "path"
+      ]
+    },
+    "D8": {
       "type": "object",
       "properties": {
         "kind": {
@@ -3291,9 +3468,9 @@ export const CANDIDATE_SCHEMA = {
   "$schema": "http://json-schema.org/draft-07/schema#"
 } as const;
 export const EXPRESSION_SCHEMA = {
-  "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).StructuredExpression",
+  "$ref": "#/definitions/D2",
   "definitions": {
-    "import(\"/workspace/intent-runtime/src/contracts/public\",{with:{\"resolution-mode\":\"import\"}}).ExpressionOperand": {
+    "D0": {
       "anyOf": [
         {
           "type": "object",
@@ -3303,7 +3480,7 @@ export const EXPRESSION_SCHEMA = {
               "const": "literal"
             },
             "value": {
-              "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).JsonValue"
+              "$ref": "#/definitions/D1"
             }
           },
           "additionalProperties": false,
@@ -3377,18 +3554,18 @@ export const EXPRESSION_SCHEMA = {
         }
       ]
     },
-    "import(\"/workspace/intent-runtime/src/contracts/public\",{with:{\"resolution-mode\":\"import\"}}).JsonValue": {
+    "D1": {
       "anyOf": [
         {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).JsonValue"
+            "$ref": "#/definitions/D1"
           }
         },
         {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).JsonValue"
+            "$ref": "#/definitions/D1"
           }
         },
         {
@@ -3413,7 +3590,7 @@ export const EXPRESSION_SCHEMA = {
         }
       ]
     },
-    "import(\"/workspace/intent-runtime/src/contracts/public\",{with:{\"resolution-mode\":\"import\"}}).StructuredExpression": {
+    "D2": {
       "anyOf": [
         {
           "type": "object",
@@ -3423,7 +3600,7 @@ export const EXPRESSION_SCHEMA = {
               "const": "comparison"
             },
             "left": {
-              "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).ExpressionOperand"
+              "$ref": "#/definitions/D0"
             },
             "operator": {
               "enum": [
@@ -3437,7 +3614,7 @@ export const EXPRESSION_SCHEMA = {
               "type": "string"
             },
             "right": {
-              "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).ExpressionOperand"
+              "$ref": "#/definitions/D0"
             }
           },
           "additionalProperties": false,
@@ -3449,7 +3626,7 @@ export const EXPRESSION_SCHEMA = {
           ]
         },
         {
-          "$ref": "#/definitions/%7Btype%3A%22all%22%7C%22any%22%3Bitems%3Aimport(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).StructuredExpression%5B%5D%3B%7D"
+          "$ref": "#/definitions/D3"
         },
         {
           "type": "object",
@@ -3459,7 +3636,7 @@ export const EXPRESSION_SCHEMA = {
               "const": "not"
             },
             "item": {
-              "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).StructuredExpression"
+              "$ref": "#/definitions/D2"
             }
           },
           "additionalProperties": false,
@@ -3470,7 +3647,7 @@ export const EXPRESSION_SCHEMA = {
         }
       ]
     },
-    "{type:\"all\"|\"any\";items:import(\"/workspace/intent-runtime/src/contracts/public\",{with:{\"resolution-mode\":\"import\"}}).StructuredExpression[];}": {
+    "D3": {
       "type": "object",
       "properties": {
         "type": {
@@ -3483,7 +3660,7 @@ export const EXPRESSION_SCHEMA = {
         "items": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/import(%22%2Fworkspace%2Fintent-runtime%2Fsrc%2Fcontracts%2Fpublic%22%2C%7Bwith%3A%7B%22resolution-mode%22%3A%22import%22%7D%7D).StructuredExpression"
+            "$ref": "#/definitions/D2"
           }
         }
       },

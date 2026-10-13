@@ -1,132 +1,29 @@
----
-title: 配置与多实例
-description: 用户级 MCP 与业务配置的路径、命名实例、工作目录、语言和 Schema 设置。
----
+# 配置参考
 
-# 配置与多实例
+`new Intent(config)` 在创建时快照配置，不读取业务环境。
 
-自动安装分开维护客户端注册与业务定义。客户端注册告诉 Codex 如何启动 MCP；业务配置决定有哪些 instance、使用什么语言和 Schema。
+| 参数 | 默认 | 用途 |
+|---|---|---|
+| executor | 未配置 | 可信 ModelExecutor；Native/executor MCP 要求；host 不调用它 |
+| language | en | 有效 BCP 47 标签，支持登记标签、私用与扩展；业务解释遵循此语言 |
+| schema | 未配置 | 字段定义；选择字段时必需 |
+| extensionSchema | 未配置 | 扩展字段的独立定义；与业务顶层字段不能重名 |
+| semantics | 未配置 | domain、description、terms、actions 解释术语和动作；不是工具能力列表 |
+| timeoutMs | 0 | 0 无总期限；显式正整数覆盖整个识别，含 host 等待；最大 2147483647 |
+| defaultOutput | 全 false | suggestions、evidence、diagnostics、extensions |
+| limits | 下表 | 可信资源预算，MCP 调用者不能修改 |
 
-## 配置分层参考
+terms 包含非空 name/meaning，可选 aliases；actions 包含非空 name/meaning，可选 examples/counterExamples。同名含义冲突为 CONFIG_INVALID。明确匹配的 domain/action 标识保留配置名称，不随输出语言翻译。
 
-| 层 | 参数与默认值 | 合法范围与使用位置 |
-| --- | --- | --- |
-| IntentConfig | language=en、schema=空对象、executor=未配置、repairAttempts=1、limits=DEFAULT_LIMITS | 全部类型/限制见 [Intent API](../api/intent.md)；未知键 CONFIG_INVALID，parse 必须有 executor |
-| 兼容总时限 | timeoutMs=0 | 安全整数 0–2147483647；0/省略不增加总期限，常规接入无需配置 |
-| AdapterConfig | mode=host、instances 必填、toolPrefix=空 | 新增接口；instances 为同包 Intent，模式/前缀见 [Adapter 配置](../api/mcp-adapter.md#配置参考) |
-| host 容量 | maxJobs=32、maxReplayEntries=128、maxReplayBytes=8388608 | 同一 Bridge 全部 session 共享；正安全整数且不超过 2147483647；executor 不接受 |
-| 兼容 TTL | jobTtlMs/replayTtlMs=0 | 已弃用；不设置即无时间 TTL，常规接入无需配置 |
-| 工具 JSON | instance/input 必填，fields/context 可选 | 实例原样匹配；fields 省略全部、子集或[]；context 显式 text 或 user/assistant/tool 消息；未知字段 UNKNOWN_FIELD |
-| 原生调用选项 | signal=未设置 | 新增第二 parse/accept 或第三 callTool 参数；原生 AbortSignal，不进入 JSON/payload |
-| CLI 配置 | default export instances | 值为 IntentConfig 或同包 Intent；Adapter 要求已创建 Intent，不混用 |
-| 模型环境 | provider/model/key 无默认值 | API 由调用方明确提供；host 由宿主生成候选，模块不需要 executor/key |
+| limits | 默认值 | 作用域 |
+|---|---:|---|
+| maxInputBytes | 65536 | 当前 input 的 UTF-8 字节 |
+| maxContextBytes / maxBaselineBytes | 各 1048576 | 各自 JSON |
+| maxSchemaBytes | 262144 | 每份业务/扩展定义 |
+| maxRequestBytes | 3145728 | 静态配置材料和完整逻辑请求材料 |
+| maxOutputBytes | 1048576 | 每个候选文本、HostTask JSON、最终 Result 分别检查 |
+| maxDepth | 64 | 根容器深度 0 |
+| maxConcurrentParses | 8 | 同一 Intent 的 Native/host 活动识别及未结束底层工作 |
+| maxValidationChecks | 256 | 每条识别实际业务 Validator 调用；host 纠正不重置 |
 
-JSON Schema/DSL、顶层字段选择和重复字段去重见 [Schema 与字段选择](./schema-fields.md)。实例初始化后固定；更换 Schema/模型时创建新实例，不通过修改原配置对象更新。没有隐式 default 实例选择。
-
-## 默认路径
-
-| 用途 | 路径 |
-| --- | --- |
-| Codex 用户级注册 | `~/.codex/config.toml`；设置 `CODEX_HOME` 时为该目录下的 `config.toml` |
-| 新建业务配置 | `~/.intent-runtime/intent.config.mjs` |
-| Skill | `~/.agents/skills/<实际 Skill 名>/SKILL.md` |
-| 安装状态 | `~/.intent-runtime/state.json` |
-| 安装日志 | `~/.intent-runtime/logs/installation.jsonl` |
-| 配置备份与恢复记录 | `~/.intent-runtime/` 下的管理文件 |
-
-Windows 的 `~` 通常对应当前用户目录。发生名称冲突时，注册或 Skill 可能使用带后缀的名称，以安装状态和 `doctor` 输出为准。迁移已有配置时，实际业务配置路径可能不同于默认路径。
-
-## 定义中文订单实例
-
-默认用户配置推荐直接写 JSON Schema，不需要额外依赖。希望使用 schema-dsl 时，把配置放在安装了该依赖的业务项目中，例如 `D:\Worker\intent-business`：
-
-```powershell
-New-Item -ItemType Directory -Force D:\Worker\intent-business | Out-Null
-cd D:\Worker\intent-business
-npm init -y
-npm install schema-dsl@3.0.4
-```
-
-在该目录创建 `intent.config.mjs`：
-
-```js
-import { s } from "schema-dsl/pure";
-
-export default {
-  instances: {
-    default: { language: "zh-CN" },
-    orders: {
-      language: "zh-CN",
-      schema: s({
-        orderId: s("string!").description("当前有效请求中的订单编号。原样保留前导零，不猜测。"),
-      }),
-    },
-  },
-};
-```
-
-用 doctor 输出及状态文件找到实际注册，再在该注册的 args 中把 --config 后的路径改为 `D:\Worker\intent-business\intent.config.mjs`。导入 schema-dsl 按此配置所在项目解析，不依赖 MCP 包的全局安装目录。
-
-MCP 启动时读取这份配置。修改后运行 doctor 检查，再重载客户端；识别订单时提交 `instance: "orders"`。`fields: ["orderId"]` 提取该字段；`fields: []` 只识别默认意图。
-
-:::tip 配置文件的依赖解析
-Node 从 `.mjs` 所在目录向上解析依赖。用户目录中的配置不能假设能直接导入全局包内部的 `schema-dsl`。上面的 import 适合放在已安装 `schema-dsl` 的业务项目中；也可以在用户配置里直接写 JSON Schema，并让 MCP 的 `--config` 指向你确定可加载的路径。
-:::
-
-没有本地依赖时，在实际用户业务配置中将同样的字段写为以下 JSON Schema，无需更改注册路径：
-
-```js
-export default {
-  instances: {
-    orders: {
-      language: "zh-CN",
-      schema: {
-        type: "object",
-        properties: {
-          orderId: { type: "string", description: "当前有效请求中的订单编号，原样保留前导零，不猜测。" },
-        },
-        required: ["orderId"],
-        additionalProperties: false,
-      },
-    },
-  },
-};
-```
-
-## 工作目录与环境
-
-MCP 的 `cwd` 是启动进程的工作目录。代码中的相对文件读取依赖它；业务配置的 `import` 相对路径仍按配置文件位置解析。迁移已有注册时保留原 `cwd`，新配置默认使用配置文件所在目录。
-
-配置运行于 Node.js，有读文件和执行代码的能力，只加载你信任的文件。MCP 标准输出用于协议消息，配置或业务依赖的日志应写入标准错误。
-
-项目级 `.codex/config.toml` 和 Codex profile 可能影响最终采用的注册，`doctor` 会提示检测到的覆盖关系。用户级诊断健康之后，仍要在目标客户端核对其实际配置。
-
-### 向业务配置传递环境变量
-
-MCP 使用当前 Codex 模型，不需要模型 API key。只有业务配置确实读取某个环境变量时才添加它，例如：
-
-```toml
-[mcp_servers.intent-runtime]
-env_vars = ["INTENT_BUSINESS_REGION"]
-env = { INTENT_BUSINESS_MODE = "production" }
-```
-
-这是对实际注册的补充片段：将字段合并到现有的注册表，不要用片段覆盖已有 command、args 或 cwd。实际注册名带后缀时使用对应名称。
-
-`env_vars` 从启动 Codex 的环境中传递指定变量；`env` 指定明确的值。Desktop 表单中分别对应“环境变量传递”和“环境变量”。业务配置通过 process.env 读取，修改后重启客户端使环境生效。
-
-手动修改模块管理的注册后，doctor 可以检查实际入口，并提示用户修改；clean 会保留该注册。doctor --repair 会保留用户修改并可能新建带后缀的管理注册，因此不要把它当作应用自定义配置的必需步骤。修改后先 doctor、重载并核对实际启用的入口，避免重复注册。
-
-## 输出语言
-
-`language` 默认 `en`，必须指定随包 IANA 快照支持的输出语言。标签会规范化大小写与已登记的首选别名；它控制结构化说明语言，用户要求的报告语言仍作为要求记录，精确编号、代码和业务枚举值按原始材料保留。
-
-| 输入 | 结果 |
-| --- | --- |
-| `zh-CN`、`en-us` | 接受，规范化为 `zh-CN`、`en-US` |
-| `i-klingon`、`zh-cmn` | 接受首选别名，规范化为 `tlh`、`cmn` |
-| `und`、`mul`、`zxx`、`i-default` | 不指定具体输出语言，返回 CONFIG_INVALID |
-| `x-private`、`qaa` | 仅私有用途或保留语言范围，返回 CONFIG_INVALID |
-| `en_US`、带首尾空格的标签 | 格式不符合要求，返回 CONFIG_INVALID |
-
-不是所有语法合法或注册表中的特殊标签都适合作为输出语言。支持范围以随包快照及本地验证为准，不在运行时联网获取注册表。
+预算是容量/工作限制，不是默认超时。自定义执行器内部的任意分配不受本库物理约束。取消不配合的执行器会先返回取消，名额在底层实际结束后释放。

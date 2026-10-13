@@ -8,6 +8,7 @@ const messages: Record<IntentErrorCode, string> = {
   MODEL_TIMEOUT: 'Recognition timed out.', REQUEST_ABORTED: 'Recognition cancelled.', INSTANCE_DISPOSED: 'Instance disposed.', RESOURCE_LIMIT: 'Resource limit exceeded.',
   INTERNAL_PROCESSING_FAILED: 'Internal processing failed.', HOST_REQUEST_NOT_FOUND: 'Host request not found.', HOST_SUBMISSION_CONFLICT: 'Host submission conflict.',
 };
+export function isTechnicalErrorCode(code: string): boolean {return Object.hasOwn(messages, code);}
 function defaultStage(code: IntentErrorCode): IntentErrorStage {
   if (code === 'INTERNAL_PROCESSING_FAILED') return 'validation';
   if (code.startsWith('HOST_')) return 'transport';

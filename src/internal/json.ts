@@ -5,6 +5,7 @@ import type { IntentErrorCode, IntentErrorStage, JsonValue } from '../contracts/
 export interface JsonBoundary {
   maxBytes: number; maxDepth: number; limit: string; stage: IntentErrorStage;
   invalid?: IntentErrorCode; schemaProxy?: (v: object) => boolean; schemaCache?: boolean;
+  path?: string;
 }
 export function plain(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !types.isProxy(value) && !Array.isArray(value) && [Object.prototype, null].includes(Object.getPrototypeOf(value));
@@ -28,7 +29,7 @@ export function measure(value: unknown, boundary: JsonBoundary): number {
   const { maxBytes, maxDepth, limit, stage } = boundary;
   const invalid = (): never => { throw new IntentError(boundary.invalid ?? 'INPUT_INVALID', { stage }); };
   const exceeded = (dimension: string, allowed: number, observed: number | undefined, unit: 'depth' | 'bytes'): never => {
-    throw new IntentError('RESOURCE_LIMIT', { stage, details: { limit: dimension, allowed, ...(observed !== undefined ? {observed} : {}), unit } });
+    throw new IntentError('RESOURCE_LIMIT', { stage, details: { limit: dimension, allowed, ...(observed !== undefined ? {observed} : {}), unit, path: boundary.path ?? '' } });
   };
   const active = new WeakSet<object>(), memo = new WeakMap<object, { bytes: number; height: number }>();
   function visit(v: unknown, depth: number): { bytes: number; height: number } {

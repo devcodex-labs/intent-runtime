@@ -1,39 +1,9 @@
-import { s } from "schema-dsl/pure";
-import { Intent } from "@devcodex/intent-runtime";
-import { createExampleExecutor } from "../shared/candidate-driver.mjs";
-import { sampleInput } from "../shared/instances.mjs";
-const fixture = process.argv.includes("--fixture");
-const input = process.argv.slice(2).find(value => !value.startsWith("--")) ??
-  (fixture ? sampleInput : "请查询订单 000123，不要取消或修改订单，查询结果用中文。");
-const intent = new Intent({
-  language: process.env.INTENT_LANGUAGE ?? "en",
-  schema: s({
-    orderId: s("string!").description(
-      "The current requested order identifier. Preserve leading zeros; never guess.",
-    ),
-  }),
-  executor: createExampleExecutor(fixture),
-});
-const controller = new AbortController();
-const cancel = () => controller.abort();
-process.once("SIGINT", cancel);
-try {
-  console.log(
-    JSON.stringify(
-      await intent.parse({
-        input,
-        fields: process.argv.includes("--no-data") ? [] : ["orderId"],
-      }, { signal: controller.signal }),
-      null,
-      2,
-    ),
-  );
-} catch (error) {
-  if (typeof error.toJSON === "function")
-    console.error(JSON.stringify(error.toJSON(), null, 2));
-  else console.error("Recognition failed.");
-  process.exitCode = 1;
-} finally {
-  process.removeListener("SIGINT", cancel);
-  intent.dispose();
-}
+import {Intent} from '@devcodex/intent-runtime';
+import {createApiExecutor} from '@devcodex/intent-runtime/adapters/api';
+import {s} from 'schema-dsl/pure';
+
+const apiKey = process.env.INTENT_API_KEY, model = process.env.INTENT_MODEL;
+if (!apiKey || !model) throw new Error('Set INTENT_API_KEY and INTENT_MODEL in your environment.');
+const intent = new Intent({language: 'zh-CN', executor: createApiExecutor({provider: 'openai', apiKey, model}), schema: s({orderId: s('string!').description('用户明确给出的订单编号，保留前导零')})});
+try {console.log(JSON.stringify(await intent.parse({input: '查询订单000123，不取消订单', fields: ['orderId']}), null, 2));}
+finally {await intent.dispose();}

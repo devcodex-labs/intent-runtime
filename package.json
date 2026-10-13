@@ -31,6 +31,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./adapters/api": {
+      "types": "./dist/adapters/api.d.ts",
+      "import": "./dist/adapters/api.js"
+    },
+    "./mcp": {
+      "types": "./dist/mcp/index.d.ts",
+      "import": "./dist/mcp/index.js"
     }
   },
   "main": "./dist/index.js",
@@ -38,14 +46,20 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "CHANGELOG.md",
+    "LICENSE",
+    "integrations/codex/SKILL.md"
   ],
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "node scripts/test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "schema:generate": "node scripts/generate-schema.mjs",
-    "lint": "node scripts/check-imports.mjs"
+    "lint": "node scripts/check-imports.mjs",
+    "check:package": "node scripts/check-package.mjs",
+    "docs:check": "npm --prefix website run check",
+    "docs:build": "npm --prefix website run build",
+    "prepack": "node scripts/build.mjs"
   },
   "publishConfig": {
     "access": "public",
@@ -54,9 +68,13 @@
   "engines": {
     "node": ">=20.0.0"
   },
-  "bin": {},
+  "bin": {
+    "intent-runtime-mcp": "dist/cli/mcp.js",
+    "intent-runtime": "dist/cli/index.js"
+  },
   "dependencies": {
-    "bcp-47": "2.1.1"
+    "bcp-47": "2.1.1",
+    "toml-eslint-parser": "0.10.0"
   },
   "peerDependencies": {
     "schema-dsl": "3.0.4"
@@ -67,5 +85,9 @@
     "schema-dsl": "3.0.4",
     "esbuild": "0.28.2",
     "typescript-json-schema": "0.68.0"
+  },
+  "optionalDependencies": {
+    "@modelcontextprotocol/server": "2.3.1",
+    "@modelcontextprotocol/client": "2.3.1"
   }
 }

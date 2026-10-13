@@ -36,14 +36,17 @@ export function invariants(result: IntentResult, draft: CandidateDraft): void {
   if (new Set(added).size !== draft.nodes.filter(x => !x.priorRef).length) violation('/turn/changes', 'MISSING_REQUIRED');
   const fields = new Set<string>();
   for (const f of result.fieldResults) {
-    const key = `${f.container}:${f.intentId}:${f.path}`; if (fields.has(key)) violation('/fieldResults', 'DUPLICATE_ID'); fields.add(key);
+    const key = JSON.stringify([f.container, f.intentId, f.path]); if (fields.has(key)) violation('/fieldResults', 'DUPLICATE_ID'); fields.add(key);
     if (f.status !== 'present' && !f.explanation) violation('/fieldResults', 'MISSING_REQUIRED');
     if (f.container === 'facts' && f.intentId !== null || f.container !== 'facts' && !nodes.has(f.intentId!)) violation('/fieldResults', 'FIELD_OWNERSHIP');
   }
+  const issueIds = new Set<string>();
   for (const issue of result.issues) {
+    if (issueIds.has(issue.id)) violation('/issues', 'DUPLICATE_ID'); issueIds.add(issue.id);
     if (issue.intentId && !nodes.has(issue.intentId)) violation('/issues', 'REFERENCE_NOT_FOUND');
     const candidates = new Set((issue.candidates ?? []).map(c => c.id));
     if (candidates.size !== (issue.candidates ?? []).length) violation('/issues', 'DUPLICATE_ID');
+    if (issue.candidates?.some(candidate => candidate.intentId && !nodes.has(candidate.intentId))) violation('/issues', 'REFERENCE_NOT_FOUND');
     if (issue.questions?.some(q => q.optionIds?.some(id => !candidates.has(id)))) violation('/issues', 'REFERENCE_NOT_FOUND');
   }
 }

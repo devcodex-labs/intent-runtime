@@ -1,26 +1,21 @@
 ---
-pageType: custom
-title: intent-runtime · 中文文档
-description: 面向应用与 AI 客户端的大模型意图结构化组件，识别当前请求、保留约束并按 Schema 提取业务字段。
+pageType: home
 hero:
-  name: intent-runtime
-  text: 把用户请求转为结构化意图
-  tagline: 大模型驱动的意图结构化组件。识别当前请求、保留动作与约束，按 Schema 提取业务字段，为应用与 AI 客户端交付统一、可校验的理解结果。
+  name: Intent Runtime
+  text: 将用户意图结构化
+  tagline: 由调用方提供材料，以同一核心识别目标、约束、本轮变更和 Schema 字段。
   actions:
     - theme: brand
-      text: 快速开始
-      link: /guide/quick-start.html
+      text: 开始使用
+      link: /guide/quick-start
     - theme: alt
-      text: 查看响应结构
-      link: /api/response.html
-    - theme: alt
-      text: GitHub
-      link: https://github.com/devcodex-labs/intent-runtime
+      text: 完整响应结构
+      link: /api/response
+features:
+  - title: 一份有效意图
+    details: 完整目标只存于 effective；本轮通过 intentIds 和 changes 关联，保留约束、父子目标、澄清与不确定性。
+  - title: 可核验的业务字段
+    details: 使用 schema-dsl 3.0.4 校验所选字段与声明依赖，区分缺失、未知、无效和旧值失效。
+  - title: Native 与标准 MCP
+    details: 应用直接调用，已有 MCP 增加 tools，或当前宿主模型准备候选；同一识别核心验证和组装结果。
 ---
-
-import { HomeHero, HomeFooter } from "@rspress/core/theme";
-import { HomeOverview } from "../components/HomeOverview";
-
-<div className="intent-home-hero"><HomeHero /></div>
-<HomeOverview />
-<HomeFooter />

@@ -21,7 +21,7 @@ test('Parent/child chain: withdrawal, English document, unresolved method, answe
     assert.deepEqual(second.turn.changes[1]!.effect === 'applied' && second.turn.changes[1]!.deltas?.[0]?.after, ['English description document']);
     d.relatedKeys = ['login']; d.kind = 'amendment'; d.priorTargets = []; d.nodes[1]!.understanding = 'ambiguous';
     d.changes = [{operation: 'modify', effect: 'unresolved', targetKind: 'intent', targetKey: 'login', conditionKey: null, description: 'Second method is unresolved', sources: [src], deltaHints: []}];
-    d.issues = [{key: 'method', ownerKey: 'login', code: 'AMBIGUOUS_REFERENCE', category: 'ambiguity', message: 'Second login method was not supplied', sources: [src], candidates: [], questions: [{question: 'Which login method?', optionKeys: []}]}];
+    d.issues = [{key: 'method', ownerKey: 'login', fieldTarget: null, code: 'AMBIGUOUS_REFERENCE', category: 'ambiguity', message: 'Second login method was not supplied', sources: [src], candidates: [], questions: [{question: 'Which login method?', optionKeys: []}]}];
     const third = await intent.parse({input: '登录采用第二种方式', baseline: second.effective}); assert.equal(third.status, 'partial'); assert.equal(third.issues.length, 1);
     d.nodes[1]!.understanding = 'clear'; d.nodes[1]!.goal = 'Email verification login'; d.kind = 'mixed'; d.issues = [];
     d.changes = [{operation: 'modify', effect: 'applied', targetKind: 'intent', targetKey: 'login', conditionKey: null, description: 'Clarify method only', sources: [src], deltaHints: []}, {operation: 'add', effect: 'applied', targetKind: 'constraint', targetKey: 'readonly', conditionKey: null, description: 'Do not modify code', sources: [src], deltaHints: []}];
@@ -32,7 +32,7 @@ test('Parent/child chain: withdrawal, English document, unresolved method, answe
 });
 test('Typed input ID is mapped while same-valued literal remains intact', async () => {
   const d = draft(); d.constraints = [{key: 'comparison', priorRef: null, ownerKey: 'a', scope: 'intent', referenceKey: null, kind: 'requirement', text: 'Code must be a', expressionJson: JSON.stringify({type: 'comparison', left: {type: 'input', intentId: 'a', path: '/code'}, operator: 'eq', right: {type: 'literal', value: {id: 'a'}}}), sources: [src]}];
-  const intent = new Intent({executor: controlled(() => d)});
+  const intent = new Intent({schema: {type: 'object', properties: {code: {type: 'object', properties: {id: {type: 'string'}}}}}, executor: controlled(() => d)});
   try {const r = await intent.parse({input: 'code必须为a'}); const e = r.effective.intents[0]!.constraints[0]!.expression!; assert.equal(e.type, 'comparison'); if (e.type === 'comparison') {assert.equal(e.left.type === 'input' && e.left.intentId, r.effective.intents[0]!.id); assert.deepEqual(e.right.type === 'literal' && e.right.value, {id: 'a'});}} finally {await intent.dispose();}
 });
 test('Conditional withdrawal retains target and referenced condition', async () => {
@@ -72,20 +72,20 @@ test('Clear current prohibition stays complete while prior history coverage is u
   const d = draft([]); d.kind = 'amendment'; d.usedHistory = true; d.historyCoverage = 'unavailable';
   d.constraints = [{key: 'no-network', priorRef: null, ownerKey: null, scope: 'global', referenceKey: null, kind: 'prohibition', text: 'Do not access the network', expressionJson: null, sources: [src]}];
   d.changes = [{operation: 'add', effect: 'applied', targetKind: 'constraint', targetKey: 'no-network', conditionKey: null, description: 'Add clear current prohibition', sources: [src], deltaHints: []}];
-  d.issues = [{key: 'history', ownerKey: null, code: 'CONTEXT_INCOMPLETE', category: 'context', message: 'The prior task is not recoverable from supplied history', sources: [{root: 'context', pointer: '/priorNote'}], candidates: [], questions: []}];
+  d.issues = [{key: 'history', ownerKey: null, fieldTarget: null, code: 'CONTEXT_INCOMPLETE', category: 'context', message: 'The prior task is not recoverable from supplied history', sources: [{root: 'context', pointer: '/priorNote'}], candidates: [], questions: []}];
   const intent = new Intent({executor: controlled(() => d)});
   try {const r = await intent.parse({input: '先补充：不要联网', context: {priorNote: '只知道上周讨论过任务'}}); assert.equal(r.status, 'complete'); assert.equal(r.effective.coverage, 'partial'); assert.equal(r.effective.constraints.length, 1); assert.equal(r.issues[0]!.code, 'CONTEXT_INCOMPLETE');} finally {await intent.dispose();}
 });
 test('An explicitly changed historical field invalidates even without a current extraction schema', async () => {
   const d = draft(); d.usedHistory = true; d.nodes[0]!.priorRef = {root: 'context', pointer: '/prior'};
-  d.observations = [{ownerKey: 'a', container: 'inputs', field: 'orderId', presence: 'known', valueJson: '"B"', rawText: 'B', sources: [src]}];
+  d.observations = [{ownerKey: 'a', container: 'inputs', semantic: null, field: 'orderId', presence: 'known', valueJson: '"B"', rawText: 'B', sources: [src]}];
   d.changes = [{operation: 'modify', effect: 'applied', targetKind: 'intent', targetKey: 'a', conditionKey: null, description: 'Change order A to B, without extracting B', sources: [src], deltaHints: []}];
   const intent = new Intent({executor: controlled(() => d)});
   try {const r = await intent.parse({input: '订单改B', context: {prior: {id: 'order', inputs: {orderId: 'A'}}}}); assert.deepEqual(r.effective.intents[0]!.inputs, {}); assert.equal(r.fieldResults[0]!.trigger, 'invalidation'); assert.equal(r.fieldResults[0]!.status, 'invalidated');} finally {await intent.dispose();}
 });
 test('JSON key reordering alone never invalidates an inherited object parameter', async () => {
   const d = draft(); d.usedHistory = true; d.nodes[0]!.priorRef = {root: 'context', pointer: '/prior'};
-  d.observations = [{ownerKey: 'a', container: 'inputs', field: 'settings', presence: 'known', valueJson: '{"b":2,"a":1}', rawText: null, sources: [src]}];
+  d.observations = [{ownerKey: 'a', container: 'inputs', field: 'settings', presence: 'known', valueJson: '{"b":2,"a":1}', rawText: null, sources: [src], semantic: null}];
   d.changes = [{operation: 'modify', effect: 'applied', targetKind: 'intent', targetKey: 'a', conditionKey: null, description: 'Only change the report language', sources: [src], deltaHints: []}];
   const intent = new Intent({executor: controlled(() => d)});
   try {const r = await intent.parse({input: '报告改英文，设置不变', context: {prior: {id: 'report', inputs: {settings: {a: 1, b: 2}}}}}); assert.deepEqual(r.effective.intents[0]!.inputs.settings, {a: 1, b: 2}); assert.equal(r.fieldResults.length, 0);} finally {await intent.dispose();}

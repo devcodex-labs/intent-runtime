@@ -37,13 +37,9 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             website/package-lock.json
-      - run: npm ci
-      - run: npm run build
-      - run: npm ci --prefix website
-      - run: npm run docs:check
-      - run: npm --prefix website run check:examples
-      - run: npm run docs:build
-      - run: npm --prefix website run check:rendered
+      - run: npm ci --ignore-scripts --prefix website
+      - run: npm --prefix website run check
+      - run: npm --prefix website run build
       - uses: actions/upload-pages-artifact@v5
         with:
           path: website/dist

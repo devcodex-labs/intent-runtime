@@ -12,8 +12,10 @@ export interface ValidationReply {
   values: import('../model/candidate.js').CheckedField[];
   issues: Array<{ownerKey: string | null; issue: import('../contracts/public.js').IntentIssue}>;
   used: number;
+  expressions: Array<{key: string; value: import('../contracts/public.js').StructuredExpression}>;
+  inputPaths: string[];
 }
-interface Entry {data: ValidationTask; signal: AbortSignal; resolve: (r: ValidationReply) => void; reject: (e: IntentError) => void; abort: () => void}
+interface Entry {data: ValidationTask; signal: AbortSignal; resolve: (r: ValidationReply) => void; reject: (e: IntentError) => void; abort: () => void; usage?: (used: number) => void}
 // One owned worker per Intent. Queue length is already bounded by recognition leases.
 export class ValidationRunner {
   private worker: Worker | undefined;
@@ -21,11 +23,12 @@ export class ValidationRunner {
   private readonly queue: Entry[] = [];
   private closing = false;
   private terminating = false;
-  run(data: ValidationTask, signal: AbortSignal): Promise<ValidationReply> {
+  private termination: Promise<void> = Promise.resolve();
+  run(data: ValidationTask, signal: AbortSignal, usage?: (used: number) => void): Promise<ValidationReply> {
     return new Promise((resolve, reject) => {
       if (signal.aborted) {reject(signal.reason); return;}
       if (this.closing) {reject(new IntentError('INSTANCE_DISPOSED')); return;}
-      const entry: Entry = {data, signal, resolve, reject, abort: () => {}};
+      const entry: Entry = {data, signal, resolve, reject, abort: () => {}, ...(usage ? {usage} : {})};
       entry.abort = () => {
         if (this.running === entry) this.stop(signal.reason as IntentError);
         else {const index = this.queue.indexOf(entry); if (index >= 0) this.queue.splice(index, 1); signal.removeEventListener('abort', entry.abort); reject(signal.reason);}
@@ -42,9 +45,10 @@ export class ValidationRunner {
         const worker = new Worker(new URL('./schema/worker.mjs', import.meta.url), {env: {}, stdout: true, stderr: true});
         // Dependency diagnostics may include schema keys. Never forward them to app logs/stdout.
         worker.stdout?.resume(); worker.stderr?.resume(); this.worker = worker;
-        worker.on('message', (message: {reply?: ValidationReply; error?: {code: IntentErrorCode; stage: IntentErrorStage; details?: import('../contracts/public.js').IntentErrorDetails}}) => {
+        worker.on('message', (message: {reply?: ValidationReply; used?: number; error?: {code: IntentErrorCode; stage: IntentErrorStage; details?: import('../contracts/public.js').IntentErrorDetails}}) => {
           if (worker !== this.worker || this.terminating || !this.running) return;
           const entry = this.running; this.running = undefined; entry.signal.removeEventListener('abort', entry.abort);
+          if (message.used !== undefined) entry.usage?.(message.used);
           if (message.reply) entry.resolve(message.reply);
           else if (message.error) entry.reject(new IntentError(message.error.code, {stage: message.error.stage, ...(message.error.details ? {details: message.error.details} : {})}));
           else entry.reject(new IntentError('INTERNAL_PROCESSING_FAILED', {stage: 'validation'}));
@@ -57,16 +61,17 @@ export class ValidationRunner {
     this.worker.ref();
     try {this.worker.postMessage(next.data);} catch {this.stop(new IntentError('INTERNAL_PROCESSING_FAILED', {stage: 'validation'}));}
   }
-  private stop(error: IntentError): void {
-    if (this.terminating) return;
+  private stop(error: IntentError): Promise<void> {
+    if (this.terminating) return this.termination;
     const entry = this.running, worker = this.worker; this.running = undefined; this.worker = undefined; this.terminating = true;
     entry?.signal.removeEventListener('abort', entry.abort);
     // Reject physical work only AFTER the old worker has exited; then pump the next generation.
-    Promise.resolve(worker?.terminate()).catch(() => {}).then(() => {entry?.reject(error); this.terminating = false; this.pump();});
+    this.termination = Promise.resolve(worker?.terminate()).catch(() => {}).then(() => {entry?.reject(error); this.terminating = false; this.pump();});
+    return this.termination;
   }
-  close(): void {
-    if (this.closing) return; this.closing = true;
+  close(): Promise<void> {
+    if (this.closing) return this.termination; this.closing = true;
     for (const entry of this.queue.splice(0)) {entry.signal.removeEventListener('abort', entry.abort); entry.reject(new IntentError('INSTANCE_DISPOSED'));}
-    this.stop(new IntentError('INSTANCE_DISPOSED'));
+    return this.stop(new IntentError('INSTANCE_DISPOSED'));
   }
 }

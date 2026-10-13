@@ -15,10 +15,16 @@ function trackedConfiguration(value: object): boolean {
   const cache = Object.getOwnPropertyDescriptor(raw.value, Symbol.for('schema-dsl.schemaCacheKey'));
   return Boolean(cache && 'value' in cache && typeof cache.value === 'string' && cache.value.startsWith('schema:'));
 }
-export function schemaSnapshot(input: IntentSchema, maxBytes: number, maxDepth: number): JsonObject {
-  const boundary: JsonBoundary = { maxBytes, maxDepth, limit: 'maxSchemaBytes', stage: 'config', invalid: 'SCHEMA_UNSUPPORTED_FOR_EXTRACTION', schemaProxy: trackedConfiguration, schemaCache: true };
+export function schemaSnapshot(input: IntentSchema, maxBytes: number, maxDepth: number, path = '/schema'): JsonObject {
+  const boundary: JsonBoundary = { maxBytes, maxDepth, limit: 'maxSchemaBytes', stage: 'config', invalid: 'SCHEMA_UNSUPPORTED_FOR_EXTRACTION', schemaProxy: trackedConfiguration, schemaCache: true, path };
   let declaration: unknown = input;
-  if (input instanceof ObjectDslBuilder) {
+  // Actual 3.0.4 CJS/ESM and duplicate package instances have different classes.
+  // Data markers provide config compatibility only; use OUR fixed toSchema method.
+  const builder = input !== null && typeof input === 'object' && !types.isProxy(input) && (
+    input instanceof ObjectDslBuilder ||
+    Object.getOwnPropertyDescriptor(input, '_isDslBuilder')?.value === true && Object.getOwnPropertyDescriptor(input, '_isObjectDsl')?.value === true
+  );
+  if (builder) {
     if (types.isProxy(input)) throw new IntentError('SCHEMA_UNSUPPORTED_FOR_EXTRACTION', { stage: 'config' });
     const d = Object.getOwnPropertyDescriptor(input, '_schema');
     if (!d || !('value' in d)) throw new IntentError('SCHEMA_INVALID', { stage: 'config' });
@@ -27,7 +33,7 @@ export function schemaSnapshot(input: IntentSchema, maxBytes: number, maxDepth: 
       if (typeof key === 'symbol' || !property || !('value' in property) || typeof property.value === 'function') throw new IntentError('SCHEMA_UNSUPPORTED_FOR_EXTRACTION', { stage: 'config' });
     }
     measure(d.value, boundary);
-    declaration = ObjectDslBuilder.prototype.toSchema.call(input);
+    declaration = ObjectDslBuilder.prototype.toSchema.call(input as import('schema-dsl/pure').ObjectDslBuilder);
   }
   const result = snapshot(declaration, boundary);
   if (!plain(result) || result.type !== 'object' || !plain(result.properties)) throw new IntentError('SCHEMA_INVALID', { stage: 'config' });

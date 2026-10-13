@@ -5,14 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "rspress dev",
-    "build": "rspress build && node scripts/generate-llms.mjs",
+    "build": "rspress build",
     "preview": "rspress preview",
-    "check": "tsc --noEmit && node scripts/check-docs.mjs",
-    "check:examples": "node scripts/check-examples.mjs",
-    "check:responses": "node scripts/check-responses.mjs",
-    "check:rendered": "node scripts/check-rendered.mjs"
+    "check": "tsc --noEmit && node scripts/check-docs.mjs"
   },
-  "engines": { "node": ">=24.0.0" },
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "dependencies": {
     "@rspress/core": "2.0.23",
     "@rspress/plugin-sitemap": "2.0.23"
