@@ -1,6 +1,6 @@
 {
   "name": "@devcodex/intent-runtime",
-  "version": "1.0.2",
+  "version": "2.0.0-dev.0",
   "description": "A model-driven Node.js component that structures user intent and extracts schema-defined data for applications and MCP servers.",
   "type": "module",
   "license": "MIT",
@@ -31,22 +31,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./adapters/api": {
-      "types": "./dist/adapters/api/index.d.ts",
-      "import": "./dist/adapters/api/index.js"
-    },
-    "./bridge": {
-      "types": "./dist/bridge/index.d.ts",
-      "import": "./dist/bridge/index.js"
-    },
-    "./mcp": {
-      "types": "./dist/transports/mcp/index.d.ts",
-      "import": "./dist/transports/mcp/index.js"
-    },
-    "./mcp/adapter": {
-      "types": "./dist/transports/mcp/adapter.d.ts",
-      "import": "./dist/transports/mcp/adapter.js"
     }
   },
   "main": "./dist/index.js",
@@ -54,35 +38,14 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE",
-    "CHANGELOG.md",
-    "scripts/postinstall.mjs",
-    "integrations",
-    "examples"
+    "LICENSE"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node scripts/copy-runtime-data.mjs",
-    "clean": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\"",
-    "prepack": "npm run clean && npm run build",
-    "prepublishOnly": "node scripts/check-release.mjs",
-    "test": "vitest run tests",
-    "test:integration": "npm run build && node scripts/integration.mjs",
-    "test:mcp": "npm run build && node evaluations/mcp-protocol.mjs",
-    "test:consumer": "npm run build && node tests/consumers/vextjs/run.mjs",
-    "evaluate": "npm run build && node evaluations/run.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node scripts/test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "eslint src tests && node scripts/check-imports.mjs",
-    "smoke:package": "node scripts/smoke-package.mjs",
-    "smoke:installation": "node scripts/smoke-installation.mjs",
-    "smoke:maintenance": "node scripts/smoke-maintenance.mjs",
-    "smoke:validation": "node scripts/smoke-validation.mjs",
-    "smoke:release": "node scripts/smoke-release.mjs",
-    "registry:refresh": "node scripts/refresh-language-registry.mjs",
-    "docs:dev": "npm --prefix website run dev",
-    "docs:build": "npm --prefix website run build",
-    "docs:preview": "npm --prefix website run preview",
-    "docs:check": "npm --prefix website run check",
-    "postinstall": "node scripts/postinstall.mjs"
+    "schema:generate": "node scripts/generate-schema.mjs",
+    "lint": "node scripts/check-imports.mjs"
   },
   "publishConfig": {
     "access": "public",
@@ -91,33 +54,18 @@
   "engines": {
     "node": ">=20.0.0"
   },
-  "bin": {
-    "intent-runtime-mcp": "dist/transports/mcp/main.js",
-    "intent-runtime": "dist/installation/cli.js"
-  },
+  "bin": {},
   "dependencies": {
-    "bcp-47": "2.1.1",
-    "jsonc-parser": "3.3.1",
-    "schema-dsl": "3.0.4",
-    "@modelcontextprotocol/sdk": "1.32.1",
-    "toml-eslint-parser": "0.10.0"
+    "bcp-47": "2.1.1"
   },
   "peerDependencies": {
-    "openai": ">=6.49.0 <7"
-  },
-  "peerDependenciesMeta": {
-    "openai": {
-      "optional": true
-    }
+    "schema-dsl": "3.0.4"
   },
   "devDependencies": {
     "@types/node": "20.19.0",
-    "eslint": "9.39.4",
-    "language-subtag-registry": "0.4.2",
-    "openai": "6.49.0",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.55.0",
-    "vitest": "4.1.11",
-    "vite": "6.4.4"
+    "schema-dsl": "3.0.4",
+    "esbuild": "0.28.2",
+    "typescript-json-schema": "0.68.0"
   }
 }

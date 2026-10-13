@@ -1,149 +1,249 @@
-import type { JSONSchema } from "schema-dsl/pure";
-export type { JSONSchema };
-export const ACTIONS = Object.freeze([
-  "query",
-  "analyze",
-  "generate",
-  "modify",
-  "delete",
-  "execute",
-  "other",
-] as const);
-export const STATUSES = Object.freeze([
-  "ready",
-  "needs_clarification",
-  "awaiting_confirmation",
-  "conditional",
-] as const);
-export type IntentAction = (typeof ACTIONS)[number];
-export type IntentStatus = (typeof STATUSES)[number];
-export type JsonValue =
-  | null
-  | string
-  | number
-  | boolean
-  | JsonValue[]
-  | { [key: string]: JsonValue };
-export interface Clarification {
-  question: string;
-  options: string[];
-}
-interface ItemBase {
-  id: string;
-  target: string | null;
-  requirements: string[];
-}
-export type IntentItem = ItemBase &
-  (
-    | {
-        action: IntentAction;
-        status: "ready";
-        reason?: never;
-        clarification?: never;
-      }
-    | {
-        action: IntentAction | null;
-        status: "needs_clarification";
-        reason: string;
-        clarification: [Clarification, ...Clarification[]];
-      }
-    | {
-        action: IntentAction;
-        status: "awaiting_confirmation" | "conditional";
-        reason: string;
-        clarification?: never;
-      }
-  );
-export interface IntentResult {
-  input: string;
-  normalizedInput: string;
-  primaryIntent: string | null;
-  requirements: string[];
-  intents: IntentItem[];
-  prohibitions: string[];
-  data: Record<string, JsonValue>;
-}
-export interface ContextMessage {
-  role: "user" | "assistant" | "tool";
-  content: string;
-}
-export type IntentContext = string | readonly ContextMessage[];
-export interface IntentParseRequest {
-  input: string;
-  fields?: readonly string[];
-  context?: IntentContext;
-}
-export interface IntentParseOptions {
-  /** Cancels this call only; never serialized into the recognition request. */
-  signal?: AbortSignal;
-}
-export interface ModelRequest {
-  stage: "core" | "data";
-  instructions: string;
-  payload: string;
-  format:
-    | { kind: "json_schema"; name: string; schema: JSONSchema }
-    | { kind: "json_object" };
-  signal: AbortSignal;
-}
-export type ModelReply =
-  | { outcome: "complete"; text: string }
-  | { outcome: "refusal" | "incomplete"; detail?: string };
-export interface ExecutorCapabilities {
-  nativeJsonSchema: boolean;
-  nativeJsonObject: boolean;
-  isolatedTurn: boolean;
-  supportsAbort: boolean;
-}
-export interface ModelExecutor {
-  readonly id: string;
-  readonly capabilities: ExecutorCapabilities;
-  generate(request: ModelRequest): Promise<ModelReply>;
-}
-export interface IntentLimits {
+// Public contract: Usage Contract v0.7; success/baseline 2.0-draft.6.
+
+export type JsonValue = null | string | number | boolean | JsonValue[] | JsonObject;
+export type JsonObject = { [key: string]: JsonValue };
+
+export type IntentOutputOptions = {
+  suggestions?: boolean;
+  evidence?: boolean;
+  diagnostics?: boolean;
+  extensions?: boolean;
+};
+export type IntentLimits = {
   maxInputBytes: number;
   maxContextBytes: number;
+  maxBaselineBytes: number;
   maxSchemaBytes: number;
   maxRequestBytes: number;
   maxOutputBytes: number;
-  maxSchemaDepth: number;
-  maxSchemaProperties: number;
-  maxContextMessages: number;
-  maxIntentCount: number;
+  maxDepth: number;
   maxConcurrentParses: number;
-  maxSchemaCacheEntries: number;
-  maxCandidateDepth: number;
-  maxCandidateNodes: number;
-  maxEvidenceEntries: number;
-  maxIssueCount: number;
-  maxValidationMs: number;
-  maxValidationQueueEntries: number;
-}
-export interface IntentConfig {
+  maxValidationChecks: number;
+};
+export type IntentSchema = import('schema-dsl/pure').JSONSchema | import('schema-dsl/pure').ObjectDslBuilder;
+export type IntentConfig = {
   language?: string;
-  schema?: JSONSchema;
   executor?: ModelExecutor;
-  /** Optional caller-selected total deadline. Omitted or zero adds no deadline. */
+  schema?: IntentSchema;
+  extensionSchema?: IntentSchema;
+  semantics?: BusinessSemantics;
   timeoutMs?: number;
-  repairAttempts?: 0 | 1;
   limits?: Partial<IntentLimits>;
+  defaultOutput?: IntentOutputOptions;
+};
+export type IntentParseRequest = {
+  input: string;
+  fields?: readonly string[] | 'all';
+  context?: object;
+  baseline?: EffectiveIntentSnapshot;
+  referenceTime?: string;
+  output?: IntentOutputOptions;
+};
+export type IntentParseOptions = { signal?: AbortSignal };
+
+export type BusinessSemantics = {
+  domain?: string;
+  description?: string;
+  terms?: Array<{ name: string; meaning: string; aliases?: string[] }>;
+  actions?: Array<{
+    name: string;
+    meaning: string;
+    examples?: string[];
+    counterExamples?: string[];
+  }>;
+};
+
+export type IntentContractVersion = '2.0-draft.6';
+export type SourceRef = {
+  root: 'input' | 'context' | 'baseline' | 'schema' | 'extensionSchema' | 'semantics' | 'referenceTime';
+  pointer: string;
+  quote?: string;
+};
+export type ExpressionOperand =
+  | { type: 'literal'; value: JsonValue }
+  | { type: 'input'; intentId: string; path: string }
+  | { type: 'source'; ref: SourceRef };
+export type ConstraintScope =
+  | { type: 'global' }
+  | { type: 'intent' | 'phase'; intentId: string }
+  | { type: 'target'; intentId: string; referenceId: string };
+export type StructuredExpression =
+  | { type: 'comparison'; left: ExpressionOperand; operator: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte'; right: ExpressionOperand }
+  | { type: 'all' | 'any'; items: StructuredExpression[] }
+  | { type: 'not'; item: StructuredExpression };
+export type IntentConstraint = {
+  id: string;
+  kind: 'requirement' | 'prohibition' | 'precondition' | 'preference';
+  text: string;
+  scope: ConstraintScope;
+  expression?: StructuredExpression;
+};
+export type IntentReference = {
+  id: string;
+  kind: 'intent' | 'entity' | 'source';
+  ref: string | null;
+  resolved: boolean;
+  description?: string;
+  sourceRefs?: SourceRef[];
+};
+export type IntentRelation = {
+  id: string;
+  fromId: string;
+  toId: string;
+  kind: 'before' | 'depends_on' | 'parallel' | 'exclusive' | 'conditional';
+  condition?: string;
+};
+export type StructuredIntent = {
+  id: string;
+  domain: string | null;
+  action: string | null;
+  target: string | null;
+  goal: string;
+  understanding: 'clear' | 'ambiguous' | 'incomplete' | 'conflicted';
+  constraints: IntentConstraint[];
+  inputs: JsonObject;
+  optional?: boolean;
+  expectedOutput?: string[];
+  references: IntentReference[];
+  children: StructuredIntent[];
+  extensions: JsonObject;
+};
+export type ChangeTarget =
+  | { kind: 'intent' | 'constraint' | 'relation'; id: string }
+  | { kind: 'unresolved'; description: string };
+export type IntentDelta =
+  | { path: string; operation: 'set'; before?: JsonValue; after: JsonValue }
+  | { path: string; operation: 'remove'; before?: JsonValue; after?: never };
+export type IntentChangeBase = {
+  operation: 'add' | 'modify' | 'withdraw' | 'confirm' | 'reject';
+  target: ChangeTarget;
+  description: string;
+  sourceRefs: SourceRef[];
+};
+export type IntentChange = IntentChangeBase & (
+  | { effect: 'applied'; deltas?: IntentDelta[]; conditionId?: never }
+  | { effect: 'conditional'; conditionId: string; deltas?: never }
+  | { effect: 'unresolved'; conditionId?: string; deltas?: never }
+);
+export type EffectiveIntentSnapshot = {
+  schemaVersion: IntentContractVersion;
+  coverage: 'complete' | 'partial' | 'unavailable';
+  scope: 'current_request' | 'provided_materials';
+  intents: StructuredIntent[];
+  constraints: IntentConstraint[];
+  unresolved: string[];
+  relations: IntentRelation[];
+};
+export type TurnUnderstanding = {
+  kind: 'request' | 'amendment' | 'confirmation' | 'rejection' | 'withdrawal' | 'answer' | 'statement' | 'mixed' | 'unclear';
+  normalizedInput: string;
+  intentIds: string[];
+  changes: IntentChange[];
+  facts: JsonObject;
+};
+export type FieldResult = {
+  container: 'inputs' | 'facts' | 'extensions';
+  intentId: string | null;
+  field: string;
+  path: string;
+  trigger: 'selection' | 'invalidation';
+  status: 'present' | 'explicit_null' | 'not_provided' | 'unknown' | 'not_applicable' | 'invalid' | 'invalidated' | 'removed';
+  explanation?: string;
+  rawText?: string;
+  sourceRefs?: SourceRef[];
+};
+export type IntentCandidate = {
+  id: string;
+  description: string;
+  intentId?: string;
+  sourceRefs: SourceRef[];
+};
+export type IntentIssue = {
+  container?: 'inputs' | 'facts' | 'extensions';
+  id: string;
+  code: string;
+  category: 'ambiguity' | 'missing' | 'conflict' | 'data' | 'context';
+  message: string;
+  intentId?: string;
+  field?: string;
+  path?: string;
+  sourceRefs?: SourceRef[];
+  candidates?: IntentCandidate[];
+  questions?: Array<{ question: string; optionIds?: string[] }>;
+};
+export type IntentInference = {
+  target: string;
+  candidate?: JsonValue;
+  explanation: string;
+  sourceRefs: SourceRef[];
+};
+export type IntentSuggestion = {
+  kind: 'clarification' | 'semantic_improvement' | 'conflict_warning';
+  text: string;
+  relatesTo?: string[];
+};
+export type SourceEvidence = { target: string; sourceRefs: SourceRef[] };
+export type IntentDiagnostics = { durationMs?: number; modelCallCount?: number };
+export type IntentResult = {
+  schemaVersion: IntentContractVersion;
+  input: string;
+  status: 'complete' | 'partial';
+  turn: TurnUnderstanding;
+  effective: EffectiveIntentSnapshot;
+  fieldResults: FieldResult[];
+  issues: IntentIssue[];
+  inferences: IntentInference[];
+  suggestions?: IntentSuggestion[];
+  evidence?: SourceEvidence[];
+  diagnostics?: IntentDiagnostics;
+};
+
+
+export type IntentErrorCode =
+  | 'INPUT_INVALID' | 'CONFIG_INVALID' | 'FIELD_UNKNOWN'
+  | 'SCHEMA_INVALID' | 'SCHEMA_NOT_CONFIGURED' | 'SCHEMA_UNSUPPORTED_FOR_EXTRACTION'
+  | 'EXECUTOR_NOT_CONFIGURED' | 'MODEL_AUTH_FAILED' | 'MODEL_RATE_LIMITED'
+  | 'MODEL_REQUEST_FAILED' | 'MODEL_REFUSED' | 'MODEL_OUTPUT_INCOMPLETE'
+  | 'MODEL_OUTPUT_INVALID' | 'MODEL_TIMEOUT' | 'REQUEST_ABORTED'
+  | 'INSTANCE_DISPOSED' | 'RESOURCE_LIMIT' | 'INTERNAL_PROCESSING_FAILED'
+  | 'HOST_REQUEST_NOT_FOUND' | 'HOST_SUBMISSION_CONFLICT';
+export type IntentErrorStage = 'config' | 'input' | 'model' | 'validation' | 'output' | 'transport';
+export type CandidateViolationCode = 'STRUCTURE' | 'MISSING_REQUIRED' | 'TYPE_MISMATCH' | 'UNKNOWN_KEY' | 'DUPLICATE_ID' | 'REFERENCE_NOT_FOUND' | 'SOURCE_INVALID' | 'FIELD_OWNERSHIP' | 'SEMANTIC_INVARIANT';
+export type CandidateViolation = { rule: CandidateViolationCode; path: string };
+export type IntentErrorDetails = {
+  path?: string;
+  limit?: string;
+  allowed?: number;
+  observed?: number;
+  unit?: 'bytes' | 'depth' | 'calls';
+  violations?: CandidateViolation[];
+};
+export type IntentErrorOptions = {
+  stage?: IntentErrorStage;
+  details?: IntentErrorDetails;
+  cause?: unknown;
+};
+export type ErrorSerializationOptions = { includePartialResult?: boolean };
+export type SerializedIntentError = {
+  name: 'IntentError';
+  code: IntentErrorCode;
+  message: string;
+  stage: IntentErrorStage;
+  details?: IntentErrorDetails;
+  partialResult?: IntentResult;
+};
+
+
+export type ModelRequest = {
+  instructions: string;
+  input: JsonObject;
+  outputSchema: object;
+  signal: AbortSignal;
+};
+export type ModelReply =
+  | { outcome: 'complete'; text: string }
+  | { outcome: 'refusal' | 'incomplete'; reason?: string };
+export interface ModelExecutor {
+  readonly id: string;
+  generate(request: ModelRequest): Promise<ModelReply>;
 }
-export const DEFAULT_LIMITS: Readonly<IntentLimits> = Object.freeze({
-  maxInputBytes: 65536,
-  maxContextBytes: 131072,
-  maxSchemaBytes: 131072,
-  maxRequestBytes: 524288,
-  maxOutputBytes: 262144,
-  maxSchemaDepth: 8,
-  maxSchemaProperties: 256,
-  maxContextMessages: 100,
-  maxIntentCount: 100,
-  maxConcurrentParses: 4,
-  maxSchemaCacheEntries: 128,
-  maxCandidateDepth: 32,
-  maxCandidateNodes: 20000,
-  maxEvidenceEntries: 4096,
-  maxIssueCount: 256,
-  maxValidationMs: 1000,
-  maxValidationQueueEntries: 32,
-});

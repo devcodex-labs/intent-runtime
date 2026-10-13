@@ -1,0 +1,22 @@
+import * as TJS from 'typescript-json-schema';
+import { writeFileSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+const options = JSON.parse(readFileSync('tsconfig.json', 'utf8')).compilerOptions;
+const program = TJS.getProgramFromFiles([path.resolve('src/contracts/public.ts'), path.resolve('src/model/candidate.ts')], {...options, strictNullChecks: true}, process.cwd());
+const names = {INTENT_RESULT_SCHEMA: 'IntentResult', BASELINE_SCHEMA: 'EffectiveIntentSnapshot', CANDIDATE_SCHEMA: 'CandidateDraft', EXPRESSION_SCHEMA: 'StructuredExpression'};
+// Equivalent primitive union spelling avoids dependency strictTypes logging.
+function primitiveUnions(schema) {
+  if (!schema || typeof schema !== 'object' || Array.isArray(schema)) return;
+  if (Array.isArray(schema.type)) {const union = {anyOf: schema.type.map(type => ({type}))}; delete schema.type; (schema.allOf ??= []).push(union);}
+  for (const key of ['properties', 'definitions', 'patternProperties']) Object.values(schema[key] ?? {}).forEach(primitiveUnions);
+  for (const key of ['allOf', 'anyOf', 'oneOf']) (schema[key] ?? []).forEach(primitiveUnions);
+  for (const key of ['items', 'additionalProperties', 'not', 'if', 'then', 'else']) primitiveUnions(schema[key]);
+}
+let result = '// Generated from public and candidate TypeScript types; run npm run schema:generate.\n';
+for (const [name, type] of Object.entries(names)) {
+  const schema = TJS.generateSchema(program, type, {required: true, noExtraProps: true, ignoreErrors: false, ref: true});
+  if (!schema) throw new Error('Cannot generate ' + type);
+  primitiveUnions(schema);
+  result += `export const ${name} = ${JSON.stringify(schema, null, 2)} as const;\n`;
+}
+writeFileSync('src/contracts/generated.ts', result);
