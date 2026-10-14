@@ -1,10 +1,8 @@
 name: Deploy Docs
 
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
+  # Restore automatic deployment after the V2 documentation is reviewed.
+  workflow_dispatch:
 
 concurrency:
   group: documentation-pages
@@ -15,14 +13,10 @@ permissions:
 
 jobs:
   build:
-    if: >-
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push' &&
-       github.event.workflow_run.head_branch == 'main' &&
-       github.event.workflow_run.head_sha == github.sha)
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
-      DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+      DEPLOY_SHA: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v6
         with:

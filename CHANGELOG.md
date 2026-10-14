@@ -8,6 +8,15 @@
 - 新增显式 setup、doctor、clean，保留用户编辑与其他 MCP；普通安装不修改宿主配置。
 - 替换旧版接入、示例、文档与工程脚本。本版本不保留旧版 API 兼容层。
 
+## V1 归档变更 — 未发布
+
+- Add an SDK-independent MCP adapter with host prepare/accept/cancel and server-executor intent_parse modes, exact prefixes, named-instance discovery and caller-owned lifecycle.
+- Add native per-call cancellation to Intent.parse and Bridge accept. Validate ownership/tokens/conflicts before cancelling an active step; preserve completed replays and shared instances.
+- Preserve legacy stdio structured errors; new adapters return JSON error text with isError=true for success-only outputSchema compatibility.
+- Add complete public integration examples, production CLI package checks, SDK v1/v2 protocol checks and a fixed actual VextJS source consumer.
+- Expand Chinese integration/API/configuration/lifecycle/acceptance references and English README/examples. No product HTTP listener, default deadline or time TTL is added.
+- 后续 tag 发布按已发布稳定版本之间的实际差异判定：安装维护、文档和版本元数据改动通过工程检查即可发布；识别、提取、协议等行为变化仍要求真实验收，未知范围与无法确认基线时同样要求验收。
+
 ## 1.0.2 — 2026-10-10
 
 - 修复 Codex MCP 配置在反复安装、修复与清理后累积空行的问题，保留用户原有格式、LF/CRLF 换行及注释。
