@@ -1,7 +1,88 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Intent} from '../src/index.js';
+import type {IntentResult} from '../src/index.js';
+import {createIntentMcpAdapter, type HostTask} from '../src/mcp/index.js';
 import {controlled, draft, src, observation, retain} from './helpers.js';
+
+test('Host correction locates the invalid effect without inventing a missing withdrawal target', async () => {
+  const d = draft(); d.kind = 'amendment'; d.historyCoverage = 'unavailable';
+  d.normalizedInput = 'Withdraw the earlier requirement only if review fails; neither that requirement nor the review result is supplied.';
+  d.nodes[0]!.target = null; d.nodes[0]!.understanding = 'incomplete'; d.nodes[0]!.goal = d.normalizedInput;
+  d.constraints = [{key: 'condition', priorRef: null, ownerKey: 'a', scope: 'intent', referenceKey: null, kind: 'requirement', text: d.normalizedInput, expressionJson: null, sources: [src]}];
+  d.changes.push({operation: 'withdraw', effect: 'conditional', targetKind: 'unresolved', targetKey: null, conditionKey: 'condition', description: 'The earlier requirement is not supplied; withdrawal remains conditional on review failure.', sources: [src], deltaHints: []});
+  d.references = [{key: 'earlier', ownerKey: 'a', priorRef: null, kind: 'source', intentKey: null, entityRef: null, resolved: false, description: 'The earlier requirement is not supplied', sources: [src]}];
+  let modelCalls = 0;
+  const intent = new Intent({executor: {id: 'must-not-run', async generate() {modelCalls++; throw new Error('Unexpected executor call');}}});
+  const adapter = createIntentMcpAdapter({mode: 'host', instances: {main: intent}}), session = adapter.connect({protocolVersion: '2025-06-18'});
+  try {
+    const prepared = await session.callTool('intent_prepare', {input: d.normalizedInput, output: {diagnostics: true}});
+    assert.equal(prepared!.isError, false);
+    const task = prepared!.structuredContent as unknown as HostTask;
+    const submit = () => session.callTool('intent_accept', {requestId: task.requestId, submissionToken: task.submissionToken, candidateText: JSON.stringify(d)});
+    const bad = await submit(); assert.equal(bad!.isError, true);
+    const error = JSON.parse(bad!.content[0]!.text).error;
+    assert.equal(error.code, 'MODEL_OUTPUT_INVALID');
+    assert.deepEqual(error.details.violations, [{rule: 'SEMANTIC_INVARIANT', path: '/changes/1/effect'}]);
+    d.changes[1]!.effect = 'unresolved';
+    const accepted = await submit(); assert.equal(accepted!.isError, false, accepted!.content[0]!.text);
+    const result = accepted!.structuredContent as unknown as IntentResult;
+    assert.equal(result.status, 'partial'); assert.equal(result.turn.kind, 'amendment');
+    const withdrawal = result.turn.changes.find(c => c.operation === 'withdraw')!;
+    assert.equal(withdrawal.target.kind, 'unresolved'); assert.equal(withdrawal.effect, 'unresolved');
+    assert.equal(withdrawal.conditionId, result.effective.intents[0]!.constraints[0]!.id);
+    assert.equal(result.effective.intents[0]!.target, null);
+    assert(result.issues.some(q => q.code === 'AMBIGUOUS_REFERENCE'));
+    assert.equal(result.diagnostics!.modelCallCount, 0); assert.equal(modelCalls, 0);
+  } finally {await adapter.close(); await intent.dispose();}
+});
+
+test('A conditional withdrawal of a supplied goal retains its identity and condition', async () => {
+  let d = draft(); d.nodes[0]!.goal = 'Retain the notification requirement';
+  const intent = new Intent({executor: controlled(() => d)});
+  try {
+    const first = await intent.parse({input: 'Keep the notification requirement'});
+    d = retain(draft()); d.nodes[0]!.goal = first.effective.intents[0]!.goal;
+    d.constraints = [{key: 'condition', priorRef: null, ownerKey: 'a', scope: 'intent', referenceKey: null, kind: 'requirement', text: 'Withdraw notifications only if the security test fails; otherwise retain them', expressionJson: null, sources: [src]}];
+    d.changes = [{operation: 'add', effect: 'applied', targetKind: 'constraint', targetKey: 'condition', conditionKey: null, description: 'Add the current conditional requirement', sources: [src], deltaHints: []}, {operation: 'withdraw', effect: 'conditional', targetKind: 'intent', targetKey: 'a', conditionKey: 'condition', description: 'Withdraw notifications only if the security test fails', sources: [src], deltaHints: []}];
+    const result = await intent.parse({input: 'Withdraw notifications only if the security test fails; the result is not supplied', baseline: first.effective});
+    assert.equal(result.effective.intents[0]!.id, first.effective.intents[0]!.id);
+    const change = result.turn.changes.find(c => c.operation === 'withdraw')!;
+    assert.deepEqual(change.target, {kind: 'intent', id: first.effective.intents[0]!.id});
+    assert.equal(change.effect, 'conditional'); assert.equal(change.conditionId, result.effective.intents[0]!.constraints[0]!.id);
+    assert.equal(change.deltas, undefined); assert.equal(result.status, 'complete');
+  } finally {await intent.dispose();}
+});
+
+test('Business independence and explicit request order survive together without a parent goal', async () => {
+  const d = draft(['email', 'sms']);
+  d.normalizedInput = 'Query email login records, then SMS login records; the two queries are independent.';
+  d.nodes[0]!.goal = 'Query email login records'; d.nodes[1]!.goal = 'Query SMS login records';
+  d.relations = [{key: 'order', priorRef: null, fromKey: 'email', toKey: 'sms', kind: 'before', condition: null, sources: [src]}];
+  d.constraints = [{key: 'independent', priorRef: null, ownerKey: null, scope: 'global', referenceKey: null, kind: 'requirement', text: 'The two queries are independent; email is requested before SMS', expressionJson: null, sources: [src]}];
+  const intent = new Intent({executor: controlled(() => d)});
+  try {
+    const result = await intent.parse({input: d.normalizedInput});
+    assert.equal(result.effective.intents.length, 2); assert(result.effective.intents.every(n => n.children.length === 0));
+    assert.equal(result.effective.relations[0]!.kind, 'before');
+    assert.equal(result.effective.relations[0]!.fromId, result.effective.intents[0]!.id);
+    assert.equal(result.effective.relations[0]!.toId, result.effective.intents[1]!.id);
+    assert.equal(result.effective.constraints[0]!.text, d.constraints[0]!.text); assert.equal(result.status, 'complete');
+  } finally {await intent.dispose();}
+});
+
+test('Normalization explains a same-utterance correction while effective contains only the final goal', async () => {
+  const d = draft(); d.normalizedInput = '用户当场将短信登录表述修正为邮箱登录，当前请求为增加邮箱登录。';
+  d.nodes[0]!.goal = '增加邮箱登录'; d.nodes[0]!.target = '邮箱登录'; d.nodes[0]!.action = 'add';
+  const intent = new Intent({executor: controlled(() => d)});
+  try {
+    const result = await intent.parse({input: '增加短信登录，算了，改成邮箱登录。'});
+    assert.equal(result.turn.normalizedInput, d.normalizedInput);
+    assert.equal(result.effective.intents.length, 1); assert.equal(result.effective.intents[0]!.goal, '增加邮箱登录');
+    assert.deepEqual(result.turn.changes.map(c => [c.operation, c.effect, c.target.kind]), [['add', 'applied', 'intent']]);
+    assert.equal(result.effective.relations.length, 0);
+  } finally {await intent.dispose();}
+});
 
 for (const presence of ['not_provided', 'absent'] as const) test('Missing material or known physical absence never means parameter withdrawal: ' + presence, async () => {
   const d = draft(); d.observations = [observation('productId', undefined, 'a', 'inputs', presence)];

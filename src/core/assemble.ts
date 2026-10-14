@@ -128,12 +128,16 @@ export function assemble(draft: CandidateDraft, materials: Record<string, unknow
   // Bound the assembled tree before recursive location/shape work and before
   // delta hints can duplicate whole subtrees into the result.
   admit();
-  for (const c of draft.changes) {
-    if (!c.sources.some(s => s.root === 'input')) violation('/changes', 'SOURCE_INVALID');
-    const target = c.targetKind === 'unresolved' ? {kind: 'unresolved' as const, description: c.description} : {kind: c.targetKind, id: id(c.targetKind, c.targetKey)};
-    if (c.targetKind === 'unresolved' && c.effect !== 'unresolved' || c.effect !== 'applied' && c.deltaHints.length) violation('/changes', 'SEMANTIC_INVARIANT');
+  for (const [index, c] of draft.changes.entries()) {
+    const path = '/changes/' + index;
+    if (!c.sources.some(s => s.root === 'input')) violation(path + '/sources', 'SOURCE_INVALID');
+    // Locate the actual invalid slot so host correction keeps the unknown
+    // target instead of substituting a newly created, unrelated intent ID.
+    if (c.targetKind === 'unresolved' && c.effect !== 'unresolved') violation(path + '/effect', 'SEMANTIC_INVARIANT');
+    if (c.effect !== 'applied' && c.deltaHints.length) violation(path + '/deltaHints', 'SEMANTIC_INVARIANT');
+    const target = c.targetKind === 'unresolved' ? {kind: 'unresolved' as const, description: c.description} : {kind: c.targetKind, id: id(c.targetKind, c.targetKey, path + '/targetKey')};
     const base = {operation: c.operation, target, description: c.description, sourceRefs: source(c.sources)};
-    const change: IntentChange = c.effect === 'conditional' ? {...base, effect: 'conditional', conditionId: id('constraint', c.conditionKey)} : c.effect === 'unresolved' ? {...base, effect: 'unresolved', ...(c.conditionKey ? {conditionId: id('constraint', c.conditionKey)} : {})} : {...base, effect: 'applied'};
+    const change: IntentChange = c.effect === 'conditional' ? {...base, effect: 'conditional', conditionId: id('constraint', c.conditionKey, path + '/conditionKey')} : c.effect === 'unresolved' ? {...base, effect: 'unresolved', ...(c.conditionKey ? {conditionId: id('constraint', c.conditionKey, path + '/conditionKey')} : {})} : {...base, effect: 'applied'};
     result.turn.changes.push(change);
     if (change.effect === 'applied' && c.deltaHints.length) {
       const deltas: IntentDelta[] = []; change.deltas = deltas;
