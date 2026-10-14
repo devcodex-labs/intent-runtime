@@ -26,7 +26,14 @@ export function startStdio(config: IntentMcpServerConfig, transport: Transport =
   const handle = serveStdio(() => {
     const server = new Server({name: 'intent-runtime', version: PACKAGE_VERSION}, {capabilities: {tools: {}}, supportedProtocolVersions: ['2025-06-18', '2025-11-25', '2026-07-28']});
     let session: IntentMcpSession | undefined;
-    server.setRequestHandler('tools/list', async () => ({tools: adapter.tools.map(t => ({...cloneJson(t), inputSchema: {...cloneJson(t.inputSchema), type: 'object' as const}}))}));
+    server.setRequestHandler('tools/list', async () => ({tools: adapter.tools.map(t => ({
+      ...cloneJson(t),
+      // Host recognition only reads supplied materials and validates a draft.
+      // Internal lease bookkeeping is not a business or filesystem mutation.
+      // Do not make this claim for a caller-owned executor's arbitrary code.
+      ...(config.mode === 'host' ? {annotations: {readOnlyHint: true, destructiveHint: false, openWorldHint: false}} : {}),
+      inputSchema: {...cloneJson(t.inputSchema), type: 'object' as const},
+    }))}));
     server.setRequestHandler('tools/call', async (request, context) => {
       session ??= adapter.connect({protocolVersion: server.getNegotiatedProtocolVersion() as IntentMcpProtocolVersion});
       const response = await session.callTool(request.params.name, request.params.arguments ?? {}, {signal: context.mcpReq.signal});

@@ -14,7 +14,7 @@ export class ValidationBudget {
   }
 }
 export class BusinessValidator {
-  private readonly validator = new Validator({ ...{inlineRefs: false}, strict: false, useDefaults: false, coerceTypes: false, removeAdditional: false, cache: false, allErrors: true });
+  private readonly validator = new Validator({ inlineRefs: false, ownProperties: true, logger: false, strict: false, useDefaults: false, coerceTypes: false, removeAdditional: false, cache: false, allErrors: true });
   validate(rule: SchemaNode, data: unknown, budget: ValidationBudget): { valid: boolean; errors: SchemaError[] } {
     budget.take(); const copy = cloneJson(data), before = JSON.stringify(copy);
     try {

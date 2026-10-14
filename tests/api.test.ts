@@ -51,6 +51,25 @@ test('Responses measures gzip after decompression rather than Content-Length', a
   try {await assert.rejects(createApiExecutor({provider: 'openai', model: 'test', apiKey: 'test', baseURL: e.url, maxResponseBytes: 1024}).generate(request()), {code: 'RESOURCE_LIMIT', stage: 'model'});} finally {await e.close();}
 });
 
+test('Responses actual default 8388608-byte envelope boundary includes ignored metadata and decompressed bytes', async () => {
+  const skeleton = JSON.parse(reply()) as Record<string, unknown>; skeleton.padding = '';
+  const padding = 'a'.repeat(8388608 - Buffer.byteLength(JSON.stringify(skeleton)));
+  const exact = JSON.stringify({...skeleton, padding}), excessive = JSON.stringify({...skeleton, padding: padding + 'a'});
+  assert.equal(Buffer.byteLength(exact), 8388608); assert.equal(Buffer.byteLength(excessive), 8388609);
+  let body = exact, compressed = false, calls = 0;
+  const e = await endpoint((_, s) => {calls++; const data = compressed ? gzipSync(body) : Buffer.from(body); if (compressed) s.writeHead(200, {'content-encoding': 'gzip', 'content-length': data.length}); s.end(data);});
+  const executor = createApiExecutor({provider: 'openai', model: 'default-body-boundary', apiKey: 'synthetic', baseURL: e.url});
+  try {
+    assert.equal((await executor.generate(request())).outcome, 'complete');
+    body = excessive;
+    await assert.rejects(executor.generate(request()), (cause: unknown) => cause instanceof IntentError && cause.code === 'RESOURCE_LIMIT' && cause.details?.limit === 'maxResponseBytes' && cause.details.allowed === 8388608);
+    compressed = true;
+    await assert.rejects(executor.generate(request()), (cause: unknown) => cause instanceof IntentError && cause.code === 'RESOURCE_LIMIT' && cause.details?.limit === 'maxResponseBytes' && cause.details.allowed === 8388608);
+    body = exact; assert.equal((await executor.generate(request())).outcome, 'complete');
+    assert.equal(calls, 4);
+  } finally {await e.close();}
+});
+
 test('Responses fatal UTF-8 never silently replaces invalid bytes', async () => {
   const e = await endpoint((_, s) => s.end(Buffer.from([0xff])));
   try {await assert.rejects(createApiExecutor({provider: 'openai', model: 'test', apiKey: 'test', baseURL: e.url}).generate(request()), {code: 'MODEL_REQUEST_FAILED'});} finally {await e.close();}
@@ -75,6 +94,25 @@ test('Responses never follows a redirect or forwards credentials to its target',
 test('Responses abort during body wait remains REQUEST_ABORTED', async () => {
   const controller = new AbortController(); const e = await endpoint((_, s) => {s.writeHead(200); s.flushHeaders(); controller.abort();});
   try {await assert.rejects(createApiExecutor({provider: 'openai', model: 'test', apiKey: 'test', baseURL: e.url}).generate(request(controller.signal)), {code: 'REQUEST_ABORTED'});} finally {await e.close();}
+});
+
+test('SC-31 cancellation at EOF cannot publish a previously buffered valid API reply', async () => {
+  const controller = new AbortController(), originalFetch = globalThis.fetch;
+  let reads = 0, cancelled = false;
+  // Fault injection isolates the transport race. Other tests use real HTTP;
+  // this test does not claim provider or business-Validator compatibility.
+  globalThis.fetch = async () => ({status: 200, body: {getReader() {return {
+    async read() {
+      if (reads++ === 0) return {done: false, value: new TextEncoder().encode(reply())};
+      controller.abort(); return {done: true, value: undefined};
+    },
+    async cancel() {cancelled = true;},
+    releaseLock() {},
+  };}}}) as unknown as Response;
+  try {
+    await assert.rejects(createApiExecutor({provider: 'openai', model: 'transport-race', apiKey: 'synthetic'}).generate(request(controller.signal)), {code: 'REQUEST_ABORTED'});
+    assert.equal(reads, 2); assert.equal(cancelled, true);
+  } finally {globalThis.fetch = originalFetch;}
 });
 
 for (const config of [{provider: 'unknown'}, {baseURL: 'http://api.example.com'}, {baseURL: 'https://user:password@example.com'}, {baseURL: 'https://example.com?q=1'}, {maxResponseBytes: 0}, {format: 'fallback'}]) test('Responses rejects unsafe or unknown configuration ' + JSON.stringify(config), () => {

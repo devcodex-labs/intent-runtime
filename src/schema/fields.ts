@@ -20,12 +20,16 @@ export function checkFields(draft: CandidateDraft, materials: Record<string, unk
     if ((!spec?.hasPath([o.field]) && !oldField) || o.container === 'facts' && (o.ownerKey !== null || draft.nodes.length) || o.container !== 'facts' && !owner) violation('/observations/' + i, 'FIELD_OWNERSHIP');
     if (o.presence === 'known' && (!o.sources.length || o.valueJson === null)) violation('/observations/' + i, 'SOURCE_INVALID');
     if (['known', 'present_unknown', 'absent'].includes(o.presence) && !o.sources.some(s => ['input', 'context', 'baseline'].includes(s.root))) violation('/observations/' + i, 'SOURCE_INVALID');
-    o.sources.forEach(s => sourceValue(s, materials));
+    o.sources.forEach((s, j) => sourceValue(s, materials, '/observations/' + i + '/sources/' + j));
     if (o.semantic) {
       if (!o.semantic.explanation.trim() || !o.semantic.sources.length) violation('/observations/' + i + '/semantic', 'SOURCE_INVALID');
-      o.semantic.sources.forEach(s => sourceValue(s, materials));
+      o.semantic.sources.forEach((s, j) => sourceValue(s, materials, '/observations/' + i + '/semantic/sources/' + j));
       if (!o.semantic.sources.some(s => ['input', 'context', 'baseline'].includes(s.root))) violation('/observations/' + i + '/semantic', 'SOURCE_INVALID');
-      if (new Set(o.semantic.dependencies.map(d => d.field)).size !== o.semantic.dependencies.length || o.semantic.dependencies.some(d => !spec?.hasPath([d.field]))) violation('/observations/' + i + '/semantic', 'REFERENCE_NOT_FOUND');
+      const dependencies = new Set<string>();
+      o.semantic.dependencies.forEach((dependency, j) => {
+        if (dependencies.has(dependency.field) || !spec?.hasPath([dependency.field])) violation('/observations/' + i + '/semantic/dependencies/' + j + '/field', 'REFERENCE_NOT_FOUND');
+        dependencies.add(dependency.field);
+      });
     }
   }
   for (const [i, q] of draft.issues.entries()) {
@@ -35,7 +39,7 @@ export function checkFields(draft: CandidateDraft, materials: Record<string, unk
     const prefix = '/' + escapeToken(t.field);
     if (q.category !== 'data' || !['FIELD_VALUE_INVALID', 'FIELD_CARDINALITY_MISMATCH', 'FIELD_DEPENDENCY_MISSING', 'FIELD_APPLICABILITY_UNKNOWN', 'FIELD_REQUIRED_MISSING', 'FIELD_VALIDATION_UNDETERMINED'].includes(q.code) || !spec?.fields.includes(t.field) || (t.container === 'facts' ? q.ownerKey !== null || draft.nodes.length : !draft.nodes.some(n => n.key === q.ownerKey)) || !(t.path === prefix || t.path.startsWith(prefix + '/'))) violation('/issues/' + i, 'FIELD_OWNERSHIP');
     try {tokens(t.path);} catch {violation('/issues/' + i, 'STRUCTURE');}
-    q.sources.forEach(s => sourceValue(s, materials));
+    q.sources.forEach((s, j) => sourceValue(s, materials, '/issues/' + i + '/sources/' + j));
     if (!q.sources.some(s => ['input', 'context', 'baseline'].includes(s.root))) violation('/issues/' + i, 'SOURCE_INVALID');
   }
   const scopes: Array<{owner: NodeDraft | null; container: Observation['container']; spec: Definition | undefined; selected: string[]}> = draft.nodes.flatMap(n => [
@@ -72,6 +76,8 @@ export function checkFields(draft: CandidateDraft, materials: Record<string, unk
       const selected = scope.selected.includes(field), observation = current.get(field), path = '/' + escapeToken(field);
       const oldSource: SourceRef[] = scope.owner?.priorRef && Object.hasOwn(inherited, field) ? [{root: scope.owner.priorRef.root, pointer: scope.owner.priorRef.pointer + '/' + container + path}] : [];
       const sources = observation?.sources.length ? observation.sources : oldSource;
+      let usedProvidedMaterials = false;
+      const historySources = (refs: SourceRef[]): boolean => refs.some(ref => ['context', 'baseline'].includes(ref.root));
       let status: CheckedField['status'], code: string | undefined, explanation: string | undefined, value: JsonValue | undefined, verdict: Verdict | undefined;
       const trigger = selected ? 'selection' : 'invalidation';
       const semanticIssue = draft.issues.find(q => q.ownerKey === key && q.fieldTarget?.container === container && q.fieldTarget.field === field);
@@ -89,6 +95,7 @@ export function checkFields(draft: CandidateDraft, materials: Record<string, unk
       } else if (!scope.spec) { status = 'unknown'; code = 'FIELD_VALIDATION_UNDETERMINED'; explanation = messages.noDeclaration; }
       else {
         const plan = scope.spec.plan(field, directory), domains = new Map<string, unknown[]>(); let open = false;
+        usedProvidedMaterials ||= [...plan.reads].some(dependency => historySources(current.get(dependency)?.sources ?? []));
         for (const dependency of plan.reads) if (!Object.hasOwn(known, dependency)) {
           const o = current.get(dependency);
           if (o?.presence === 'absent') domains.set(dependency, [ABSENT]);
@@ -119,6 +126,7 @@ export function checkFields(draft: CandidateDraft, materials: Record<string, unk
         status = semanticIssue.code === 'FIELD_CARDINALITY_MISMATCH' ? selected ? 'invalid' : 'invalidated' : 'unknown';
         code = semanticIssue.code; value = undefined; explanation = semanticIssue.message;
       } else if (requiresSemantic && (['present', 'explicit_null'].includes(status) || semantic?.status === 'invalid' || semanticIssue?.code === 'FIELD_VALUE_INVALID')) {
+        usedProvidedMaterials ||= historySources(semantic?.sources ?? []) || (semantic?.dependencies ?? []).some(dependency => historySources(current.get(dependency.field)?.sources ?? []));
         if (semantic?.status === 'invalid' || semanticIssue?.code === 'FIELD_VALUE_INVALID') {
           status = selected ? 'invalid' : 'invalidated'; code = selected ? 'FIELD_VALUE_INVALID' : 'FIELD_INVALIDATED'; value = undefined;
           explanation = semanticIssue?.message ?? semantic!.explanation;
@@ -131,13 +139,18 @@ export function checkFields(draft: CandidateDraft, materials: Record<string, unk
         // declaration using a contradictory ungrounded field issue.
         violation('/issues', 'SEMANTIC_INVARIANT');
       }
-      const report: CheckedField = {ownerKey: key, container, field, path, status, trigger, sources, ...(value !== undefined ? {value} : {}), ...(explanation ? {explanation} : {}), ...(observation?.rawText !== null && observation?.rawText !== undefined ? {rawText: observation.rawText} : {})};
+      // A complete finite-world proof has an exact missing-information cause.
+      // A model cannot recast it as a limitation of the local strategy. Prose
+      // and genuinely open proof strategies retain their separate meanings.
+      if (!requiresSemantic && verdict?.reason === 'mixed' && semanticIssue?.code === 'FIELD_VALIDATION_UNDETERMINED') violation('/issues/' + draft.issues.indexOf(semanticIssue) + '/code', 'SEMANTIC_INVARIANT');
+      const report: CheckedField = {ownerKey: key, container, field, path, status, trigger, sources, ...(usedProvidedMaterials ? {usedProvidedMaterials: true} : {}), ...(value !== undefined ? {value} : {}), ...(explanation ? {explanation} : {}), ...(observation?.rawText !== null && observation?.rawText !== undefined ? {rawText: observation.rawText} : {})};
       values.push(report);
       const nested = [...new Set((verdict?.errors ?? []).map(e => e.path).filter(p => p.startsWith(path + '/')))];
       if (code && !(semanticIssue?.code === code && semanticIssue.fieldTarget?.path === path)) {
         const paths = nested.length ? nested : [path];
         for (const nestedPath of paths) {
           if (nestedPath !== path) values.push({...report, path: nestedPath});
+          if (semanticIssue?.code === code && semanticIssue.fieldTarget?.path === nestedPath) continue;
           issues.push({ownerKey: key, issue: {id: `field-${issues.length}`, code, category: 'data', message: explanation!, container, field, path: nestedPath, ...(sources.length ? {sourceRefs: cloneJson(sources)} : {})}});
         }
       }

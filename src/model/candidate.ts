@@ -55,5 +55,5 @@ export interface CandidateDraft {
 export interface CheckedField {
   ownerKey: string | null; container: Observation['container']; field: string; path: string;
   status: 'present' | 'explicit_null' | 'not_provided' | 'unknown' | 'not_applicable' | 'invalid' | 'invalidated' | 'removed';
-  trigger: 'selection' | 'invalidation'; value?: JsonValue; explanation?: string; rawText?: string; sources: SourceRef[]; inherited?: boolean;
+  trigger: 'selection' | 'invalidation'; value?: JsonValue; explanation?: string; rawText?: string; sources: SourceRef[]; inherited?: boolean; usedProvidedMaterials?: boolean;
 }

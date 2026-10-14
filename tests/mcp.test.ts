@@ -131,6 +131,41 @@ test('A completed reply larger than retention capacity is delivered once and not
   try {const task = await prepare(s); const d = draft(); d.normalizedInput = 'x'.repeat(4500000); const args = submit(task, JSON.stringify(d)); payload(await s.callTool('intent_accept', args)); assert.equal(errorCode(await s.callTool('intent_accept', args)), 'HOST_REQUEST_NOT_FOUND');} finally {await a.close(); await intent.dispose();}
 });
 
+test('Terminal replay retains exactly 8 MiB, rejects one extra byte, and evicts on aggregate overflow', async () => {
+  const capacity = 8388608;
+  const recordBytes = (task: HostTask, text: string, result: IntentResult): number => Buffer.byteLength(JSON.stringify({id: task.requestId, token: task.submissionToken, text, result, state: 'completed'}));
+  const intent = new Intent({limits: {maxOutputBytes: 12582912}});
+  const d = draft(); d.normalizedInput = 'x';
+  const calibration = createIntentMcpAdapter({mode: 'host', instances: {main: intent}}), cs = calibration.connect({protocolVersion: '2025-11-25'});
+  let baseBytes: number;
+  try {
+    const task = await prepare(cs, {input: 'q'}), text = JSON.stringify(d);
+    baseBytes = recordBytes(task, text, payload<IntentResult>(await cs.callTool('intent_accept', submit(task, text))));
+  } finally {await calibration.close();}
+  try {
+    for (const extra of [0, 1]) {
+      const a = createIntentMcpAdapter({mode: 'host', instances: {main: intent}}), s = a.connect({protocolVersion: '2025-11-25'});
+      try {
+        // Each ASCII byte in normalizedInput occurs in candidate and result;
+        // request input adjusts parity and still goes through the real core.
+        const inputExtra = (capacity + extra - baseBytes!) % 2;
+        d.normalizedInput = 'x'.repeat(1 + (capacity + extra - baseBytes! - inputExtra) / 2);
+        const task = await prepare(s, {input: 'q'.repeat(1 + inputExtra)}), text = JSON.stringify(d), args = submit(task, text);
+        const result = payload<IntentResult>(await s.callTool('intent_accept', args));
+        assert.equal(recordBytes(task, text, result), capacity + extra);
+        if (extra) assert.equal(errorCode(await s.callTool('intent_accept', args)), 'HOST_REQUEST_NOT_FOUND');
+        else {
+          assert.deepEqual(payload(await s.callTool('intent_accept', args)), result);
+          const small = await prepare(s);
+          payload(await s.callTool('intent_accept', submit(small)));
+          assert.equal(errorCode(await s.callTool('intent_accept', args)), 'HOST_REQUEST_NOT_FOUND');
+          payload(await s.callTool('intent_accept', submit(small)));
+        }
+      } finally {await a.close();}
+    }
+  } finally {await intent.dispose();}
+});
+
 test('HostTask overflow and candidate overflow do not leak or refresh recognition slots', async () => {
   const small = new Intent({limits: {maxOutputBytes: 64, maxConcurrentParses: 1}}), stable = new Intent({limits: {maxConcurrentParses: 1}}), a = createIntentMcpAdapter({mode: 'host', instances: {small, stable}}), s = a.connect({protocolVersion: '2025-11-25'});
   try {

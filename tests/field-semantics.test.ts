@@ -4,6 +4,57 @@ import { Intent } from '../src/index.js';
 import { draft, observation, controlled, src, retain } from './helpers.js';
 import type { CandidateDraft } from '../src/model/candidate.js';
 
+test('A model cannot relabel an exact finite dependency gap as validation strategy failure', async () => {
+  const d = draft(); d.messages.mixed = 'The supplied condition is missing and complete possible worlds disagree.';
+  d.observations = [observation('discount', 15)];
+  d.issues = [{key: 'gap', ownerKey: 'a', fieldTarget: {container: 'inputs', field: 'discount', path: '/discount'}, code: 'FIELD_VALIDATION_UNDETERMINED', category: 'data', message: 'The local validation strategy could not decide', sources: [src], candidates: [], questions: []}];
+  const schema = {type: 'object', properties: {discount: {type: 'number'}, isVip: {type: 'boolean'}}, if: {properties: {isVip: {const: true}}, required: ['isVip']}, then: {properties: {discount: {maximum: 20}}}, else: {properties: {discount: {maximum: 10}}}};
+  const intent = new Intent({schema, executor: controlled(() => d)});
+  try {
+    await assert.rejects(intent.parse({input: 'Set discount to 15; VIP not supplied', fields: ['discount']}), (error: unknown) => {
+      const e = error as {code: string; details: {violations: Array<{path: string}>}};
+      assert.equal(e.code, 'MODEL_OUTPUT_INVALID'); assert.equal(e.details.violations[0]!.path, '/issues/0/code'); return true;
+    });
+    d.issues[0]!.code = 'FIELD_DEPENDENCY_MISSING'; d.issues[0]!.message = d.messages.mixed;
+    const result = await intent.parse({input: 'Set discount to 15; VIP not supplied', fields: ['discount']});
+    assert.equal(result.fieldResults[0]!.status, 'unknown');
+    assert.deepEqual(result.effective.intents[0]!.inputs, {});
+    assert.deepEqual(result.issues.map(q => q.code), ['FIELD_DEPENDENCY_MISSING']);
+  } finally {await intent.dispose();}
+});
+
+test('Duplicate semantic dependency feedback locates the second field without hiding a stronger value requirement', async () => {
+  const d = draft();
+  d.observations = [observation('discount', 15), observation('isVip', true)];
+  d.observations[0]!.semantic = {status: 'valid', explanation: 'VIP is explicitly true, so the discount applies', sources: [src], dependencies: [{field: 'isVip', requires: 'presence'}, {field: 'isVip', requires: 'value'}]};
+  const intent = new Intent({schema: {type: 'object', properties: {discount: {type: 'number', description: 'Discount applies only for VIP true'}, isVip: {type: 'boolean'}}}, executor: controlled(() => d)});
+  try {
+    await assert.rejects(intent.parse({input: 'VIP true; discount 15', fields: ['discount']}), (error: unknown) => {
+      const e = error as {code: string; details: {violations: Array<{path: string}>}};
+      assert.equal(e.code, 'MODEL_OUTPUT_INVALID'); assert.equal(e.details.violations[0]!.path, '/observations/0/semantic/dependencies/1/field'); return true;
+    });
+    d.observations[0]!.semantic!.dependencies = [{field: 'isVip', requires: 'value'}];
+    const corrected = await intent.parse({input: 'VIP true; discount 15', fields: ['discount']});
+    assert.deepEqual(corrected.effective.intents[0]!.inputs, {discount: 15});
+    assert.equal(corrected.fieldResults[0]!.status, 'present');
+  } finally {await intent.dispose();}
+});
+
+test('Presence conditions never observe Object.prototype constructor as a supplied JSON field', async () => {
+  const d = draft(); d.observations = [observation('x', 5), observation('constructor', undefined, 'a', 'inputs', 'absent')];
+  const schema = {type: 'object', properties: {x: {type: 'number'}, constructor: {type: 'boolean'}}, if: {required: ['constructor']}, then: {properties: {x: {type: 'number', maximum: 0}}}, else: {properties: {x: {type: 'number', maximum: 10}}}};
+  const intent = new Intent({schema, executor: controlled(() => d)});
+  try {
+    const absent = await intent.parse({input: 'x=5，constructor明确不存在', fields: ['x']});
+    assert.deepEqual(absent.effective.intents[0]!.inputs, {x: 5});
+    assert.equal(absent.fieldResults[0]!.status, 'present');
+    d.observations[1] = observation('constructor', false);
+    const present = await intent.parse({input: 'x=5，constructor=false', fields: ['x']});
+    assert.deepEqual(present.effective.intents[0]!.inputs, {});
+    assert.equal(present.fieldResults[0]!.status, 'invalid');
+  } finally {await intent.dispose();}
+});
+
 test('Presence proof checks minProperties without requiring an unknown note value', async () => {
   const d = draft(); d.observations = [observation('x', 1), {...observation('note', undefined, 'a', 'inputs', 'present_unknown'), sources: [src]}];
   const intent = new Intent({schema: {type: 'object', properties: {x: {type: 'number'}, note: {type: 'string'}}, minProperties: 2}, executor: controlled(() => d)});
@@ -32,6 +83,17 @@ test('Scalar cardinality failure cannot choose the first of two supplied values'
   const d = draft(); d.observations = [observation('x', 'first')]; d.issues = [{key: 'cardinality', ownerKey: 'a', fieldTarget: {container: 'inputs', field: 'x', path: '/x'}, code: 'FIELD_CARDINALITY_MISMATCH', category: 'data', message: '一个字段不能代表两个不同对象', sources: [src], candidates: [], questions: []}];
   const intent = new Intent({schema: {type: 'object', properties: {x: {type: 'string'}}}, executor: controlled(() => d)});
   try {const r = await intent.parse({input: 'first和second', fields: ['x']}); assert.equal(r.fieldResults[0]!.status, 'invalid'); assert.deepEqual(r.effective.intents[0]!.inputs, {}); assert.equal(r.issues.length, 1);} finally {await intent.dispose();}
+});
+test('A real nested validation failure shares its exact issue with the language boundary without duplicating it', async () => {
+  const d = draft(); d.observations = [observation('orders', [{amount: 10}, {amount: -5}])];
+  d.issues = [{key: 'negative', ownerKey: 'a', fieldTarget: {container: 'inputs', field: 'orders', path: '/orders/1/amount'}, code: 'FIELD_VALUE_INVALID', category: 'data', message: 'The second amount is negative', sources: [src], candidates: [], questions: []}];
+  const intent = new Intent({schema: {type: 'object', properties: {orders: {type: 'array', items: {type: 'object', properties: {amount: {type: 'number', minimum: 0}}}}}}, executor: controlled(() => d)});
+  try {
+    const result = await intent.parse({input: 'A amount 10, B amount -5', fields: ['orders']});
+    assert.deepEqual(result.effective.intents[0]!.inputs, {});
+    assert.deepEqual(result.fieldResults.map(f => f.path), ['/orders', '/orders/1/amount']);
+    assert.equal(result.issues.length, 1); assert.equal(result.issues[0]!.path, '/orders/1/amount');
+  } finally {await intent.dispose();}
 });
 
 test('Malformed field diagnostic pointers are model violations, not facility failures', async () => {

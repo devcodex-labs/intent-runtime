@@ -42,7 +42,12 @@ export class ValidationRunner {
     this.running = next;
     if (!this.worker) {
       try {
-        const worker = new Worker(new URL('./schema/worker.mjs', import.meta.url), {env: {}, stdout: true, stderr: true});
+        // --input-type describes the caller's stdin/eval source. A worker is a
+        // file module, so inheriting that flag prevents Node from loading it.
+        // Preserve other caller flags (loaders, memory limits, diagnostics).
+        const hasInputType = process.execArgv.some(arg => arg === '--input-type' || arg.startsWith('--input-type='));
+        const execArgv = hasInputType ? process.execArgv.filter((arg, i, args) => arg !== '--input-type' && !arg.startsWith('--input-type=') && args[i - 1] !== '--input-type') : undefined;
+        const worker = new Worker(new URL('./schema/worker.mjs', import.meta.url), {env: {}, stdout: true, stderr: true, ...(execArgv ? {execArgv} : {})});
         // Dependency diagnostics may include schema keys. Never forward them to app logs/stdout.
         worker.stdout?.resume(); worker.stderr?.resume(); this.worker = worker;
         worker.on('message', (message: {reply?: ValidationReply; used?: number; error?: {code: IntentErrorCode; stage: IntentErrorStage; details?: import('../contracts/public.js').IntentErrorDetails}}) => {

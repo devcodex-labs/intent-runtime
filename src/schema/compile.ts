@@ -110,7 +110,7 @@ export class Definition {
     // are not additional caller material and must not lower the public limit.
     measure(declaration, { maxBytes, maxDepth, limit: 'maxSchemaBytes', stage: 'config', invalid: 'SCHEMA_INVALID' });
     // Official compilation checks the complete declaration's syntax, not business data.
-    const syntax = new Validator({...{inlineRefs: false}, strict: false, useDefaults: false, coerceTypes: false, removeAdditional: false, cache: false});
+    const syntax = new Validator({inlineRefs: false, logger: false, strict: false, useDefaults: false, coerceTypes: false, removeAdditional: false, cache: false});
     try { syntax.compile({definitions: {__intent_source: this.normalized}, $ref: '#/definitions/__intent_source'} as JSONSchema); }
     catch (cause) { throw new IntentError('SCHEMA_INVALID', {stage: 'config', cause}); }
     finally { syntax.clearCache(); }

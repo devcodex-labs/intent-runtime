@@ -25,11 +25,18 @@ export function invariants(result: IntentResult, draft: CandidateDraft): void {
   for (const n of nodes.values()) for (const r of n.references) if (r.kind === 'intent' && !nodes.has(r.ref!)) violation('', 'REFERENCE_NOT_FOUND');
   for (const r of result.effective.relations) {if (relations.has(r.id)) violation('', 'DUPLICATE_ID'); relations.add(r.id); if (!nodes.has(r.fromId) || !nodes.has(r.toId)) violation('', 'REFERENCE_NOT_FOUND');}
   for (const id of result.turn.intentIds) if (!nodes.has(id)) violation('/turn/intentIds', 'REFERENCE_NOT_FOUND');
+  // Withdrawal describes removal of a prior intent. Constraint removal is an
+  // amendment (EX-15); a newly requested business cancellation is request
+  // behavior (CL-15), rather than removal of a recognition goal.
+  if (result.turn.kind === 'withdrawal' && result.turn.changes.length && !result.turn.changes.some(c => c.operation === 'withdraw' && (c.target.kind === 'intent' && c.effect !== 'conditional' || c.target.kind === 'unresolved' && c.effect === 'unresolved'))) violation('/kind', 'SEMANTIC_INVARIANT');
   for (const c of result.turn.changes) {
     const active = c.target.kind === 'intent' ? nodes.has(c.target.id) : c.target.kind === 'constraint' ? constraints.has(c.target.id) : c.target.kind === 'relation' ? relations.has(c.target.id) : false;
     if (c.effect === 'conditional' && !constraints.has(c.conditionId)) violation('/turn/changes', 'REFERENCE_NOT_FOUND');
     if (c.effect === 'applied' && c.operation === 'add' && !active || c.effect === 'applied' && c.operation === 'withdraw' && active) violation('/turn/changes', 'SEMANTIC_INVARIANT');
     if (c.effect === 'applied' && c.operation !== 'withdraw' && !active) violation('/turn/changes', 'REFERENCE_NOT_FOUND');
+    // An active current change must be visible in this turn's references.
+    // Withdrawn objects remain in changes only, never in turn.intentIds.
+    if (c.target.kind === 'intent' && active && !result.turn.intentIds.includes(c.target.id)) violation('/relatedKeys', 'SEMANTIC_INVARIANT');
     if (c.effect === 'applied') c.deltas?.forEach(d => tokens(d.path));
   }
   const added = result.turn.changes.filter(c => c.operation === 'add' && c.effect === 'applied' && c.target.kind === 'intent').map(c => c.target.kind === 'intent' ? c.target.id : '');
