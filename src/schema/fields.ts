@@ -20,6 +20,7 @@ export function checkFields(draft: CandidateDraft, materials: Record<string, unk
     if ((!spec?.hasPath([o.field]) && !oldField) || o.container === 'facts' && (o.ownerKey !== null || draft.nodes.length) || o.container !== 'facts' && !owner) violation('/observations/' + i, 'FIELD_OWNERSHIP');
     if (o.presence === 'known' && (!o.sources.length || o.valueJson === null)) violation('/observations/' + i, 'SOURCE_INVALID');
     if (['known', 'present_unknown', 'absent'].includes(o.presence) && !o.sources.some(s => ['input', 'context', 'baseline'].includes(s.root))) violation('/observations/' + i, 'SOURCE_INVALID');
+    if (o.withdrawn && !o.sources.some(s => s.root === 'input')) violation('/observations/' + i + '/sources', 'SOURCE_INVALID');
     o.sources.forEach((s, j) => sourceValue(s, materials, '/observations/' + i + '/sources/' + j));
     if (o.semantic) {
       if (!o.semantic.explanation.trim() || !o.semantic.sources.length) violation('/observations/' + i + '/semantic', 'SOURCE_INVALID');
@@ -68,6 +69,7 @@ export function checkFields(draft: CandidateDraft, materials: Record<string, unk
       } else if (['absent', 'unknown', 'present_unknown', 'not_applicable'].includes(o.presence)) {
         if (Object.hasOwn(inherited, o.field)) changed.add(o.field); delete known[o.field];
       }
+      if (o.withdrawn) changed.add(o.field);
     }
     const checks = new Set(scope.selected);
     for (const field of Object.keys(inherited)) if (changed.has(field) || scope.spec?.fields.includes(field) && changed.size && [...scope.spec.plan(field, directory).reads, ...observations.filter(o => o.field === field).flatMap(o => o.semantic?.dependencies.map(d => d.field) ?? [])].some(f => changed.has(f))) checks.add(field);
@@ -84,12 +86,14 @@ export function checkFields(draft: CandidateDraft, materials: Record<string, unk
       const semantic = observation?.semantic;
       const unavailableDependency = semantic?.dependencies.some(d => !Object.hasOwn(known, d.field) && !(d.requires === 'presence' && ['present_unknown', 'absent'].includes(current.get(d.field)?.presence ?? '')));
       const requiresSemantic = scope.spec?.needsSemantics(field) ?? false;
-      if (!selected && changed.has(field)) {
-        status = observation?.presence === 'absent' ? 'removed' : 'invalidated'; code = status === 'invalidated' ? 'FIELD_INVALIDATED' : undefined;
+      if (observation?.withdrawn) {
+        status = 'removed'; explanation = messages.changed;
+      } else if (!selected && changed.has(field)) {
+        status = 'invalidated'; code = 'FIELD_INVALIDATED';
         explanation = messages.changed;
       } else if (observation?.presence === 'not_applicable') { status = 'not_applicable'; explanation = messages.notApplicable; }
       else if (!Object.hasOwn(known, field)) {
-        status = observation?.presence === 'absent' ? 'removed' : ['unknown', 'present_unknown'].includes(observation?.presence ?? '') ? 'unknown' : 'not_provided';
+        status = ['unknown', 'present_unknown'].includes(observation?.presence ?? '') ? 'unknown' : 'not_provided';
         code = status === 'unknown' ? 'FIELD_APPLICABILITY_UNKNOWN' : status === 'not_provided' && scope.spec?.plan(field).required ? 'FIELD_REQUIRED_MISSING' : undefined;
         explanation = messages.noValue;
       } else if (!scope.spec) { status = 'unknown'; code = 'FIELD_VALIDATION_UNDETERMINED'; explanation = messages.noDeclaration; }
@@ -122,10 +126,10 @@ export function checkFields(draft: CandidateDraft, materials: Record<string, unk
         else if (verdict.status === 'invalid') { status = selected ? 'invalid' : 'invalidated'; code = selected ? 'FIELD_VALUE_INVALID' : 'FIELD_INVALIDATED'; explanation = messages.invalid; }
         else { status = 'unknown'; code = verdict.reason === 'open' ? 'FIELD_VALIDATION_UNDETERMINED' : 'FIELD_DEPENDENCY_MISSING'; explanation = verdict.reason === 'open' ? messages.open : messages.mixed; }
       }
-      if (semanticIssue && ['FIELD_CARDINALITY_MISMATCH', 'FIELD_APPLICABILITY_UNKNOWN'].includes(semanticIssue.code)) {
+      if (!observation?.withdrawn && semanticIssue && ['FIELD_CARDINALITY_MISMATCH', 'FIELD_APPLICABILITY_UNKNOWN'].includes(semanticIssue.code)) {
         status = semanticIssue.code === 'FIELD_CARDINALITY_MISMATCH' ? selected ? 'invalid' : 'invalidated' : 'unknown';
         code = semanticIssue.code; value = undefined; explanation = semanticIssue.message;
-      } else if (requiresSemantic && (['present', 'explicit_null'].includes(status) || semantic?.status === 'invalid' || semanticIssue?.code === 'FIELD_VALUE_INVALID')) {
+      } else if (!observation?.withdrawn && requiresSemantic && (['present', 'explicit_null'].includes(status) || semantic?.status === 'invalid' || semanticIssue?.code === 'FIELD_VALUE_INVALID')) {
         usedProvidedMaterials ||= historySources(semantic?.sources ?? []) || (semantic?.dependencies ?? []).some(dependency => historySources(current.get(dependency.field)?.sources ?? []));
         if (semantic?.status === 'invalid' || semanticIssue?.code === 'FIELD_VALUE_INVALID') {
           status = selected ? 'invalid' : 'invalidated'; code = selected ? 'FIELD_VALUE_INVALID' : 'FIELD_INVALIDATED'; value = undefined;

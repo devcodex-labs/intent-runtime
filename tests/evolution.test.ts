@@ -296,14 +296,14 @@ test('Clear current prohibition stays complete while prior history coverage is u
 });
 test('An explicitly changed historical field invalidates even without a current extraction schema', async () => {
   const d = draft(); d.usedHistory = true; d.nodes[0]!.priorRef = {root: 'context', pointer: '/prior'};
-  d.observations = [{ownerKey: 'a', container: 'inputs', semantic: null, field: 'orderId', presence: 'known', valueJson: '"B"', rawText: 'B', sources: [src]}];
+  d.observations = [{ownerKey: 'a', container: 'inputs', semantic: null, field: 'orderId', presence: 'known', withdrawn: false, valueJson: '"B"', rawText: 'B', sources: [src]}];
   d.changes = [{operation: 'modify', effect: 'applied', targetKind: 'intent', targetKey: 'a', conditionKey: null, description: 'Change order A to B, without extracting B', sources: [src], deltaHints: []}];
   const intent = new Intent({executor: controlled(() => d)});
   try {const r = await intent.parse({input: '订单改B', context: {prior: {id: 'order', inputs: {orderId: 'A'}}}}); assert.deepEqual(r.effective.intents[0]!.inputs, {}); assert.equal(r.fieldResults[0]!.trigger, 'invalidation'); assert.equal(r.fieldResults[0]!.status, 'invalidated');} finally {await intent.dispose();}
 });
 test('JSON key reordering alone never invalidates an inherited object parameter', async () => {
   const d = draft(); d.usedHistory = true; d.nodes[0]!.priorRef = {root: 'context', pointer: '/prior'};
-  d.observations = [{ownerKey: 'a', container: 'inputs', field: 'settings', presence: 'known', valueJson: '{"b":2,"a":1}', rawText: null, sources: [src], semantic: null}];
+  d.observations = [{ownerKey: 'a', container: 'inputs', field: 'settings', presence: 'known', withdrawn: false, valueJson: '{"b":2,"a":1}', rawText: null, sources: [src], semantic: null}];
   d.changes = [{operation: 'modify', effect: 'applied', targetKind: 'intent', targetKey: 'a', conditionKey: null, description: 'Only change the report language', sources: [src], deltaHints: []}];
   const intent = new Intent({executor: controlled(() => d)});
   try {const r = await intent.parse({input: '报告改英文，设置不变', context: {prior: {id: 'report', inputs: {settings: {a: 1, b: 2}}}}}); assert.deepEqual(r.effective.intents[0]!.inputs.settings, {a: 1, b: 2}); assert.equal(r.fieldResults.length, 0);} finally {await intent.dispose();}

@@ -3246,6 +3246,9 @@ export const CANDIDATE_SCHEMA = {
           ],
           "type": "string"
         },
+        "withdrawn": {
+          "type": "boolean"
+        },
         "valueJson": {
           "allOf": [
             {
@@ -3399,7 +3402,8 @@ export const CANDIDATE_SCHEMA = {
         "rawText",
         "semantic",
         "sources",
-        "valueJson"
+        "valueJson",
+        "withdrawn"
       ]
     },
     "D7": {

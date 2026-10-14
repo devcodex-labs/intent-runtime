@@ -27,6 +27,9 @@ export interface ChangeDraft {
 export interface Observation {
   ownerKey: string | null; container: 'inputs' | 'facts' | 'extensions'; field: string;
   presence: 'known' | 'unknown' | 'not_provided' | 'absent' | 'present_unknown' | 'not_applicable';
+  // Retiring a requested binding is independent of knowledge about the
+  // business property, which may still be needed by another selected field.
+  withdrawn: boolean;
   valueJson: string | null; rawText: string | null; sources: SourceRef[];
   semantic: null | {status: 'valid' | 'invalid' | 'unknown'; explanation: string; sources: SourceRef[];
     dependencies: Array<{field: string; requires: 'value' | 'presence'}>};

@@ -23,7 +23,7 @@ const candidate = {version: 'candidate-2', kind: 'request', normalizedInput: 'Qu
   messages: Object.fromEntries(['changed','notApplicable','noValue','noDeclaration','explicitNull','invalid','open','mixed','semanticUnknown','unresolved','relationConflict'].map(k => [k, 'Supplied material explanation: ' + k])),
   nodes: [{key:'order', parentKey:null, priorRef:null, domain:'order', action:'query', target:'000123', goal:'Query order 000123', understanding:'clear', optional:null, expectedOutput:[], sources:[{root:'input', pointer:''}]}],
   constraints:[], references:[], relations:[], priorTargets:[], changes:[{operation:'add', effect:'applied', targetKind:'intent', targetKey:'order', conditionKey:null, description:'Current query', sources:[{root:'input',pointer:''}], deltaHints:[]}],
-  observations:[{ownerKey:'order', container:'inputs', field:'orderId', presence:'known', valueJson:'"000123"', rawText:null, sources:[{root:'input',pointer:''}], semantic:null}], issues:[], inferences:[], evidence:[], suggestions:[]};
+  observations:[{ownerKey:'order', container:'inputs', field:'orderId', presence:'known', withdrawn:false, valueJson:'"000123"', rawText:null, sources:[{root:'input',pointer:''}], semantic:null}], issues:[], inferences:[], evidence:[], suggestions:[]};
 for (const omit of [false, true]) {
   const consumer = path.join(work, omit ? 'without-optional' : 'consumer'); await mkdir(consumer);
   await writeFile(path.join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');

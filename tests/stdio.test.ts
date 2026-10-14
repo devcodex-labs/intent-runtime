@@ -16,10 +16,15 @@ import {startStdio} from '../src/mcp/stdio.js';
 test('SC-37 actual SDK send failure after host commit preserves the real validated reply for same-session replay', async () => {
   const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair();
   const send = serverTransport.send.bind(serverTransport);
+  const lostReply = new AbortController();
   let committed: unknown, dropped = false;
   serverTransport.send = async (message, options) => {
     if (!dropped && 'result' in message && (message.result as {structuredContent?: {schemaVersion?: string}}).structuredContent?.schemaVersion === '2.0-draft.6') {
       committed = structuredClone(message.result); dropped = true;
+      // End the waiting client only AFTER the real validated reply was
+      // committed. A short wall-clock timeout could cancel a slow worker
+      // before reaching the send fault when other suites run concurrently.
+      queueMicrotask(() => lostReply.abort());
       throw new Error('PRIVATE_SYNTHETIC_SEND_FAILURE');
     }
     await send(message, options);
@@ -32,7 +37,7 @@ test('SC-37 actual SDK send failure after host commit preserves the real validat
     const task = prepared.structuredContent as unknown as HostTask;
     const d = draft(); d.observations = [observation('orderId', '000123')];
     const args = {requestId: task.requestId, submissionToken: task.submissionToken, candidateText: JSON.stringify(d)};
-    await assert.rejects(client.callTool({name: 'intent_accept', arguments: args}, {timeout: 500}));
+    await assert.rejects(client.callTool({name: 'intent_accept', arguments: args}, {signal: lostReply.signal}));
     assert.equal(dropped, true);
     const replay = await client.callTool({name: 'intent_accept', arguments: args});
     assert.deepEqual(replay, committed);
