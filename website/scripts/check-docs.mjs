@@ -20,6 +20,7 @@ for (const file of [...files, readme, config]) {
   const prose = text.replace(/```[\s\S]*?```/g, '');
   const targets = [...prose.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)].map(m => m[1]);
   targets.push(...[...prose.matchAll(/withBase\(['"](\/[^'"]+)['"]\)/g)].map(m => m[1]));
+  targets.push(...[...prose.matchAll(/href=["'](\/intent-runtime\/[^"']+)["']/g)].map(m => m[1].slice('/intent-runtime'.length)));
   targets.push(...[...text.matchAll(/\blink:\s*['"]?(\/[^\s'"},]+)/g)].map(m => m[1]));
   for (const target of targets) {
     if (/^(https?:|mailto:)/.test(target)) continue;

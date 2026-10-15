@@ -18,7 +18,7 @@
 |---|---|
 | Native、stdio、SDK无关adapter | 有正式实现、安装包与自动化验证 |
 | MCP协议 | 2025-06-18、2025-11-25、2026-07-28分别有SDK协议验证 |
-| Codex CLI当前模型 | Linux、CLI0.162.1、gpt-6.1-sol配置已有真实接入与语义验证；实际协商2025-06-18 |
+| Codex CLI当前模型 | Linux、CLI0.162.1、gpt-6.1-sol配置已有真实接入与语义测试记录，完整验收尚未放行；实际协商2025-06-18 |
 | Codex Desktop | 接入配置已提供；尚未独立验证真实客户端 |
 | OpenAI / xAI Responses | 适配器已实现；错误/格式映射有自动化验证，真实供应商环境仍需单独验证 |
 | Streamable HTTP | 通过已有服务嵌入adapter；认证/监听/逻辑session由应用管理，本文stdio示例不证明任意HTTP部署兼容 |
@@ -26,9 +26,20 @@
 
 客户端支持目标与实测版本分别看待。更换模型/客户端版本、SDK或部署环境后，应验证自己的实际配置。结构检查不能保证所有自然语言正确，特定语料通过率不作为产品总体准确率承诺。
 
+## 验证记录与范围
+
+| 记录日期 | 环境/方法 | 可支持的结论与证据 |
+|---|---|---|
+| 2026-10-15 | Linux/Windows/macOS × Node20.0.0/24.x；质量、文档共8项 | [对应V2基线的CI](https://github.com/devcodex-labs/intent-runtime/actions/runs/38673172052)全部通过；证明工程回归和打包检查，不证明模型语义准确率 |
+| 2026-10-15 | 实际MCP SDK2.3.1，三个声明协议 | [示例检查脚本](https://github.com/devcodex-labs/intent-runtime/blob/f36f11163c4cbe7ea492fd4673a6c81197a0d0aa/scripts/check-doc-examples.mjs)使用可控语言候选与真实核心/Validator；验证协议和字段链，不作为真实模型验收 |
+| 2026-10-14 | Linux、Codex CLI0.162.1、gpt-6.1-sol、high配置 | 已执行当前模型prepare/accept及语义样本；原始交接/逐样本记录内部保留，完整验收尚未放行，不作总体准确率保证 |
+| 尚未完成 | Codex Desktop与直接OpenAI/xAI供应商 | 配置/适配器实现及模拟故障检查不代表真实环境验收通过 |
+
+完整模型验收和特定用户输入能否正确识别需要分开判断；反馈问题时提供实际模型与客户端版本。新示例的可控执行器检查不会提高真实语义验收通过率。
+
 ## 选择发行版本
 
-安装前确认你选用的npm发行包包含V2导出，不把旧版latest当作V2使用。文档适用版本与实际发行版本不一致时，使用对应版本文档/包；源码构建的tarball可用于本地检查，不代表npm已发布。
+本文对应V2；当前包的获取、明确版本与源码构建流程集中在[安装与版本](/guide/installation)。包的正式发行状态与上述测试状态分别看待。V1历史变更保存在[更新日志](https://github.com/devcodex-labs/intent-runtime/blob/main/CHANGELOG.md)。
 
 当前文档不承诺仅安装包就自动处理宿主所有消息。默认识别timeoutMs=0，不加总期限；连接关闭、服务重启与宿主工具期限仍会影响调用。数小时/数日实际持续连接不由短时机制检查保证。
 

@@ -21,19 +21,19 @@ export default {
 
 ## 2. 安装与登记
 
-核对所选发行包含本文V2入口。保存配置后，用两行安装和登记：
+先按[安装与版本](/guide/installation#获取当前-v2-包)构建本文对应的V2包。保存配置后，将下面tgz和配置路径换为真实绝对路径，用两行安装和登记：
 
 Windows PowerShell：
 
 ```powershell
-npm install -g @devcodex/intent-runtime
+npm install -g "D:\Worker\devcodex-intent-runtime-2.0.0-dev.0.tgz"
 intent-runtime setup --host codex --config "D:\Worker\intent.host.config.mjs"
 ```
 
 macOS/Linux：
 
 ```bash
-npm install -g @devcodex/intent-runtime
+npm install -g /absolute/path/devcodex-intent-runtime-2.0.0-dev.0.tgz
 intent-runtime setup --host codex --config "$HOME/intent.host.config.mjs"
 ```
 

@@ -1,11 +1,44 @@
-# 安装与维护
+# 安装、版本与 Codex 维护
 
-安装模块不会修改宿主配置。全局使用时显式登记 Codex：
+本文对应V2，包版本为2.0.0-dev.0，结果/baseline版本为2.0-draft.6。截至2026-10-15，npm latest为1.0.2，V2尚未发行；目前使用下面的源码构建路径。V2正式发行后，可安装对应的明确版本。
+
+## 获取当前 V2 包
+
+需要Git、Node.js≥20.0.0、npm及npm registry访问权限。在你选择的工作目录执行；以下提交是本文示例所需的V2运行时基线：
 
 ```bash
-npm install -g @devcodex/intent-runtime
+git clone https://github.com/devcodex-labs/intent-runtime.git intent-runtime-source
+cd intent-runtime-source
+git checkout --detach f36f11163c4cbe7ea492fd4673a6c81197a0d0aa
+npm ci --ignore-scripts
+npm pack --pack-destination ..
+cd ..
+```
+
+得到devcodex-intent-runtime-2.0.0-dev.0.tgz。保留它的绝对路径，供项目安装或全局安装使用；这两个方式按需选择，不必都做。
+
+## 安装到 Node.js 项目
+
+在新建或已有应用目录执行，将路径换成刚才的tgz：
+
+```bash
+npm init -y
+npm install /absolute/path/devcodex-intent-runtime-2.0.0-dev.0.tgz schema-dsl@3.0.4
+node --input-type=module -e "import {Intent} from '@devcodex/intent-runtime'; console.log(typeof Intent)"
+```
+
+已有package.json时省略npm init。最后一条应输出function，说明V2入口可导入；它不会调用模型。继续[快速开始](/guide/quick-start)配置真实模型并运行parse.mjs。运行文件用.mjs，或将应用package.json设为type=module。
+
+## 全局安装与登记 Codex
+
+先按[Codex页](/integrations/codex)保存配置文件。安装模块不会修改宿主配置，全局使用时显式登记：
+
+```bash
+npm install -g /absolute/path/devcodex-intent-runtime-2.0.0-dev.0.tgz
 intent-runtime setup --host codex --config /absolute/path/intent.host.config.mjs
 ```
+
+Windows可用 `D:\Worker\文件名.tgz`，给含空格的路径加引号；macOS/Linux使用真实绝对路径。两行命令在你准备好tgz和可信配置后执行。
 
 可信 `.mjs` 配置是普通 Node.js 代码，启动诊断会执行其初始化。host 配置不需要额外 API Key，见 [Codex 接入](/integrations/codex)。
 

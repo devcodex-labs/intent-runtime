@@ -28,7 +28,7 @@ class Intent {
 
 不修改传入材料；同实例反复parse不隐式继承历史。Context根数组/null/类实例无效，内部函数、循环、访问器、undefined、非有限数字等不是JSON。标准参数未知键拒绝；此规则不限制Context内业务键。fields非空或all而无schema报SCHEMA_NOT_CONFIGURED；extensions开启而无定义同样报错。
 
-返回[完整IntentResult](/api/response)。初始化参数见[配置参考](/guide/configuration)，多轮见[材料续传](/guide/multi-turn)。
+先看[如何读取结果](/guide/results)，需要核对字段时查[完整IntentResult](/api/response)。初始化参数见[配置参考](/guide/configuration)，多轮见[材料续传](/guide/multi-turn)。
 
 ## IntentError
 

@@ -1,28 +1,113 @@
 # 使用场景
 
-以下片段沿用[快速开始](/guide/quick-start)创建的Intent实例；相应字段须先配置schema。完整接入文件可从页面复制，或在[仓库examples](https://github.com/devcodex-labs/intent-runtime/tree/main/examples)查看。
+先按[安装与版本](/guide/installation)在应用目录安装V2及schema-dsl@3.0.4。前三个例子都是完整.mjs文件，各自创建并释放Intent，不依赖另一个例子的变量。它们调用你配置的真实模型API，需要INTENT_API_KEY和INTENT_MODEL；设置方法见[快速开始](/guide/quick-start#2-配置模型)。
 
-## 只识别意图
+输出中的描述、ID与组织方式可能随模型变化。以下成功判断针对可观察行为；固定完整JSON另见[响应参考](/api/response)，不能把它当成每次模型会逐字返回的结果。异常通过安全IntentError摘要输出，具体恢复见[错误参考](/api/errors)。
 
+## 基础意图识别
+
+保存为basic.mjs，运行node basic.mjs。无需业务Schema，识别查询目标和禁止取消；fields默认[]，不会新增结构化orderId。
+
+<!-- example: examples/api/basic.mjs -->
 ```js
-const result = await intent.parse({input: '分析支付模块，不修改代码'});
+import {Intent, IntentError} from '@devcodex/intent-runtime';
+import {createApiExecutor} from '@devcodex/intent-runtime/adapters/api';
+
+const apiKey = process.env.INTENT_API_KEY, model = process.env.INTENT_MODEL;
+if (!apiKey || !model) throw new Error('Set INTENT_API_KEY and INTENT_MODEL in your environment.');
+const intent = new Intent({language: 'zh-CN', executor: createApiExecutor({provider: 'openai', apiKey, model})});
+try {
+  const result = await intent.parse({input: '查询订单000123，不取消订单'});
+  console.log(JSON.stringify(result, null, 2));
+  // Read goals and constraints from effective; no order query is executed.
+  console.log('目标：', result.effective.intents.map(node => node.goal));
+  console.log('需要澄清：', result.issues.map(issue => issue.message));
+} catch (error) {
+  if (!(error instanceof IntentError)) throw error;
+  console.error(JSON.stringify(error.toJSON()));
+  process.exitCode = 1;
+} finally {await intent.dispose();}
 ```
 
-fields省略等于[]，仍表达目标与禁止事项；不提取新参数，也不自动读取支付模块。可以省略schema，但不能省略Native模型执行器。
+成功时读取effective.intents和全局/目标constraints；有歧义时先处理issues。本例不会查询订单。
 
-## 多对象与精确值
+## 订单字段提取
 
-“查询订单000123，取消订单000456”应分别保留动作与所属编号；不能将两个值塞进同一标量字段。整体比较两个订单可能只有一个比较目标，此时用数组字段容纳两个对象，或报告容量不匹配，不能为适配字段强拆意图。编号保留前导零；false、0、空字符串与null按Schema和用户表达分别处理。
+保存为order.mjs，运行node order.mjs。Schema明确orderId是字符串；fields选择它后，按fieldResults.intentId查所属inputs。
 
-## 字段依赖连续修改
-
+<!-- example: examples/api/parse.mjs -->
 ```js
-let result = await intent.parse({input: '为订单000123设置VIP=true，优惠15', fields: 'all'});
-result = await intent.parse({input: '这个订单改为非VIP，其他不变', fields: ['isVip'], baseline: result.effective});
-result = await intent.parse({input: '优惠改为5', fields: ['discount'], baseline: result.effective});
+import {Intent, IntentError} from '@devcodex/intent-runtime';
+import {createApiExecutor} from '@devcodex/intent-runtime/adapters/api';
+import {s} from 'schema-dsl/pure';
+
+const apiKey = process.env.INTENT_API_KEY, model = process.env.INTENT_MODEL;
+if (!apiKey || !model) throw new Error('Set INTENT_API_KEY and INTENT_MODEL in your environment.');
+const intent = new Intent({language: 'zh-CN', executor: createApiExecutor({provider: 'openai', apiKey, model}), schema: s({orderId: s('string!').description('用户明确给出的订单编号，保留前导零')})});
+function flatten(nodes) {return nodes.flatMap(node => [node, ...flatten(node.children)]);}
+try {
+  const result = await intent.parse({input: '查询订单000123，不取消订单', fields: ['orderId']});
+  console.log(JSON.stringify(result, null, 2));
+  const field = result.fieldResults.find(f => f.container === 'inputs' && f.field === 'orderId' && f.status === 'present');
+  const owner = field && flatten(result.effective.intents).find(node => node.id === field.intentId);
+  if (owner) console.log('识别到的订单编号：', owner.inputs.orderId);
+  // 应用在这里决定如何处理结果；这个例子不查询或取消订单。
+} catch (error) {
+  if (!(error instanceof IntentError)) throw error;
+  console.error(JSON.stringify(error.toJSON()));
+  process.exitCode = 1;
+} finally {await intent.dispose();}
 ```
 
-假设Schema声明VIP最多20、非VIP最多10。第一轮15合法；只改VIP=false使旧15失效，不能继续使用，也不能自动补5；第三轮提供5后可解除问题。只选discount时，显式isVip仍可作为内部校验依赖，但不新增到inputs。未知VIP不默认false：6在两种分支均合法，18因依赖未定而unknown。
+成功时所属字段状态为present且值为"000123"，保留前导零；若没有确定字段，查看issues与fieldResults，不用默认编号补齐。多个订单按各自意图归属，不能把两个编号塞进同一标量。
+
+## 多轮修改与旧值失效
+
+保存为multi-turn.mjs，运行node multi-turn.mjs。完整Schema声明VIP最多20、非VIP最多10；三个调用显式传baseline，第三轮还带上相关问题。
+
+<!-- example: examples/api/multi-turn.mjs -->
+```js
+import {Intent, IntentError} from '@devcodex/intent-runtime';
+import {createApiExecutor} from '@devcodex/intent-runtime/adapters/api';
+
+const apiKey = process.env.INTENT_API_KEY, model = process.env.INTENT_MODEL;
+if (!apiKey || !model) throw new Error('Set INTENT_API_KEY and INTENT_MODEL in your environment.');
+const schema = {
+  type: 'object',
+  properties: {orderId: {type: 'string', pattern: '^[0-9]+$'}, isVip: {type: 'boolean'}, discount: {type: 'number', minimum: 0}},
+  if: {properties: {isVip: {const: true}}, required: ['isVip']},
+  then: {properties: {discount: {maximum: 20}}},
+  else: {properties: {discount: {maximum: 10}}},
+};
+const intent = new Intent({language: 'zh-CN', schema, executor: createApiExecutor({provider: 'openai', apiKey, model})});
+function show(turn, result) {
+  console.log(JSON.stringify({turn, intents: result.effective.intents, fields: result.fieldResults, issues: result.issues}, null, 2));
+}
+try {
+  let result = await intent.parse({input: '为订单000123设置VIP=true，优惠15', fields: 'all'});
+  show(1, result);
+  result = await intent.parse({input: '这个订单改为非VIP，其他不变', fields: ['isVip'], baseline: result.effective});
+  show(2, result);
+  result = await intent.parse({input: '优惠改为5', fields: ['discount'], baseline: result.effective, context: {previousIssues: result.issues}});
+  show(3, result);
+} catch (error) {
+  if (!(error instanceof IntentError)) throw error;
+  console.error(JSON.stringify(error.toJSON()));
+  process.exitCode = 1;
+} finally {await intent.dispose();}
+```
+
+| 轮次 | 本轮输入与选择 | 应观察到的结果 |
+|---|---|---|
+| 1 | VIP=true、优惠15；fields=all | 同一订单inputs含orderId="000123"、isVip=true、discount=15 |
+| 2 | 只改VIP=false；选择isVip | 保留订单身份和编号；旧discount=15从inputs移除，报告invalidated与FIELD_INVALIDATED |
+| 3 | 优惠改5；选择discount | 同一目标inputs中discount=5；该字段本轮present，不再保留旧优惠失效问题 |
+
+如果模型没有正确关联目标，先检查返回的issues和来源，不将三个任意首节点视作同一订单。未知VIP不默认false：6在两种分支均合法，18因依赖未定而unknown；这些边界见[字段指南](/guide/fields)。
+
+## 更多场景
+
+以下是行为说明或标明用途的配置片段，不是可单独运行的程序；完整配置、参数和字段状态见对应指南。
 
 ## 需求修改与澄清
 

@@ -15,11 +15,9 @@
 
 ## 1. 安装到项目
 
-要求 Node.js **≥20.0.0**、ESM。本文适用于含V2导出的发行包；[兼容与支持](/testing/validation)列出适用版本。安装时核对包版本。
+要求Node.js≥20.0.0、ESM。先按[安装与版本](/guide/installation#获取当前-v2-包)获取V2的tgz并安装到应用目录。当前npm latest仍为V1，直接省略版本安装不能得到本文入口。
 
-```bash
-npm install @devcodex/intent-runtime schema-dsl@3.0.4
-```
+本文先识别目标与约束，不配置业务Schema。需要订单编号等结构化参数时，再运行[订单字段示例](/examples/index#订单字段提取)。
 
 ## 2. 配置模型
 
@@ -43,23 +41,20 @@ export INTENT_MODEL="你的模型名称"
 
 将下例保存为安装依赖的项目中的 `parse.mjs`。包导入从文件位置解析。
 
-<!-- example: examples/api/parse.mjs -->
+<!-- example: examples/api/basic.mjs -->
 ```js
 import {Intent, IntentError} from '@devcodex/intent-runtime';
 import {createApiExecutor} from '@devcodex/intent-runtime/adapters/api';
-import {s} from 'schema-dsl/pure';
 
 const apiKey = process.env.INTENT_API_KEY, model = process.env.INTENT_MODEL;
 if (!apiKey || !model) throw new Error('Set INTENT_API_KEY and INTENT_MODEL in your environment.');
-const intent = new Intent({language: 'zh-CN', executor: createApiExecutor({provider: 'openai', apiKey, model}), schema: s({orderId: s('string!').description('用户明确给出的订单编号，保留前导零')})});
-function flatten(nodes) {return nodes.flatMap(node => [node, ...flatten(node.children)]);}
+const intent = new Intent({language: 'zh-CN', executor: createApiExecutor({provider: 'openai', apiKey, model})});
 try {
-  const result = await intent.parse({input: '查询订单000123，不取消订单', fields: ['orderId']});
+  const result = await intent.parse({input: '查询订单000123，不取消订单'});
   console.log(JSON.stringify(result, null, 2));
-  const field = result.fieldResults.find(f => f.container === 'inputs' && f.field === 'orderId' && f.status === 'present');
-  const owner = field && flatten(result.effective.intents).find(node => node.id === field.intentId);
-  if (owner) console.log('识别到的订单编号：', owner.inputs.orderId);
-  // 应用在这里决定如何处理结果；这个例子不查询或取消订单。
+  // Read goals and constraints from effective; no order query is executed.
+  console.log('目标：', result.effective.intents.map(node => node.goal));
+  console.log('需要澄清：', result.issues.map(issue => issue.message));
 } catch (error) {
   if (!(error instanceof IntentError)) throw error;
   console.error(JSON.stringify(error.toJSON()));
@@ -73,8 +68,11 @@ node parse.mjs
 
 ## 4. 读取结果
 
-正常结果应保留查询目标、禁止取消的约束，以及所属目标的字符串编号 `"000123"`。文本和生成ID可以变化。字段未确定时先读fieldResults与issues，不把缺失当作用户要求清空。
+本例的理解结果应保留查询目标和禁止取消的约束。订单编号会出现在自然语言目标中；只有另行配置Schema并选择orderId后，才提取到inputs。完整文本与生成ID可以变化。
 
-fields默认 `[]`：省略它仍识别意图，但不新增业务字段提取。只要意图时可不配置Schema，模型执行器仍需要。complete不代表字段齐全、授权或业务已执行。
+- effective.intents是目标树；同时读取全局与各目标的constraints。
+- issues说明歧义、缺失或冲突；先补充材料，不自行执行某个候选。
+- fields默认[]，省略它仍识别意图，但不新增业务字段提取。
+- complete不代表字段齐全、授权或业务已执行。程序不会查询或取消订单。
 
-继续阅读[完整响应](/api/response)、[配置参考](/guide/configuration)和[多轮对话](/guide/multi-turn)。
+下一步读[如何读取结果](/guide/results)，或运行[订单字段和多轮修改](/examples/index)的完整示例。需要其他模型供应商时查[模型接入](/integrations/api)，调用失败时查[错误与恢复](/api/errors)。

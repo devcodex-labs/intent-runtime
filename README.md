@@ -13,12 +13,12 @@
 | 独立MCP服务 | intent-runtime-mcp --config <绝对路径.mjs> |
 | 已有MCP tools | /mcp的createIntentMcpAdapter，SDK继续管理传输与原路由 |
 
-要求Node.js≥20.0.0、ESM、schema-dsl@3.0.4。本文描述V2入口，安装前确认所选发行版本包含这些导出；结果/baseline的schemaVersion为2.0-draft.6，与npm版本不同。
+要求Node.js≥20.0.0、ESM、schema-dsl@3.0.4。本文对应V2；截至2026-10-15，npm latest为1.0.2，V2尚未发行。先按[安装与版本](https://devcodex-labs.github.io/intent-runtime/guide/installation.html)构建并安装V2的tgz。结果/baseline的schemaVersion为2.0-draft.6，与npm版本不同。
 
 ## 在应用中调用
 
 ```bash
-npm install @devcodex/intent-runtime schema-dsl@3.0.4
+npm install /absolute/path/devcodex-intent-runtime-2.0.0-dev.0.tgz schema-dsl@3.0.4
 ```
 
 按环境设置INTENT_API_KEY与INTENT_MODEL，在安装依赖的项目保存parse.mjs：
@@ -55,10 +55,10 @@ fields默认[]，仍识别意图；操作参数归所属inputs，无操作的所
 
 ## 接入 Codex
 
-先按[完整配置说明](website/content/integrations/codex.md)保存可信intent.host.config.mjs。全局配置使用无包导入的JSON Schema，可放在没有本地node_modules的目录。替换真实绝对路径后：
+先按[完整配置说明](https://devcodex-labs.github.io/intent-runtime/integrations/codex.html)保存可信intent.host.config.mjs。全局配置使用无包导入的JSON Schema，可放在没有本地node_modules的目录。替换真实绝对路径后：
 
 ```bash
-npm install -g @devcodex/intent-runtime
+npm install -g /absolute/path/devcodex-intent-runtime-2.0.0-dev.0.tgz
 intent-runtime setup --host codex --config /absolute/path/intent.host.config.mjs
 ```
 
@@ -72,11 +72,13 @@ intent-runtime clean --host codex
 
 默认timeoutMs=0不加识别期限。doctor只读诊断，repair/clean保护用户修改。使用包导入的配置仍需本地依赖，不由全局目录自动解析。
 
+基础无Schema示例见[快速开始](https://devcodex-labs.github.io/intent-runtime/guide/quick-start.html)，读取目标、约束与字段见[结果指南](https://devcodex-labs.github.io/intent-runtime/guide/results.html)。
+
 ## 使用文档
 
-- [快速开始](website/content/guide/quick-start.md)与[配置参考](website/content/guide/configuration.md)
-- [完整响应](website/content/api/response.md)与[多轮对话](website/content/guide/multi-turn.md)
-- [MCP tools集成](website/content/integrations/mcp.md)、[Codex](website/content/integrations/codex.md)、[模型API/自定义执行器](website/content/integrations/api.md)
-- [场景示例](website/content/examples/index.md)、[兼容与支持](website/content/testing/validation.md)、[示例文件](examples/README.md)
+- [快速开始](https://devcodex-labs.github.io/intent-runtime/guide/quick-start.html)与[配置参考](https://devcodex-labs.github.io/intent-runtime/guide/configuration.html)
+- [完整响应](https://devcodex-labs.github.io/intent-runtime/api/response.html)与[多轮对话](https://devcodex-labs.github.io/intent-runtime/guide/multi-turn.html)
+- [MCP tools集成](https://devcodex-labs.github.io/intent-runtime/integrations/mcp.html)、[Codex](https://devcodex-labs.github.io/intent-runtime/integrations/codex.html)、[模型API/自定义执行器](https://devcodex-labs.github.io/intent-runtime/integrations/api.html)
+- [场景示例](https://devcodex-labs.github.io/intent-runtime/examples/index.html)、[兼容与支持](https://devcodex-labs.github.io/intent-runtime/testing/validation.html)、[示例文件](examples/README.md)
 
 真实客户端/供应商与工程测试的验证范围分别列示，不将固定测试通过数当成模型准确率。历史版本变更见[CHANGELOG](CHANGELOG.md)。MIT，见[LICENSE](LICENSE)。

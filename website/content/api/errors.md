@@ -16,6 +16,29 @@
 
 语义问题包括 AMBIGUOUS_REFERENCE、INTENT_INFORMATION_MISSING、CONSTRAINT_CONFLICT、RELATION_CONFLICT、CONTEXT_CONFLICT、CONTEXT_INCOMPLETE、UNCONFIRMED_INFERENCE。字段码包括 FIELD_REQUIRED_MISSING、FIELD_APPLICABILITY_UNKNOWN、FIELD_CARDINALITY_MISMATCH、FIELD_VALUE_INVALID、FIELD_DEPENDENCY_MISSING、FIELD_VALIDATION_UNDETERMINED、FIELD_INVALIDATED。
 
+## 按发生位置恢复
+
+先区分正常结果里的issues和技术异常。歧义、缺字段、字段无效通常是识别结果的一部分，不应统一当成网络失败重试。
+
+| 现象或代码 | 先检查什么 | 调用方下一步 |
+|---|---|---|
+| SCHEMA_NOT_CONFIGURED | fields或extensions是否启用，对应Schema是否存在 | 补配置后新建实例；不需要字段时显式使用fields=[] |
+| FIELD_UNKNOWN / SCHEMA_INVALID / CONFIG_INVALID | 字段名、规则支持范围、模型/配置参数 | 修正请求或可信配置；重复原调用不会修好配置 |
+| FIELD_REQUIRED_MISSING / FIELD_DEPENDENCY_MISSING | issues是否缺少用户值或条件依据 | 向用户补问，下一轮传相关Context/baseline及所选字段 |
+| FIELD_VALUE_INVALID / FIELD_INVALIDATED | 候选是否违反规则，旧值是否因修改失效 | 不消费无效值；让用户明确提供合法替代值，再识别 |
+| FIELD_VALIDATION_UNDETERMINED | 本地证明能力是否不足；查看字段说明与规则范围 | 保留unknown，检查Schema与支持范围；更多输入未必能解决，不靠补默认值或盲目重试 |
+| AMBIGUOUS_REFERENCE等正常issues | 指代与候选是否齐全 | 根据questions澄清，再传回对应问题和候选 |
+| MODEL_OUTPUT_INVALID | 安全details.violations中的路径/规则 | Native由应用决定是否重新识别；host只能按明确反馈提交纠正候选，不能重置同次校验预算 |
+| MODEL_AUTH_FAILED / MODEL_RATE_LIMITED / MODEL_REQUEST_FAILED | 凭据、权限、额度、供应商状态与网络 | 修复认证或等待服务恢复；是否重试、何时重试由应用决定 |
+| MODEL_REFUSED / MODEL_OUTPUT_INCOMPLETE | 模型拒绝或生成未完成 | 不解析截断文本；调整输入或生成上限后由应用明确重试 |
+| RESOURCE_LIMIT | details.limit、allowed、observed、unit | 缩小相关材料或合理调整可信配置；maxValidationChecks超限时结束本次识别 |
+| HOST_REQUEST_NOT_FOUND | session是否关闭、进程是否重启、终态记录是否回收 | 用完整材料重新prepare，再用新requestId/token提交候选 |
+| HOST_SUBMISSION_CONFLICT | 是否混用请求、token或同一请求的不同候选 | 保持原交接身份；需要新识别时重新prepare，不覆盖另一次提交 |
+| REQUEST_ABORTED / MODEL_TIMEOUT | 调用方signal或显式timeoutMs | 保留上次状态；需要继续时发起新识别，默认timeoutMs=0无需增加期限 |
+| INSTANCE_DISPOSED / INTERNAL_PROCESSING_FAILED | 实例是否释放；code/stage与部署版本 | 已释放则新建实例；内部失败保留安全摘要并反馈，不把partialResult直接当成功 |
+
+这些恢复动作属于调用方流程，不会由Runtime自动执行。host的格式纠正仅针对明确反馈；与知识缺失、字段unknown或业务授权分开。
+
 ```js
 import {IntentError} from '@devcodex/intent-runtime';
 

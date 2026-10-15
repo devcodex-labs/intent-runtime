@@ -1,5 +1,7 @@
+import {withBase} from '@rspress/core/runtime';
+
 export default function IntentExample() {
-  return <section className="intent-example" aria-label="意图结构化示例">
+  return <><p className="intent-version-note">本文对应 V2，开始前请查看<a href={withBase('/guide/installation')}>版本与安装方式</a>。</p><section className="intent-example" aria-label="意图结构化示例">
     <div className="intent-example-input">
       <span className="intent-example-label">用户请求</span>
       <p>查询订单 <strong>000123</strong>，<br />不取消订单。</p>
@@ -15,5 +17,5 @@ export default function IntentExample() {
       </dl>
       <span className="intent-example-note">识别意图后，由你的应用决定下一步</span>
     </div>
-  </section>;
+  </section></>;
 }

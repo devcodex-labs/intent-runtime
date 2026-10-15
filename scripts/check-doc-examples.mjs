@@ -121,5 +121,65 @@ if (tarball) {
   assert.equal(JSON.parse(run(process.execPath, [cli, 'clean', '--host', 'codex', '--json'], env)).status, 'ok');
   globalMaintenance = {isolatedPrefix: true, isolatedUserConfiguration: true, localConfigWithoutDependencies: true, setupRepeatDoctorClean: true};
 }
-await writeFile(path.join(work, 'verification.json'), JSON.stringify({node: process.version, syntaxFiles, customExecutorStrictTypes: true, resultExamples, protocolRecords, globalMaintenance, modelCalls: 0, scope: 'User documentation installation/configuration/SDK examples and static result fixtures; not model semantic acceptance.'}, null, 2) + '\n');
-console.log('User examples verified: ' + syntaxFiles + ' ESM files, strict custom executor, ' + resultExamples + ' full responses, 3 actual SDK protocols, ' + (tarball ? 'isolated global setup/doctor/clean' : 'no new global install') + '.');
+// Execute the actual public examples. Only the provider's language reply is
+// controlled; the API adapter, candidate checks, Worker, Validator and Result
+// assembly remain real. This is not a provider or natural-language quality test.
+const preload = path.join(work, 'controlled-provider.mjs');
+await writeFile(preload, `import {readFileSync, writeFileSync} from 'node:fs';
+import {Intent} from ${JSON.stringify(pathToFileURL(path.join(consumer, 'node_modules/@devcodex/intent-runtime/dist/index.js')).href)};
+const seed=JSON.parse(readFileSync(${JSON.stringify(path.join(consumer, 'candidate.json'))},'utf8'));
+const records=[]; const parse=Intent.prototype.parse;
+Intent.prototype.parse=async function(request,options){const result=await parse.call(this,request,options);records.push({request,result});writeFileSync(process.env.INTENT_DOC_TRACE,JSON.stringify(records));return result;};
+globalThis.fetch=async function(url,options){
+ if(String(url)!=='https://api.openai.com/v1/responses')throw new Error('Unexpected provider URL');
+ if(process.env.INTENT_DOC_FAILURE==='auth')return new Response('',{status:401});
+ const body=JSON.parse(options.body), materials=JSON.parse(body.input[0].content[0].text), request=materials.request;
+ const selected=request.fields==='all'?Object.keys(materials.schema.properties):request.fields;
+ const c=structuredClone(seed), src={root:'input',pointer:''}; c.normalizedInput=request.input;
+ Object.assign(c.nodes[0],{domain:'订单',action:'查询',target:'订单000123',goal:'查询订单000123'});
+ c.observations=[];
+ const observation=(field,value)=>({ownerKey:'order',container:'inputs',field,presence:'known',withdrawn:false,valueJson:JSON.stringify(value),rawText:null,sources:[src],semantic:null});
+ if(request.input.includes('不取消订单')){
+  c.constraints=[{key:'no-cancel',priorRef:null,ownerKey:'order',scope:'intent',referenceKey:null,kind:'prohibition',text:'不取消订单',expressionJson:null,sources:[src]}];
+  c.changes.push({operation:'add',effect:'applied',targetKind:'constraint',targetKey:'no-cancel',conditionKey:null,description:'保留禁止取消约束',sources:[src],deltaHints:[]});
+ }
+ if(selected.includes('orderId')){
+  const o=observation('orderId','000123');
+  if(materials.schema.properties.orderId.description)o.semantic={status:'valid',explanation:'用户明确提供字符串编号000123，保留前导零',sources:[src,{root:'schema',pointer:'/properties/orderId/description'}],dependencies:[]};
+  c.observations.push(o);
+ }
+ if(selected.includes('isVip')||selected.includes('discount')){
+  Object.assign(c.nodes[0],{action:'设置',goal:'设置订单000123的VIP状态和优惠'});
+  if(request.baseline){c.kind='amendment';c.usedHistory=true;c.nodes[0].priorRef={root:'baseline',pointer:'/intents/0'};c.changes[0].operation='modify';}
+  if(request.input.includes('VIP=true'))c.observations.push(observation('isVip',true),observation('discount',15));
+  else if(request.input.includes('非VIP'))c.observations.push(observation('isVip',false));
+  else c.observations.push(observation('discount',5));
+ }
+ return new Response(JSON.stringify({status:'completed',output:[{type:'message',role:'assistant',content:[{type:'output_text',text:JSON.stringify(c)}]}]}),{status:200,headers:{'content-type':'application/json'}});
+};
+`);
+const runnableExamples = [];
+for (const name of ['basic', 'parse', 'multi-turn']) {
+  const trace = path.join(work, name + '-results.json');
+  const env = {INTENT_API_KEY: 'controlled-test-only', INTENT_MODEL: 'controlled-language-reply', INTENT_DOC_TRACE: trace, INTENT_DOC_FAILURE: ''};
+  run(process.execPath, ['--import', preload, path.join(examples, 'api', name + '.mjs')], env);
+  const results = JSON.parse(await readFile(trace, 'utf8')).map(record => record.result);
+  if (name === 'basic') {assert.equal(results.length, 1); assert.equal(results[0].fieldResults.length, 0); assert.equal(results[0].effective.intents[0].constraints[0].kind, 'prohibition');}
+  if (name === 'parse') assert.equal(results[0].effective.intents[0].inputs.orderId, '000123');
+  if (name === 'multi-turn') {
+    assert.equal(results.length, 3);
+    const [first, second, third] = results;
+    assert.deepEqual(first.effective.intents[0].inputs, {orderId: '000123', isVip: true, discount: 15});
+    assert.equal(second.effective.intents[0].id, first.effective.intents[0].id);
+    assert.deepEqual(second.effective.intents[0].inputs, {orderId: '000123', isVip: false});
+    assert(second.fieldResults.some(f => f.field === 'discount' && f.status === 'invalidated'));
+    assert(second.issues.some(i => i.code === 'FIELD_INVALIDATED'));
+    assert.deepEqual(third.effective.intents[0].inputs, {orderId: '000123', isVip: false, discount: 5});
+    assert(!third.issues.some(i => i.field === 'discount'));
+  }
+  const failed = spawnSync(process.execPath, ['--import', preload, path.join(examples, 'api', name + '.mjs')], {cwd: work, env: {...process.env, ...env, INTENT_DOC_FAILURE: 'auth'}, encoding: 'utf8'});
+  assert.equal(failed.status, 1); assert.equal(JSON.parse(failed.stderr.trim()).code, 'MODEL_AUTH_FAILED');
+  runnableExamples.push({name, actualCoreResults: results.length, authenticationFailureHandled: true});
+}
+await writeFile(path.join(work, 'verification.json'), JSON.stringify({node: process.version, syntaxFiles, customExecutorStrictTypes: true, resultExamples, protocolRecords, globalMaintenance, runnableExamples, realProviderCalls: 0, scope: 'User documentation installation/configuration/SDK examples and static result fixtures; not model semantic acceptance.'}, null, 2) + '\n');
+console.log('User examples verified: ' + syntaxFiles + ' ESM files, strict custom executor, ' + resultExamples + ' full responses, 3 actual SDK protocols, 3 runnable API examples and auth failure branches, ' + (tarball ? 'isolated global setup/doctor/clean' : 'no new global install') + '.');

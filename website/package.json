@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "rspress dev",
-    "build": "rspress build",
+    "build": "rspress build && node scripts/check-rendered.mjs",
     "preview": "rspress preview",
-    "check": "tsc --noEmit && node scripts/check-docs.mjs"
+    "check": "tsc --noEmit && node scripts/check-docs.mjs && node --test scripts/check-rendered.test.mjs"
   },
   "engines": {
     "node": ">=24.0.0"
@@ -20,6 +20,7 @@
     "@types/node": "24.0.0",
     "@types/react": "19.2.13",
     "@types/react-dom": "19.2.3",
+    "parse5": "7.3.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "typescript": "5.9.3"

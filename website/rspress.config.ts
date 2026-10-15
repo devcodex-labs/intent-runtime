@@ -28,24 +28,26 @@ export default defineConfig({
     lastUpdated: true,
     editLink: { docRepoBaseUrl: `${repository}/blob/main/website/content` },
     nav: [
-      { text: "指南", link: "/guide/introduction", activeMatch: "^/guide/" },
-      { text: "集成", link: "/integrations/mcp", activeMatch: "^/integrations/" },
+      { text: "开始使用", link: "/guide/quick-start", activeMatch: "^/guide/" },
+      { text: "接入方式", link: "/integrations/index", activeMatch: "^/integrations/" },
       { text: "API 参考", link: "/api/intent", activeMatch: "^/api/" },
       { text: "示例", link: "/examples/index", activeMatch: "^/examples/" },
       { text: "兼容与支持", link: "/testing/validation", activeMatch: "^/testing/" },
-      { text: "V2 文档", link: `${repository}/blob/main/CHANGELOG.md` },
+      { text: "更新日志", link: `${repository}/blob/main/CHANGELOG.md` },
     ],
     sidebar: {
       '/': [
         {text: '开始使用', items: [
           {text: '项目定位', link: '/guide/introduction'},
           {text: '快速开始', link: '/guide/quick-start'},
-          {text: '安装与维护', link: '/guide/installation'},
+          {text: '安装与版本', link: '/guide/installation'},
+          {text: '如何读取结果', link: '/guide/results'},
           {text: '配置参考', link: '/guide/configuration'},
           {text: 'Schema 与多轮字段', link: '/guide/fields'},
           {text: '多轮对话与结果消费', link: '/guide/multi-turn'},
         ]},
         {text: 'API 与接入', items: [
+          {text: '选择接入方式', link: '/integrations/index'},
           {text: 'Native API', link: '/api/intent'},
           {text: '完整响应', link: '/api/response'},
           {text: '完整 TypeScript 类型', link: '/api/types'},

@@ -4,6 +4,20 @@
 
 顶层 `fields` 为 `[]`、字段名数组或 `'all'`。选择父字段返回完整合法的嵌套值；无效数组保留原索引路径，不删坏项后伪装成功。未选依赖仅内部检查，不新写入 inputs。没有操作意图的所选事实放在 turn.facts。扩展仅按 extensionSchema 和 output.extensions 处理。
 
+## 从一个字段开始
+
+以orderId为例，Schema声明字符串，parse选择该字段；完整可运行文件见[订单字段示例](/examples/index#订单字段提取)。编号"000123"应保留字符串和前导零。
+
+```js
+const schema = {type: 'object', properties: {orderId: {type: 'string'}}};
+const request = {input: '查询订单000123', fields: ['orderId']};
+// 将schema传给含executor的new Intent，再调用intent.parse(request)。
+```
+
+如果用户只说“查询订单”而没有编号，读取字段状态及issues，不根据Schema生成编号。VIP依赖的完整配置、三轮调用及结果表见[多轮修改示例](/examples/index#多轮修改与旧值失效)。
+
+## 支持范围
+
 | 定义范围 | 行为 |
 |---|---|
 | Draft-07 类型、properties、required、requiredAll、strictSchema、patternProperties、propertyNames、additionalProperties | 保留声明规则和属性存在性 |

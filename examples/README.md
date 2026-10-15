@@ -1,9 +1,11 @@
 # 接入示例
 
-使用含V2导出的发行包、Node.js≥20.0.0与ESM。页面提供可复制的完整文件；这些仓库示例不随npm包一同安装。
+按[安装与版本](https://devcodex-labs.github.io/intent-runtime/guide/installation.html)获取V2包，使用Node.js≥20.0.0与ESM。页面提供可复制的完整文件；这些仓库示例不随npm包一同安装。
 
 | 文件 | 用途 | 前置条件 |
 |---|---|---|
+| api/basic.mjs | 无Schema的基础目标与约束识别 | 项目安装运行库，环境INTENT_API_KEY/INTENT_MODEL |
+| api/multi-turn.mjs | 完整VIP Schema与三轮失效/修正 | 项目安装运行库，环境INTENT_API_KEY/INTENT_MODEL |
 | api/parse.mjs | API识别与所属字段消费 | 项目安装运行库/schema-dsl，环境INTENT_API_KEY/INTENT_MODEL |
 | custom-executor.ts | 自有模型网关适配 | ESM TypeScript项目，网关符合示例请求/回复协议 |
 | codex/intent.host.config.mjs | Codex全局host配置 | 无包导入，任意可信可访问目录；当前宿主生成候选 |

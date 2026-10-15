@@ -1,6 +1,6 @@
 # 完整响应结构
 
-import {withBase} from '@rspress/core/runtime';
+第一次接入可以先读[如何读取结果](/guide/results)。本页保留完整字段和可下载示例，便于核对接口。
 
 ```ts
 type IntentResult = {
@@ -59,13 +59,15 @@ SourceRef 使用 root/pointer 和可选 quote，必须指向本次 input/context
 
 关系before表示from先于to；depends_on表示from依赖to。父级限制按作用域继承，不复制成多份权威约束。expectedOutput是明确交付物/成功标准，不承载重复的行为限制。
 
-以下示例对应显式提供的请求，ID整理为便于阅读的名称，原文及来源保持对应。下载文件中的config是独立MCP服务配置，request是intent_prepare参数；将config内容保存为可信.mjs的默认导出后，按[host流程](/integrations/codex)调用。可选diagnostics中的modelCallCount=0表示未调用额外服务端执行器；耗时不是性能保证。完整度只针对相关材料，不是全部业务状态。续传事实、问题和候选见[多轮对话](/guide/multi-turn)。
+以下是固定的完整结构示例，ID整理为便于阅读的名称，原文及来源保持对应；不是每次真实模型调用的确定文本或时延基准。下载文件中的config是独立MCP服务配置，request是intent_prepare参数；将config内容保存为可信.mjs的默认导出后，按[host流程](/integrations/codex)调用。
+
+host由当前宿主模型生成候选；diagnostics.modelCallCount=0只表示本服务端没有额外调用executor，不统计宿主模型总调用。durationMs覆盖本次识别的相关等待与处理，不是性能保证。完整度只针对相关材料，不是全部业务状态。续传事实、问题和候选见[多轮对话](/guide/multi-turn)。
 
 ## 完整字段结果
 
 输入：查询订单000741，不要把编号转成数字。
 
-<a href={withBase('/examples/order-request.json')} download>配置与请求</a> · <a href={withBase('/examples/order-result.json')} download>下载完整结果</a>
+<a href="/intent-runtime/examples/order-request.json" download target="_blank" rel="noopener noreferrer">配置与请求</a> · <a href="/intent-runtime/examples/order-result.json" download target="_blank" rel="noopener noreferrer">下载完整结果</a>
 
 <details>
 <summary>展开完整 JSON</summary>
@@ -218,7 +220,7 @@ SourceRef 使用 root/pointer 和可选 quote，必须指向本次 input/context
 
 输入：采用第三个提案，提案列表未提供；不要修改配置。
 
-<a href={withBase('/examples/clarification-request.json')} download>配置与请求</a> · <a href={withBase('/examples/clarification-result.json')} download>下载完整结果</a>
+<a href="/intent-runtime/examples/clarification-request.json" download target="_blank" rel="noopener noreferrer">配置与请求</a> · <a href="/intent-runtime/examples/clarification-result.json" download target="_blank" rel="noopener noreferrer">下载完整结果</a>
 
 <details>
 <summary>展开完整 JSON</summary>

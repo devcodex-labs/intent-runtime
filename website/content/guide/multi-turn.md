@@ -32,6 +32,13 @@ async function queryWithSuppliedFact(intent) {
 
 第二轮的编号来自显式Context。只传first.effective不能假定保留了该事实。
 
+| 轮次 | 关键结果 |
+|---|---|
+| 陈述订单编号 | turn.kind=statement，turn.facts.orderId="000123"，没有新增查询目标 |
+| 查询这个订单 | 新查询目标的inputs.orderId="000123"，来源指向本轮Context；保留禁止取消约束 |
+
+这只是关键路径说明，真实返回仍是完整IntentResult。需要独立可运行的Schema和三轮修改文件时，见[场景示例](/examples/index)。
+
 ## 修改、撤回和继承
 
 ```js

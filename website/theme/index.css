@@ -19,6 +19,9 @@
   --rp-home-background-bg: radial-gradient(ellipse at 50% 0%, #15352f 0%, transparent 65%), #121212;
 }
 .rp-home-hero {margin-top: 3rem; margin-bottom: 1.5rem;}
+.intent-sr-only {position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;}
+.intent-version-note {text-align: center; margin: 16px; font-size: 14px; color: var(--rp-c-text-2);}
+.intent-version-note a {color: var(--rp-c-brand); margin-left: .3em; text-decoration: underline;}
 :root .rp-home-footer__message {color: #59645f;}
 :root.rp-dark .rp-home-footer__message {color: #b5c7c3;}
 :root .rp-home-hero .rp-button--brand {background: #087e79; color: #fff;}
