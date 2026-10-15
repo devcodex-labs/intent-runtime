@@ -1,0 +1,29 @@
+{
+  "config": {
+    "mode": "host",
+    "instances": {
+      "target": {
+        "language": "zh-CN",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "pattern": "^0[0-9]+$"
+            }
+          }
+        }
+      }
+    }
+  },
+  "request": {
+    "input": "查询订单000741，不要把编号转成数字。",
+    "output": {
+      "evidence": true,
+      "diagnostics": true
+    },
+    "fields": [
+      "orderId"
+    ]
+  }
+}

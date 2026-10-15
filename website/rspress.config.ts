@@ -8,6 +8,8 @@ export default defineConfig({
   base,
   outDir: process.env.INTENT_DOCS_DIR ?? "dist",
   lang: "zh",
+  globalStyles: fileURLToPath(new URL("./theme/index.css", import.meta.url)),
+  themeDir: fileURLToPath(new URL("./theme", import.meta.url)),
   title: "intent-runtime",
   description: "面向应用与 AI 客户端的大模型意图结构化组件，识别当前请求、保留约束并按 Schema 提取业务字段。",
   logo: "/logo.svg",
@@ -30,8 +32,8 @@ export default defineConfig({
       { text: "集成", link: "/integrations/mcp", activeMatch: "^/integrations/" },
       { text: "API 参考", link: "/api/intent", activeMatch: "^/api/" },
       { text: "示例", link: "/examples/index", activeMatch: "^/examples/" },
-      { text: "测试与兼容", link: "/testing/validation", activeMatch: "^/testing/" },
-      { text: `v${version}`, link: `${repository}/blob/main/CHANGELOG.md` },
+      { text: "兼容与支持", link: "/testing/validation", activeMatch: "^/testing/" },
+      { text: "V2 文档", link: `${repository}/blob/main/CHANGELOG.md` },
     ],
     sidebar: {
       '/': [
@@ -41,6 +43,7 @@ export default defineConfig({
           {text: '安装与维护', link: '/guide/installation'},
           {text: '配置参考', link: '/guide/configuration'},
           {text: 'Schema 与多轮字段', link: '/guide/fields'},
+          {text: '多轮对话与结果消费', link: '/guide/multi-turn'},
         ]},
         {text: 'API 与接入', items: [
           {text: 'Native API', link: '/api/intent'},
@@ -53,11 +56,11 @@ export default defineConfig({
         ]},
         {text: '使用与验证', items: [
           {text: '场景示例', link: '/examples/index'},
-          {text: '测试与验收', link: '/testing/validation'},
+          {text: '兼容与支持', link: '/testing/validation'},
         ]},
       ],
     },
     socialLinks: [{ icon: "github", mode: "link", content: repository }],
-    footer: { message: "MIT License · devcodex-labs" },
+    footer: { message: `适用包版本 ${version} · MIT License · devcodex-labs` },
   },
 });

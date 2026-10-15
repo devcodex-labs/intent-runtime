@@ -1,12 +1,10 @@
 # 完整 TypeScript 类型
 
-以下类型来自本次实现的公开声明；运行行为、默认值和失败恢复见配置与 API 页面。内部候选不属于公开 API。
+这里列出SDK公开类型；参数默认值、调用行为和失败恢复见配置与API页面。根、模型API与MCP分别从对应入口导出。
 
 ## Native、结果与错误
 
 ```ts
-// Public contract: Usage Contract v0.7; success/baseline 2.0-draft.6.
-
 export type JsonValue = null | string | number | boolean | JsonValue[] | JsonObject;
 export type JsonObject = { [key: string]: JsonValue };
 
@@ -290,6 +288,8 @@ export declare function createIntentMcpAdapter(config: IntentMcpAdapterConfig): 
 ```
 
 ## 维护报告
+
+下面是CLI的JSON回复形状，不是从根SDK导出的类型。需要静态类型时可在应用中自行声明。
 
 ```ts
 export type MaintenanceReport = {command: 'setup' | 'doctor' | 'clean'; status: 'ok' | 'planned' | 'conflict' | 'failed'; changed: boolean; checks: Array<{name: string; status: 'pass' | 'fail' | 'skipped'; message: string}>; paths: string[]; warnings: string[]};

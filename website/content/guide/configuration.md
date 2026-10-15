@@ -1,29 +1,64 @@
 # 配置参考
 
-`new Intent(config)` 在创建时快照配置，不读取业务环境。
+`new Intent(config)` 创建实例并快照配置。改变规则时创建新实例；之后修改原配置对象不会更新已创建的实例。模型执行器保留调用方服务对象的连接状态，库不关闭共享服务。
 
-| 参数 | 默认 | 用途 |
+## IntentConfig
+
+| 路径 | 类型 / 必填 | 默认 | 用途与规则 |
+|---|---|---|---|
+| language | string / 否 | en | 解释文字的BCP 47语言标签；不翻译代码、编号或配置的动作标识 |
+| executor | ModelExecutor / Native与executor模式需要 | 无 | 显式模型来源；host不调用它，无默认供应商 |
+| schema | IntentSchema / 选择业务字段时需要 | 无 | schema-dsl@3.0.4 Builder或[支持的JSON Schema](/guide/fields) |
+| extensionSchema | IntentSchema / 否 | 无 | 意图附加语义标签；顶层名不能与schema业务参数重名 |
+| semantics | BusinessSemantics / 否 | 无 | 领域、术语、动作与正反例；不表示执行能力清单 |
+| timeoutMs | 非负安全整数 / 否 | 0 | 0不加识别期限；正值含模型、校验、host等待，最大2147483647ms |
+| defaultOutput | IntentOutputOptions / 否 | 各项false | 请求output按键覆盖，不替换整个默认对象 |
+| limits | Partial&lt;IntentLimits&gt; / 否 | 见下表 | 容量/工作限制，均为正安全整数，不由MCP参数改变 |
+
+配置与标准请求参数拒绝未知键，Context内部自由命名。Native可选顶层属性为undefined按省略；Context内部undefined不是JSON。无效配置通常在构造时抛错，见[错误参考](/api/errors)。
+
+## semantics
+
+| 路径 | 类型 / 必填 | 规则 |
 |---|---|---|
-| executor | 未配置 | 可信 ModelExecutor；Native/executor MCP 要求；host 不调用它 |
-| language | en | 有效 BCP 47 标签，支持登记标签、私用与扩展；业务解释遵循此语言 |
-| schema | 未配置 | 字段定义；选择字段时必需 |
-| extensionSchema | 未配置 | 扩展字段的独立定义；与业务顶层字段不能重名 |
-| semantics | 未配置 | domain、description、terms、actions 解释术语和动作；不是工具能力列表 |
-| timeoutMs | 0 | 0 无总期限；显式正整数覆盖整个识别，含 host 等待；最大 2147483647 |
-| defaultOutput | 全 false | suggestions、evidence、diagnostics、extensions |
-| limits | 下表 | 可信资源预算，MCP 调用者不能修改 |
+| domain | string / 否 | 领域名称 |
+| description | string / 否 | 业务说明 |
+| terms | 数组 / 否 | 每项name、meaning非空；aliases为可选字符串数组 |
+| actions | 数组 / 否 | 每项name、meaning非空；examples/counterExamples为可选字符串数组 |
 
-terms 包含非空 name/meaning，可选 aliases；actions 包含非空 name/meaning，可选 examples/counterExamples。同名含义冲突为 CONFIG_INVALID。明确匹配的 domain/action 标识保留配置名称，不随输出语言翻译。
+同名含义冲突报CONFIG_INVALID。明确匹配的domain/action保留配置名称，不随输出语言翻译。定义帮助理解，不把未支持动作删除或把示例当用户事实。
 
-| limits | 默认值 | 作用域 |
+## 输出选项
+
+| 路径 | 类型 / 默认 | 开启后 | 关闭后 |
+|---|---|---|---|
+| suggestions | boolean / false | 语义澄清/完善建议，无建议为[] | 不生成该附加部分 |
+| evidence | boolean / false | 详细来源，无证据为[] | 必要来源、issues、inferences仍保留 |
+| diagnostics | boolean / false | durationMs/modelCallCount | 不返回诊断部分 |
+| extensions | boolean / false | 按extensionSchema提取全部扩展顶层字段 | 不提取新标签；仍处理旧扩展失效 |
+
+`defaultOutput: {evidence:true}` 加 `output:{}` 仍开启证据；`output:{evidence:false}` 明确关闭。开启extensions却没有extensionSchema报SCHEMA_NOT_CONFIGURED；扩展不能绕过fields提取操作参数。
+
+## limits
+
+| 路径 | 默认 | 统计范围 |
 |---|---:|---|
-| maxInputBytes | 65536 | 当前 input 的 UTF-8 字节 |
-| maxContextBytes / maxBaselineBytes | 各 1048576 | 各自 JSON |
-| maxSchemaBytes | 262144 | 每份业务/扩展定义 |
-| maxRequestBytes | 3145728 | 静态配置材料和完整逻辑请求材料 |
-| maxOutputBytes | 1048576 | 每个候选文本、HostTask JSON、最终 Result 分别检查 |
-| maxDepth | 64 | 根容器深度 0 |
-| maxConcurrentParses | 8 | 同一 Intent 的 Native/host 活动识别及未结束底层工作 |
-| maxValidationChecks | 256 | 每条识别实际业务 Validator 调用；host 纠正不重置 |
+| maxInputBytes | 65536 | 原input的UTF-8字节 |
+| maxContextBytes | 1048576 | Context JSON |
+| maxBaselineBytes | 1048576 | baseline JSON |
+| maxSchemaBytes | 262144 | 每份业务/扩展Schema |
+| maxRequestBytes | 3145728 | 静态材料与完整逻辑请求，不能仅分别检查各部分 |
+| maxOutputBytes | 1048576 | 候选文本、HostTask、最终结果各自检查 |
+| maxDepth | 64 | JSON根容器深度0 |
+| maxConcurrentParses | 8 | 单个Intent的Native/host活动识别和未结束底层调用 |
+| maxValidationChecks | 256 | 单次识别业务校验调用数；host纠正不重置 |
 
-预算是容量/工作限制，不是默认超时。自定义执行器内部的任意分配不受本库物理约束。取消不配合的执行器会先返回取消，名额在底层实际结束后释放。
+超限报RESOURCE_LIMIT，不静默截断。预算不等于会话过期。取消不配合的外部执行器可先返回，但名额在其实际结束后才释放。库不保证终止调用方任意代码或退还模型费用。
+
+## 其他公开配置
+
+- [模型API](/integrations/api)：ApiExecutorConfig、地址、格式、响应体字节限制。
+- [MCP](/integrations/mcp)：IntentMcpAdapterConfig、独立服务配置、实例选择、前缀和协议。
+- [Codex](/integrations/codex)与[维护命令](/guide/installation)：可信文件、环境路径、CLI参数及退出码。
+
+完整类型见[类型参考](/api/types)。

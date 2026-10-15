@@ -1,0 +1,57 @@
+:root {
+  --rp-c-brand: #087e79;
+  --rp-c-brand-light: #0b9b91;
+  --rp-c-brand-lighter: #d6f4ec;
+  --rp-c-brand-dark: #06635f;
+  --rp-c-brand-darker: #064d4b;
+  --rp-c-brand-tint: #087e7912;
+  --rp-home-hero-secondary-color: #349aab;
+  --rp-home-background-bg: radial-gradient(ellipse at 50% 0%, #dff3ef 0%, transparent 65%), #fff;
+}
+:root.rp-dark {
+  --rp-c-brand: #51cdb4;
+  --rp-c-brand-light: #7cddc7;
+  --rp-c-brand-lighter: #193c37;
+  --rp-c-brand-dark: #38b59e;
+  --rp-c-brand-darker: #20a18c;
+  --rp-c-brand-tint: #51cdb419;
+  --rp-home-hero-secondary-color: #8fd6de;
+  --rp-home-background-bg: radial-gradient(ellipse at 50% 0%, #15352f 0%, transparent 65%), #121212;
+}
+.rp-home-hero {margin-top: 3rem; margin-bottom: 1.5rem;}
+:root .rp-home-footer__message {color: #59645f;}
+:root.rp-dark .rp-home-footer__message {color: #b5c7c3;}
+:root .rp-home-hero .rp-button--brand {background: #087e79; color: #fff;}
+:root.rp-dark .rp-home-hero .rp-button--brand {background: #51cdb4; color: #082d28;}
+:root.rp-dark .rp-home-hero .rp-button--alt {background: #213e36; color: #eff5f3; border-color: #537369;}
+.intent-theme-toggle {display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 0; border-radius: 8px; background: transparent; color: var(--rp-c-text-1); cursor: pointer;}
+.intent-theme-toggle:hover {background: var(--rp-c-brand-tint);}
+.intent-example {
+  display: grid;
+  grid-template-columns: 1fr auto 1.1fr;
+  gap: 28px;
+  align-items: center;
+  max-width: 960px;
+  margin: 32px auto 56px;
+  padding: 32px;
+  border: 1px solid var(--rp-c-divider);
+  border-radius: 20px;
+  background: linear-gradient(120deg, var(--rp-c-brand-tint), transparent 70%);
+}
+.intent-example-label {font-size: 13px; font-weight: 650; color: var(--rp-c-brand); letter-spacing: .05em;}
+.intent-example-input p {margin: 18px 0; font-size: clamp(20px, 3vw, 28px); line-height: 1.6; font-weight: 550;}
+.intent-example-input strong {font-variant-numeric: tabular-nums; color: var(--rp-c-brand);}
+.intent-example-arrow {font-size: 28px; color: var(--rp-c-brand);}
+.intent-example-output dl {margin: 14px 0 20px;}
+.intent-example-output dl > div {display: grid; grid-template-columns: 48px 1fr; gap: 12px; margin: 12px 0;}
+.intent-example-output dt {color: var(--rp-c-text-2);}
+.intent-example-output dd {margin: 0;}
+.intent-example-output code {white-space: normal; overflow-wrap: anywhere;}
+.intent-example-note {font-size: 12px; color: var(--rp-c-text-2); line-height: 1.6;}
+a:focus-visible, button:focus-visible {outline: 2px solid var(--rp-c-brand); outline-offset: 4px;}
+@media (max-width: 640px) {
+  .intent-entry-matrix table {table-layout: fixed; width: 100%;}
+  .intent-entry-matrix th, .intent-entry-matrix td {white-space: normal; overflow-wrap: anywhere;}
+  .intent-example {grid-template-columns: 1fr; gap: 12px; padding: 24px; margin: 24px 16px 40px;}
+  .intent-example-arrow {transform: rotate(90deg); justify-self: center;}
+}

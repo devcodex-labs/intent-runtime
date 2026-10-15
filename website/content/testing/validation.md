@@ -1,11 +1,37 @@
-# 验证范围
+# 兼容与支持
 
-固定测试使用可控语言候选隔离模型推理，实际调用 schema-dsl 3.0.4，并经正式核心生成结果；不直接返回预期 Result。真实 SDK stdio 测试分别协商三个目标协议，并经过 prepare → accept → 实际业务 worker 的字段链。
+本文是V2使用文档。页脚显示完整适用包版本，包含必要版本后缀；结果与baseline的schemaVersion固定为 `2.0-draft.6`，与npm版本不同。
 
-配置维护在临时 HOME/CODEX_HOME 下测试，不修改真实用户配置。Node.js 20.0.0 与 24.x、Linux/Windows/macOS、空目录 tarball、Native/API/MCP/CLI 入口分别验证。CI 是跨平台证据来源；本地一次 Linux 测试不能替代其他平台。
+## 运行环境
 
-真实供应商模型、Codex CLI/Desktop 当前模型来源、多语言语义和自然语言准确率需要独立记录。固定测试通过数、静态例子形状通过数、SDK 协商成功不能相加成为准确率，也不能证明宿主愿意完成候选交接。
+| 项目 | 范围 |
+|---|---|
+| Node.js | ≥20.0.0，ESM |
+| 平台 | Windows、macOS、Linux；Node20.0.0/24.x有跨平台自动化回归 |
+| schema-dsl | 固定集成3.0.4；[支持矩阵](/guide/fields)列出规则边界 |
+| CommonJS / 浏览器 | 不作为本版直接运行入口承诺 |
+| 文档构建 | 维护站点需要Node24，与安装运行库的最低版本分开 |
 
-仓库 `npm test` 运行固定回归；`npm run typecheck`、`npm run lint`、`npm run build` 和 `npm run check:package` 分别检查类型、边界、构建和安装包。测试/构建/模型记录可用 INTENT_TEST_DIR、INTENT_BUILD_DIR 或脚本的绝对输出路径放在项目之外。默认识别没有超时；维护启动诊断的有限等待只作用于维护流程。
+## 接入状态
 
-发布须通过包版本/tag 对照、精确提交的跨平台 CI 与 V2 验收门禁；未运行项不记为通过。真实语义或目标宿主未验收时，不宣称发布验收收敛。
+| 入口 | 状态与范围 |
+|---|---|
+| Native、stdio、SDK无关adapter | 有正式实现、安装包与自动化验证 |
+| MCP协议 | 2025-06-18、2025-11-25、2026-07-28分别有SDK协议验证 |
+| Codex CLI当前模型 | Linux、CLI0.162.1、gpt-6.1-sol配置已有真实接入与语义验证；实际协商2025-06-18 |
+| Codex Desktop | 接入配置已提供；尚未独立验证真实客户端 |
+| OpenAI / xAI Responses | 适配器已实现；错误/格式映射有自动化验证，真实供应商环境仍需单独验证 |
+| Streamable HTTP | 通过已有服务嵌入adapter；认证/监听/逻辑session由应用管理，本文stdio示例不证明任意HTTP部署兼容 |
+| 其他宿主 | 核心可组合；没有专用安装适配或客户端兼容保证 |
+
+客户端支持目标与实测版本分别看待。更换模型/客户端版本、SDK或部署环境后，应验证自己的实际配置。结构检查不能保证所有自然语言正确，特定语料通过率不作为产品总体准确率承诺。
+
+## 选择发行版本
+
+安装前确认你选用的npm发行包包含V2导出，不把旧版latest当作V2使用。文档适用版本与实际发行版本不一致时，使用对应版本文档/包；源码构建的tarball可用于本地检查，不代表npm已发布。
+
+当前文档不承诺仅安装包就自动处理宿主所有消息。默认识别timeoutMs=0，不加总期限；连接关闭、服务重启与宿主工具期限仍会影响调用。数小时/数日实际持续连接不由短时机制检查保证。
+
+## 遇到问题
+
+Codex先运行[doctor](/guide/installation)检查登记与启动；识别失败按[错误参考](/api/errors)检查code/stage。反馈问题时提供包/Node/客户端版本、系统、脱敏输入与安全错误摘要，勿包含凭据或完整敏感材料。可以通过[GitHub Issues](https://github.com/devcodex-labs/intent-runtime/issues)反馈。

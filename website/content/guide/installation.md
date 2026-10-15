@@ -9,6 +9,8 @@ intent-runtime setup --host codex --config /absolute/path/intent.host.config.mjs
 
 可信 `.mjs` 配置是普通 Node.js 代码，启动诊断会执行其初始化。host 配置不需要额外 API Key，见 [Codex 接入](/integrations/codex)。
 
+先按Codex页保存完整配置，再替换上面的绝对路径。全局配置推荐无包导入的JSON Schema；若配置使用Builder/API适配器导入，应放在安装了相应本地依赖的项目中。示例文件不随npm包安装，可从文档直接复制。
+
 ```bash
 intent-runtime doctor --host codex
 intent-runtime doctor --host codex --repair
@@ -19,7 +21,7 @@ intent-runtime clean --host codex
 |---|---|
 | `--host` | 必填，只支持 `codex` |
 | `--config` | setup 必填的现有绝对 `.mjs` 路径；其他维护命令禁止 |
-| `--name` | 默认 intent-runtime；1～64 字符 `[A-Za-z0-9_.-]`，拒绝原型特殊名称 |
+| `--name` | 默认 intent-runtime；1～64 字符 `[A-Za-z0-9_.-]`，不得使用 `__proto__`、`prototype`、`constructor` |
 | `--dry-run` | setup/clean/doctor --repair 可用；不写文件、不导入配置、不启动进程 |
 | `--json` | 输出一个 MaintenanceReport JSON 对象 |
 | `--help` / `--version` | 独立使用，不加载配置或启动服务 |
@@ -29,3 +31,7 @@ intent-runtime clean --host codex
 setup 幂等，仅编辑对应表。doctor 默认只读，通过实际 stdio 列工具，不调用模型。repair 只恢复仍有拥有权记录的缺项。用户编辑、同名其他工具、未知符号链接和不安全 TOML 布局会触发保护冲突。clean 不删除用户业务配置、环境变量或其他工具。
 
 报告始终含 `command/status/changed/checks/paths/warnings`。status 为 ok/planned/conflict/failed；changed 只反映实际写入。退出码：0 成功或计划，1 操作/启动失败，2 参数/配置无效，3 保护冲突或诊断不健康。事务逐文件提交，失败回滚仍属于本次写入的内容；并发用户编辑会被保留。中断恢复不使用时间过期或强制覆盖。
+
+## 更新
+
+显式安装你选定的新包版本后，按需重跑setup或doctor --repair，再重载客户端。更新不自动下载业务配置，也不覆盖用户改动。clean仅移除本模块拥有的登记/Skill，不删除你的配置文件或业务数据。

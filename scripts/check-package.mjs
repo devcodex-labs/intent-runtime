@@ -63,6 +63,7 @@ createIntentMcpAdapter({mode:'host',instances:{main:i}});
   const installed = path.join(consumer, 'node_modules', ...metadata.name.split('/'));
   for (const entry of ['dist/index.js','dist/schema/worker.mjs','integrations/codex/SKILL.md']) assertSame(await readFile(path.join(stage, entry)), await readFile(path.join(installed, entry)));
   for (const cli of ['index.js','mcp.js']) run(process.execPath, [path.join(installed, 'dist/cli', cli), '--help'], consumer);
+  if (!omit) run(process.execPath, [path.join(repo, 'scripts/check-doc-examples.mjs'), consumer, tarball], consumer);
   if (omit) for (const packageName of ['@modelcontextprotocol/server','@modelcontextprotocol/client']) if ((await readdir(path.join(consumer, 'node_modules/@modelcontextprotocol')).catch(() => [])).includes(packageName.split('/')[1])) throw new Error('Optional dependency isolation was not tested.');
 }
 function assertSame(a,b) {if (!a.equals(b)) throw new Error('Installed artifact differs from the built package.');}

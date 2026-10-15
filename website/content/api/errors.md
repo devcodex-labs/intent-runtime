@@ -17,13 +17,19 @@
 语义问题包括 AMBIGUOUS_REFERENCE、INTENT_INFORMATION_MISSING、CONSTRAINT_CONFLICT、RELATION_CONFLICT、CONTEXT_CONFLICT、CONTEXT_INCOMPLETE、UNCONFIRMED_INFERENCE。字段码包括 FIELD_REQUIRED_MISSING、FIELD_APPLICABILITY_UNKNOWN、FIELD_CARDINALITY_MISMATCH、FIELD_VALUE_INVALID、FIELD_DEPENDENCY_MISSING、FIELD_VALIDATION_UNDETERMINED、FIELD_INVALIDATED。
 
 ```js
-try {await intent.parse(request, {signal});}
-catch (error) {
-  if (error instanceof IntentError) console.log(error.toJSON());
-  else throw error;
+import {IntentError} from '@devcodex/intent-runtime';
+
+async function parseWithErrorSummary(intent, request, signal) {
+  try {return await intent.parse(request, {signal});}
+  catch (error) {
+    if (error instanceof IntentError) console.error(error.toJSON());
+    throw error;
+  }
 }
 ```
 
 序列化只包含 name/code/message/stage 和安全 details；cause 不枚举。标准技术错误消息稳定为通用英文，不包含用户原文或密钥。MCP 技术错误以 isError=true 与文本 `{error: ...}` 返回，不附 structuredContent 或 partialResult。
 
 应用保存此前结果与原始消息；失败不会替应用清空状态。技术重试由调用方显式决定。新旧请求乱序由应用 revision 控制。字段未知不触发模型自动补事实。
+
+上例是调用方辅助函数，不是SDK新增方法；Intent生命周期仍由调用方管理。PROCESSING_INCOMPLETE仅出现在技术失败已核实的partialResult中，不表示一份被截断的文本可当作正常结果。默认toJSON不附partialResult，完整结果可能含原始材料；明确需要时再用serialize选项，见[IntentError](/api/intent#intenterror)。

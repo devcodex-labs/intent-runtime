@@ -3,19 +3,22 @@ pageType: home
 hero:
   name: Intent Runtime
   text: 将用户意图结构化
-  tagline: 由调用方提供材料，以同一核心识别目标、约束、本轮变更和 Schema 字段。
+  tagline: 把自然语言中的目标、约束与业务参数，转成应用和 AI 客户端可以读取的结构化结果。
   actions:
     - theme: brand
-      text: 开始使用
+      text: 在 Node.js 中使用
       link: /guide/quick-start
     - theme: alt
-      text: 完整响应结构
-      link: /api/response
+      text: 接入 Codex
+      link: /integrations/codex
+    - theme: alt
+      text: 添加到 MCP tools
+      link: /integrations/mcp
 features:
-  - title: 一份有效意图
-    details: 完整目标只存于 effective；本轮通过 intentIds 和 changes 关联，保留约束、父子目标、澄清与不确定性。
-  - title: 可核验的业务字段
-    details: 使用 schema-dsl 3.0.4 校验所选字段与声明依赖，区分缺失、未知、无效和旧值失效。
-  - title: Native 与标准 MCP
-    details: 应用直接调用，已有 MCP 增加 tools，或当前宿主模型准备候选；同一识别核心验证和组装结果。
+  - title: 保留用户真正的要求
+    details: 同时表达目标、禁止事项、条件与先后关系；有歧义时保留问题和候选。
+  - title: 按对象提取业务参数
+    details: 使用 Schema 定义字段，区分明确值、缺失、无效与旧值失效；多个对象各有归属。
+  - title: 接续变化，保持边界
+    details: 显式传入上下文，识别补充、修改与撤回；应用继续负责工具、授权和执行。
 ---

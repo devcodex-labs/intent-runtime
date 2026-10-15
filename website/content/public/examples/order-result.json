@@ -1,0 +1,139 @@
+{
+  "schemaVersion": "2.0-draft.6",
+  "input": "查询订单000741，不要把编号转成数字。",
+  "status": "complete",
+  "turn": {
+    "kind": "request",
+    "normalizedInput": "查询订单编号为字符串“000741”的订单，保留前导零，不得把编号转成数字。",
+    "intentIds": [
+      "intent-1"
+    ],
+    "changes": [
+      {
+        "operation": "add",
+        "target": {
+          "kind": "intent",
+          "id": "intent-1"
+        },
+        "description": "新增查询订单000741的意图。",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": "",
+            "quote": "查询订单000741"
+          }
+        ],
+        "effect": "applied"
+      },
+      {
+        "operation": "add",
+        "target": {
+          "kind": "constraint",
+          "id": "constraint-1"
+        },
+        "description": "新增禁止将订单编号转成数字的约束。",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": "",
+            "quote": "不要把编号转成数字"
+          }
+        ],
+        "effect": "applied"
+      }
+    ],
+    "facts": {}
+  },
+  "effective": {
+    "schemaVersion": "2.0-draft.6",
+    "coverage": "complete",
+    "scope": "current_request",
+    "intents": [
+      {
+        "id": "intent-1",
+        "domain": "order",
+        "action": "query",
+        "target": "000741",
+        "goal": "查询订单000741。",
+        "understanding": "clear",
+        "constraints": [
+          {
+            "id": "constraint-1",
+            "kind": "prohibition",
+            "text": "不得把订单编号000741转成数字，须保留其字符串形式及前导零。",
+            "scope": {
+              "type": "intent",
+              "intentId": "intent-1"
+            }
+          }
+        ],
+        "inputs": {
+          "orderId": "000741"
+        },
+        "references": [],
+        "children": [],
+        "extensions": {},
+        "optional": false
+      }
+    ],
+    "constraints": [],
+    "relations": [],
+    "unresolved": []
+  },
+  "fieldResults": [
+    {
+      "container": "inputs",
+      "intentId": "intent-1",
+      "field": "orderId",
+      "path": "/orderId",
+      "status": "present",
+      "trigger": "selection",
+      "rawText": "000741",
+      "sourceRefs": [
+        {
+          "root": "input",
+          "pointer": "",
+          "quote": "000741"
+        }
+      ]
+    }
+  ],
+  "issues": [],
+  "inferences": [],
+  "evidence": [
+    {
+      "target": "/effective/intents/0/goal",
+      "sourceRefs": [
+        {
+          "root": "input",
+          "pointer": "",
+          "quote": "查询订单000741"
+        }
+      ]
+    },
+    {
+      "target": "/effective/intents/0/inputs/orderId",
+      "sourceRefs": [
+        {
+          "root": "input",
+          "pointer": "",
+          "quote": "000741"
+        }
+      ]
+    },
+    {
+      "target": "/effective/intents/0/constraints/0/text",
+      "sourceRefs": [
+        {
+          "root": "input",
+          "pointer": "",
+          "quote": "不要把编号转成数字"
+        }
+      ]
+    }
+  ],
+  "diagnostics": {
+    "durationMs": 30162.873389999997,
+    "modelCallCount": 0
+  }
+}
