@@ -162,7 +162,7 @@ const runnableExamples = [];
 for (const name of ['basic', 'parse', 'multi-turn']) {
   const trace = path.join(work, name + '-results.json');
   const env = {INTENT_API_KEY: 'controlled-test-only', INTENT_MODEL: 'controlled-language-reply', INTENT_DOC_TRACE: trace, INTENT_DOC_FAILURE: ''};
-  run(process.execPath, ['--import', preload, path.join(examples, 'api', name + '.mjs')], env);
+  run(process.execPath, ['--import', pathToFileURL(preload).href, path.join(examples, 'api', name + '.mjs')], env);
   const results = JSON.parse(await readFile(trace, 'utf8')).map(record => record.result);
   if (name === 'basic') {assert.equal(results.length, 1); assert.equal(results[0].fieldResults.length, 0); assert.equal(results[0].effective.intents[0].constraints[0].kind, 'prohibition');}
   if (name === 'parse') assert.equal(results[0].effective.intents[0].inputs.orderId, '000123');
@@ -177,7 +177,7 @@ for (const name of ['basic', 'parse', 'multi-turn']) {
     assert.deepEqual(third.effective.intents[0].inputs, {orderId: '000123', isVip: false, discount: 5});
     assert(!third.issues.some(i => i.field === 'discount'));
   }
-  const failed = spawnSync(process.execPath, ['--import', preload, path.join(examples, 'api', name + '.mjs')], {cwd: work, env: {...process.env, ...env, INTENT_DOC_FAILURE: 'auth'}, encoding: 'utf8'});
+  const failed = spawnSync(process.execPath, ['--import', pathToFileURL(preload).href, path.join(examples, 'api', name + '.mjs')], {cwd: work, env: {...process.env, ...env, INTENT_DOC_FAILURE: 'auth'}, encoding: 'utf8'});
   assert.equal(failed.status, 1); assert.equal(JSON.parse(failed.stderr.trim()).code, 'MODEL_AUTH_FAILED');
   runnableExamples.push({name, actualCoreResults: results.length, authenticationFailureHandled: true});
 }
