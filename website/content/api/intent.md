@@ -2,6 +2,14 @@
 
 根入口提供 `Intent`、`IntentError`、只读 `INTENT_RESULT_SCHEMA` 与公共类型。模型API和MCP是独立导出入口，见[接入选择](/guide/quick-start)。
 
+| 要查什么 | 位置 | 失败形式 |
+|---|---|---|
+| 初始化与可信配置 | [Intent](#intent)、[配置参考](/guide/configuration) | 构造同步抛错 |
+| 输入、Context、baseline、字段与取消 | [parse 参数](#parse参数) | Promise reject；正常 issues 不等于 reject |
+| 关闭与再次调用 | [Intent](#intent) | dispose 幂等；关闭后 parse 拒绝 |
+| 序列化错误 | [IntentError](#intenterror) | 默认安全摘要，可显式选择已有 partialResult |
+| 自有模型 | [ModelExecutor](#modelexecutor) | 生成候选，不直接生成最终结果 |
+
 ## Intent
 
 ```ts

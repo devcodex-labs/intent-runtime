@@ -1,0 +1,90 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"schemaVersion\":\"2.0-draft.6\",\"input\":\"查询订单000123，不要取消订单\",\"status\":\"complete\",\"turn\":{\"kind\":\"request\",\"normalizedInput\":\"查询订单000123，不要取消订单\",\"intentIds\":[\"intent-1\"],\"changes\":[{\"operation\":\"add\",\"target\":{\"kind\":\"intent\",\"id\":\"intent-1\"},\"description\":\"新增本轮明确请求\",\"sourceRefs\":[{\"root\":\"input\",\"pointer\":\"\"}],\"effect\":\"applied\"},{\"operation\":\"add\",\"target\":{\"kind\":\"constraint\",\"id\":\"constraint-1\"},\"description\":\"新增本轮明确请求\",\"sourceRefs\":[{\"root\":\"input\",\"pointer\":\"\"}],\"effect\":\"applied\"}],\"facts\":{}},\"effective\":{\"schemaVersion\":\"2.0-draft.6\",\"coverage\":\"complete\",\"scope\":\"current_request\",\"intents\":[{\"id\":\"intent-1\",\"domain\":null,\"action\":\"查询\",\"target\":\"订单000123\",\"goal\":\"查询订单000123\",\"understanding\":\"clear\",\"constraints\":[{\"id\":\"constraint-1\",\"kind\":\"prohibition\",\"text\":\"不要取消订单\",\"scope\":{\"type\":\"intent\",\"intentId\":\"intent-1\"}}],\"inputs\":{},\"references\":[],\"children\":[],\"extensions\":{}}],\"constraints\":[],\"relations\":[],\"unresolved\":[]},\"fieldResults\":[],\"issues\":[],\"inferences\":[]}"
+    }
+  ],
+  "structuredContent": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "查询订单000123，不要取消订单",
+    "status": "complete",
+    "turn": {
+      "kind": "request",
+      "normalizedInput": "查询订单000123，不要取消订单",
+      "intentIds": [
+        "intent-1"
+      ],
+      "changes": [
+        {
+          "operation": "add",
+          "target": {
+            "kind": "intent",
+            "id": "intent-1"
+          },
+          "description": "新增本轮明确请求",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        },
+        {
+          "operation": "add",
+          "target": {
+            "kind": "constraint",
+            "id": "constraint-1"
+          },
+          "description": "新增本轮明确请求",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-1",
+          "domain": null,
+          "action": "查询",
+          "target": "订单000123",
+          "goal": "查询订单000123",
+          "understanding": "clear",
+          "constraints": [
+            {
+              "id": "constraint-1",
+              "kind": "prohibition",
+              "text": "不要取消订单",
+              "scope": {
+                "type": "intent",
+                "intentId": "intent-1"
+              }
+            }
+          ],
+          "inputs": {},
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [],
+    "issues": [],
+    "inferences": []
+  },
+  "isError": false
+}

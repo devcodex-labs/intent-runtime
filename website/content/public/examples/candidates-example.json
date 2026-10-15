@@ -1,0 +1,137 @@
+{
+  "slug": "candidates",
+  "title": "调用方材料中的多个候选",
+  "config": {
+    "language": "zh-CN"
+  },
+  "request": {
+    "input": "实现登录，短信验证码或邮箱验证码，方式还没确定；先不修改代码"
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "实现登录，短信验证码或邮箱验证码，方式还没确定；先不修改代码",
+    "status": "partial",
+    "turn": {
+      "kind": "request",
+      "normalizedInput": "实现登录，短信验证码或邮箱验证码，方式还没确定；先不修改代码",
+      "intentIds": [
+        "intent-11"
+      ],
+      "changes": [
+        {
+          "operation": "add",
+          "target": {
+            "kind": "intent",
+            "id": "intent-11"
+          },
+          "description": "新增本轮明确请求",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        },
+        {
+          "operation": "add",
+          "target": {
+            "kind": "constraint",
+            "id": "constraint-10"
+          },
+          "description": "新增本轮明确请求",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "partial",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-11",
+          "domain": null,
+          "action": "实现",
+          "target": "登录",
+          "goal": "实现登录",
+          "understanding": "ambiguous",
+          "constraints": [],
+          "inputs": {},
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [
+        {
+          "id": "constraint-10",
+          "kind": "prohibition",
+          "text": "先不修改代码",
+          "scope": {
+            "type": "global"
+          }
+        }
+      ],
+      "relations": [],
+      "unresolved": [
+        "登录方式有两个未确认选项。"
+      ]
+    },
+    "fieldResults": [],
+    "issues": [
+      {
+        "id": "issue-method",
+        "code": "AMBIGUOUS_REFERENCE",
+        "category": "ambiguity",
+        "message": "登录方式有两个未确认选项。",
+        "intentId": "intent-11",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ],
+        "candidates": [
+          {
+            "id": "sms",
+            "description": "短信验证码",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          },
+          {
+            "id": "email",
+            "description": "邮箱验证码",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          }
+        ],
+        "questions": [
+          {
+            "question": "选择哪种登录方式？",
+            "optionIds": [
+              "sms",
+              "email"
+            ]
+          }
+        ]
+      }
+    ],
+    "inferences": []
+  }
+}

@@ -51,6 +51,15 @@ instance=orders，fields=["orderId"]，原始input：查询订单000123，不取
 
 应得到查询目标、禁止取消的约束和字符串编号000123。以accept的完整结果为准。Skill指导本次交接，不自动处理所有消息。
 
+| 你看到的内容 | 说明 | 是否最终识别结果 |
+|---|---|---|
+| prepare 的 HostTask | 提供 instructions、input、outputSchema 和本次交接身份 | 否 |
+| 模型生成的 candidateText | 当前模型对给定材料的候选理解，交给 accept 校验 | 否 |
+| accept 的 IntentResult | 校验和组装后的完整结构，读取字段状态与 issues | 是 |
+| 普通聊天回复或 cancel 状态 | 说明或本次交接结束 | 否 |
+
+工具可见但尚未完成 prepare/accept，只证明登记成功。第一次验证时确认完整链路；随后再次识别要显式传相关材料，MCP 连接不会替你保存业务对话。
+
 ## 工具与回复
 
 | 工具 | 输入 | 成功返回 |

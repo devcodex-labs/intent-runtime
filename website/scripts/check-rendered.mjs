@@ -5,7 +5,8 @@ import {fileURLToPath} from 'node:url';
 import {parse} from 'parse5';
 
 export const base = '/intent-runtime/';
-export const downloads = ['order-request', 'order-result', 'clarification-request', 'clarification-result'].map(name => base + 'examples/' + name + '.json');
+const scenarios = JSON.parse(await readFile(new URL('../content/public/examples/scenarios.json', import.meta.url), 'utf8'));
+export const downloads = ['order-request', 'order-result', 'clarification-request', 'clarification-result', 'native-request', 'native-result', 'executor-request', 'executor-result', 'scenarios', ...scenarios.cases.map(c => c.slug + '-example')].map(name => base + 'examples/' + name + '.json');
 const leakedSyntax = /import\s*\{\s*withBase\s*\}|href\s*=\s*\{\s*withBase\s*\(/u;
 export function inspectHtml(html) {
   const links = [], ids = new Set(), text = [];
@@ -50,6 +51,7 @@ export async function checkRendered(root) {
   for (const file of files.filter(file => file.endsWith('.html'))) {
     const name = relative(file);
     pages.set(name, assertPage(await readFile(file, 'utf8'), {home: name === 'index.html', response: name === 'api/response.html'}));
+    if (name !== '404.html') assert.equal(pages.get(name).h1, 1, 'Documentation page must have one H1: ' + name);
   }
   assert(pages.has('index.html') && pages.has('api/response.html'), 'Missing required rendered page');
   let links = 0;

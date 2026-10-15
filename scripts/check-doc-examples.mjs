@@ -3,11 +3,16 @@ import {cp, mkdir, mkdtemp, readFile, readdir, writeFile} from 'node:fs/promises
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath, pathToFileURL} from 'node:url';
+import {checkResultLinks} from './documentation/result-check.mjs';
 
 const repo = fileURLToPath(new URL('../', import.meta.url));
 const [consumer, tarball] = process.argv.slice(2);
 if (!consumer || !path.isAbsolute(consumer) || consumer.startsWith(repo)) throw new Error('Provide an external installed consumer directory.');
 const work = await mkdtemp(path.join(consumer, 'documentation-'));
+// Generated fixtures must still be reproducible through the installed core.
+// A shape-only check cannot establish field ownership or withdrawal identity.
+const generated = spawnSync(process.execPath, [path.join(repo, 'scripts/generate-doc-scenarios.mjs'), consumer], {encoding: 'utf8'});
+if (generated.status !== 0) throw new Error(generated.stdout + generated.stderr);
 const examples = path.join(work, 'examples');
 await cp(path.join(repo, 'examples'), examples, {recursive: true});
 function run(command, args, overrides = {}) {
@@ -25,11 +30,6 @@ const {StdioClientTransport} = await import(pathToFileURL(path.join(consumer, 'n
 const {INTENT_RESULT_SCHEMA} = await import(pathToFileURL(path.join(consumer, 'node_modules/@devcodex/intent-runtime/dist/index.js')).href);
 const {Validator} = await import(pathToFileURL(path.join(consumer, 'node_modules/schema-dsl/dist/pure.cjs')).href);
 const validator = new Validator({logger: false, strict: false, useDefaults: false, coerceTypes: false, removeAdditional: false, allErrors: true});
-function pointer(root, text) {
-  assert(text === '' || text.startsWith('/'));
-  assert(!/~(?![01])/u.test(text));
-  return text === '' ? root : text.slice(1).split('/').map(s => s.replace(/~1/g, '/').replace(/~0/g, '~')).reduce((value, key) => {assert(value !== null && typeof value === 'object' && Object.hasOwn(value, key), text); return value[key];}, root);
-}
 let resultExamples = 0;
 for (const stem of ['order', 'clarification']) {
   const input = JSON.parse(await readFile(path.join(repo, 'website/content/public/examples/' + stem + '-request.json'), 'utf8'));
@@ -41,24 +41,7 @@ for (const stem of ['order', 'clarification']) {
   const instanceConfig = input.config.instances[input.request.instance ?? names[0]];
   assert(instanceConfig);
   const materials = {...instanceConfig, ...input.request};
-  function sources(value) {
-    if (!value || typeof value !== 'object') return;
-    if ('root' in value && 'pointer' in value) {
-      assert(Object.hasOwn(materials, value.root));
-      const source = pointer(materials[value.root], value.pointer);
-      if (value.quote !== undefined) assert((typeof source === 'string' ? source : JSON.stringify(source)).includes(value.quote));
-    }
-    for (const child of Object.values(value)) sources(child);
-  }
-  sources(result);
-  const ids = new Set();
-  function add(value) {assert(!ids.has(value.id)); ids.add(value.id);}
-  function intents(nodes) {for (const node of nodes) {add(node); node.constraints.forEach(add); const local = new Set(); for (const ref of node.references) {assert(!local.has(ref.id)); local.add(ref.id);} intents(node.children);}}
-  intents(result.effective.intents);
-  result.effective.constraints.forEach(add); result.effective.relations.forEach(add); result.issues.forEach(add);
-  for (const change of result.turn.changes) {if (change.target.kind !== 'unresolved') assert(ids.has(change.target.id)); if (change.conditionId) assert(ids.has(change.conditionId));}
-  for (const id of result.turn.intentIds) assert(ids.has(id));
-  for (const entry of result.evidence ?? []) pointer(result, entry.target);
+  checkResultLinks(result, materials);
   resultExamples++;
 }
 validator.clearCache();
@@ -139,7 +122,7 @@ globalThis.fetch=async function(url,options){
  Object.assign(c.nodes[0],{domain:'订单',action:'查询',target:'订单000123',goal:'查询订单000123'});
  c.observations=[];
  const observation=(field,value)=>({ownerKey:'order',container:'inputs',field,presence:'known',withdrawn:false,valueJson:JSON.stringify(value),rawText:null,sources:[src],semantic:null});
- if(request.input.includes('不取消订单')){
+ if(/不(?:要)?取消订单/.test(request.input)){
   c.constraints=[{key:'no-cancel',priorRef:null,ownerKey:'order',scope:'intent',referenceKey:null,kind:'prohibition',text:'不取消订单',expressionJson:null,sources:[src]}];
   c.changes.push({operation:'add',effect:'applied',targetKind:'constraint',targetKey:'no-cancel',conditionKey:null,description:'保留禁止取消约束',sources:[src],deltaHints:[]});
  }
@@ -159,13 +142,13 @@ globalThis.fetch=async function(url,options){
 };
 `);
 const runnableExamples = [];
-for (const name of ['basic', 'parse', 'multi-turn']) {
+for (const name of ['basic', 'parse', 'multi-turn', 'native-response']) {
   const trace = path.join(work, name + '-results.json');
   const env = {INTENT_API_KEY: 'controlled-test-only', INTENT_MODEL: 'controlled-language-reply', INTENT_DOC_TRACE: trace, INTENT_DOC_FAILURE: ''};
   run(process.execPath, ['--import', pathToFileURL(preload).href, path.join(examples, 'api', name + '.mjs')], env);
   const results = JSON.parse(await readFile(trace, 'utf8')).map(record => record.result);
   if (name === 'basic') {assert.equal(results.length, 1); assert.equal(results[0].fieldResults.length, 0); assert.equal(results[0].effective.intents[0].constraints[0].kind, 'prohibition');}
-  if (name === 'parse') assert.equal(results[0].effective.intents[0].inputs.orderId, '000123');
+  if (name === 'parse' || name === 'native-response') assert.equal(results[0].effective.intents[0].inputs.orderId, '000123');
   if (name === 'multi-turn') {
     assert.equal(results.length, 3);
     const [first, second, third] = results;
@@ -182,4 +165,4 @@ for (const name of ['basic', 'parse', 'multi-turn']) {
   runnableExamples.push({name, actualCoreResults: results.length, authenticationFailureHandled: true});
 }
 await writeFile(path.join(work, 'verification.json'), JSON.stringify({node: process.version, syntaxFiles, customExecutorStrictTypes: true, resultExamples, protocolRecords, globalMaintenance, runnableExamples, realProviderCalls: 0, scope: 'User documentation installation/configuration/SDK examples and static result fixtures; not model semantic acceptance.'}, null, 2) + '\n');
-console.log('User examples verified: ' + syntaxFiles + ' ESM files, strict custom executor, ' + resultExamples + ' full responses, 3 actual SDK protocols, 3 runnable API examples and auth failure branches, ' + (tarball ? 'isolated global setup/doctor/clean' : 'no new global install') + '.');
+console.log('User examples verified: ' + syntaxFiles + ' ESM files, strict custom executor, ' + resultExamples + ' full responses, 3 actual SDK protocols, 4 runnable API examples and auth failure branches, ' + (tarball ? 'isolated global setup/doctor/clean' : 'no new global install') + '.');

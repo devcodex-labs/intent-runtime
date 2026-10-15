@@ -1,0 +1,2836 @@
+{
+  "method": "Fixed language candidates processed by the installed core; real schema-dsl business validation where configured. Opaque IDs renamed consistently. Not a real-model accuracy benchmark.",
+  "cases": [
+    {
+      "slug": "basic",
+      "title": "只识别意图与约束",
+      "config": {
+        "language": "zh-CN"
+      },
+      "request": {
+        "input": "查询订单000123，不要取消订单"
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "查询订单000123，不要取消订单",
+        "status": "complete",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "查询订单000123，不要取消订单",
+          "intentIds": [
+            "intent-1"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-1"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "constraint",
+                "id": "constraint-1"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-1",
+              "domain": null,
+              "action": "查询",
+              "target": "订单000123",
+              "goal": "查询订单000123",
+              "understanding": "clear",
+              "constraints": [
+                {
+                  "id": "constraint-1",
+                  "kind": "prohibition",
+                  "text": "不要取消订单",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-1"
+                  }
+                }
+              ],
+              "inputs": {},
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "native",
+      "title": "字符串订单编号",
+      "config": {
+        "language": "zh-CN",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "查询订单000123，不要取消订单",
+        "fields": [
+          "orderId"
+        ]
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "查询订单000123，不要取消订单",
+        "status": "complete",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "查询订单000123，不要取消订单",
+          "intentIds": [
+            "intent-2"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-2"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "constraint",
+                "id": "constraint-2"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-2",
+              "domain": null,
+              "action": "查询",
+              "target": "订单000123",
+              "goal": "查询订单000123",
+              "understanding": "clear",
+              "constraints": [
+                {
+                  "id": "constraint-2",
+                  "kind": "prohibition",
+                  "text": "不要取消订单",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-2"
+                  }
+                }
+              ],
+              "inputs": {
+                "orderId": "000123"
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [
+          {
+            "container": "inputs",
+            "intentId": "intent-2",
+            "field": "orderId",
+            "path": "/orderId",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          }
+        ],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "conditional",
+      "title": "条件未成立不提前撤回",
+      "config": {
+        "language": "zh-CN",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "如果检查失败才撤回查询，尚未检查，其他不变",
+        "baseline": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-2",
+              "domain": null,
+              "action": "查询",
+              "target": "订单000123",
+              "goal": "查询订单000123",
+              "understanding": "clear",
+              "constraints": [
+                {
+                  "id": "constraint-2",
+                  "kind": "prohibition",
+                  "text": "不要取消订单",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-2"
+                  }
+                }
+              ],
+              "inputs": {
+                "orderId": "000123"
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        }
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "如果检查失败才撤回查询，尚未检查，其他不变",
+        "status": "complete",
+        "turn": {
+          "kind": "amendment",
+          "normalizedInput": "如果检查失败才撤回查询，尚未检查，其他不变",
+          "intentIds": [
+            "intent-2"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "constraint",
+                "id": "constraint-3"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "withdraw",
+              "target": {
+                "kind": "intent",
+                "id": "intent-2"
+              },
+              "description": "撤回所指目标",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "conditional",
+              "conditionId": "constraint-3"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "provided_materials",
+          "intents": [
+            {
+              "id": "intent-2",
+              "domain": null,
+              "action": "查询",
+              "target": "订单000123",
+              "goal": "查询订单000123",
+              "understanding": "clear",
+              "constraints": [
+                {
+                  "id": "constraint-2",
+                  "kind": "prohibition",
+                  "text": "不要取消订单",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-2"
+                  }
+                },
+                {
+                  "id": "constraint-3",
+                  "kind": "precondition",
+                  "text": "只有检查失败才撤回查询，当前尚未检查",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-2"
+                  }
+                }
+              ],
+              "inputs": {
+                "orderId": "000123"
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "two-orders",
+      "title": "多个订单各有归属",
+      "config": {
+        "language": "zh-CN",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "查询订单000123和000456",
+        "fields": [
+          "orderId"
+        ]
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "查询订单000123和000456",
+        "status": "complete",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "查询订单000123和000456",
+          "intentIds": [
+            "intent-3",
+            "intent-4"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-3"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-4"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-3",
+              "domain": null,
+              "action": "查询",
+              "target": "订单000123",
+              "goal": "查询订单000123",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {
+                "orderId": "000123"
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            },
+            {
+              "id": "intent-4",
+              "domain": null,
+              "action": "查询",
+              "target": "订单000456",
+              "goal": "查询订单000456",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {
+                "orderId": "000456"
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [
+          {
+            "container": "inputs",
+            "intentId": "intent-3",
+            "field": "orderId",
+            "path": "/orderId",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          },
+          {
+            "container": "inputs",
+            "intentId": "intent-4",
+            "field": "orderId",
+            "path": "/orderId",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          }
+        ],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "requirements",
+      "title": "父子需求与四类约束",
+      "config": {
+        "language": "zh-CN"
+      },
+      "request": {
+        "input": "请实现用户模块，包含可并行开发的登录和注册。登录需要邮箱验证码，审核通过后才启用；优先沿用现有样式。整个模块不要修改数据库，交付中文使用说明。"
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "请实现用户模块，包含可并行开发的登录和注册。登录需要邮箱验证码，审核通过后才启用；优先沿用现有样式。整个模块不要修改数据库，交付中文使用说明。",
+        "status": "complete",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "请实现用户模块，包含可并行开发的登录和注册。登录需要邮箱验证码，审核通过后才启用；优先沿用现有样式。整个模块不要修改数据库，交付中文使用说明。",
+          "intentIds": [
+            "intent-5",
+            "intent-6",
+            "intent-7"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-5"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-6"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-7"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "constraint",
+                "id": "constraint-4"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "constraint",
+                "id": "constraint-5"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "constraint",
+                "id": "constraint-6"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "constraint",
+                "id": "constraint-7"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "relation",
+                "id": "relation-1"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-5",
+              "domain": null,
+              "action": "实现",
+              "target": "用户模块",
+              "goal": "实现用户模块",
+              "understanding": "clear",
+              "constraints": [
+                {
+                  "id": "constraint-4",
+                  "kind": "prohibition",
+                  "text": "不要修改数据库",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-5"
+                  }
+                }
+              ],
+              "inputs": {},
+              "references": [],
+              "children": [
+                {
+                  "id": "intent-6",
+                  "domain": null,
+                  "action": "实现",
+                  "target": "登录",
+                  "goal": "实现登录",
+                  "understanding": "clear",
+                  "constraints": [
+                    {
+                      "id": "constraint-5",
+                      "kind": "requirement",
+                      "text": "登录需要邮箱验证码",
+                      "scope": {
+                        "type": "intent",
+                        "intentId": "intent-6"
+                      }
+                    },
+                    {
+                      "id": "constraint-6",
+                      "kind": "precondition",
+                      "text": "审核通过后才启用登录",
+                      "scope": {
+                        "type": "intent",
+                        "intentId": "intent-6"
+                      }
+                    },
+                    {
+                      "id": "constraint-7",
+                      "kind": "preference",
+                      "text": "优先沿用现有样式",
+                      "scope": {
+                        "type": "intent",
+                        "intentId": "intent-6"
+                      }
+                    }
+                  ],
+                  "inputs": {},
+                  "references": [],
+                  "children": [],
+                  "extensions": {}
+                },
+                {
+                  "id": "intent-7",
+                  "domain": null,
+                  "action": "实现",
+                  "target": "注册",
+                  "goal": "实现注册",
+                  "understanding": "clear",
+                  "constraints": [],
+                  "inputs": {},
+                  "references": [],
+                  "children": [],
+                  "extensions": {}
+                }
+              ],
+              "extensions": {},
+              "expectedOutput": [
+                "中文使用说明"
+              ]
+            }
+          ],
+          "constraints": [],
+          "relations": [
+            {
+              "id": "relation-1",
+              "fromId": "intent-6",
+              "toId": "intent-7",
+              "kind": "parallel"
+            }
+          ],
+          "unresolved": []
+        },
+        "fieldResults": [],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "withdraw",
+      "title": "撤回子项并修改交付语言",
+      "config": {
+        "language": "zh-CN"
+      },
+      "request": {
+        "input": "撤回注册和对应并行关系，登录保留，说明文档改英文，其他不变",
+        "baseline": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-5",
+              "domain": null,
+              "action": "实现",
+              "target": "用户模块",
+              "goal": "实现用户模块",
+              "understanding": "clear",
+              "constraints": [
+                {
+                  "id": "constraint-4",
+                  "kind": "prohibition",
+                  "text": "不要修改数据库",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-5"
+                  }
+                }
+              ],
+              "inputs": {},
+              "references": [],
+              "children": [
+                {
+                  "id": "intent-6",
+                  "domain": null,
+                  "action": "实现",
+                  "target": "登录",
+                  "goal": "实现登录",
+                  "understanding": "clear",
+                  "constraints": [
+                    {
+                      "id": "constraint-5",
+                      "kind": "requirement",
+                      "text": "登录需要邮箱验证码",
+                      "scope": {
+                        "type": "intent",
+                        "intentId": "intent-6"
+                      }
+                    },
+                    {
+                      "id": "constraint-6",
+                      "kind": "precondition",
+                      "text": "审核通过后才启用登录",
+                      "scope": {
+                        "type": "intent",
+                        "intentId": "intent-6"
+                      }
+                    },
+                    {
+                      "id": "constraint-7",
+                      "kind": "preference",
+                      "text": "优先沿用现有样式",
+                      "scope": {
+                        "type": "intent",
+                        "intentId": "intent-6"
+                      }
+                    }
+                  ],
+                  "inputs": {},
+                  "references": [],
+                  "children": [],
+                  "extensions": {}
+                },
+                {
+                  "id": "intent-7",
+                  "domain": null,
+                  "action": "实现",
+                  "target": "注册",
+                  "goal": "实现注册",
+                  "understanding": "clear",
+                  "constraints": [],
+                  "inputs": {},
+                  "references": [],
+                  "children": [],
+                  "extensions": {}
+                }
+              ],
+              "extensions": {},
+              "expectedOutput": [
+                "中文使用说明"
+              ]
+            }
+          ],
+          "constraints": [],
+          "relations": [
+            {
+              "id": "relation-1",
+              "fromId": "intent-6",
+              "toId": "intent-7",
+              "kind": "parallel"
+            }
+          ],
+          "unresolved": []
+        }
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "撤回注册和对应并行关系，登录保留，说明文档改英文，其他不变",
+        "status": "complete",
+        "turn": {
+          "kind": "amendment",
+          "normalizedInput": "撤回注册和对应并行关系，登录保留，说明文档改英文，其他不变",
+          "intentIds": [
+            "intent-5",
+            "intent-6"
+          ],
+          "changes": [
+            {
+              "operation": "modify",
+              "target": {
+                "kind": "intent",
+                "id": "intent-5"
+              },
+              "description": "只修改本轮指定内容",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied",
+              "deltas": [
+                {
+                  "path": "/expectedOutput",
+                  "operation": "set",
+                  "after": [
+                    "英文使用说明"
+                  ],
+                  "before": [
+                    "中文使用说明"
+                  ]
+                }
+              ]
+            },
+            {
+              "operation": "withdraw",
+              "target": {
+                "kind": "intent",
+                "id": "intent-7"
+              },
+              "description": "撤回所指目标",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "withdraw",
+              "target": {
+                "kind": "relation",
+                "id": "relation-1"
+              },
+              "description": "撤回所指目标",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "provided_materials",
+          "intents": [
+            {
+              "id": "intent-5",
+              "domain": null,
+              "action": "实现",
+              "target": "用户模块",
+              "goal": "实现用户模块",
+              "understanding": "clear",
+              "constraints": [
+                {
+                  "id": "constraint-4",
+                  "kind": "prohibition",
+                  "text": "不要修改数据库",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-5"
+                  }
+                }
+              ],
+              "inputs": {},
+              "references": [],
+              "children": [
+                {
+                  "id": "intent-6",
+                  "domain": null,
+                  "action": "实现",
+                  "target": "登录",
+                  "goal": "实现登录",
+                  "understanding": "clear",
+                  "constraints": [
+                    {
+                      "id": "constraint-5",
+                      "kind": "requirement",
+                      "text": "登录需要邮箱验证码",
+                      "scope": {
+                        "type": "intent",
+                        "intentId": "intent-6"
+                      }
+                    },
+                    {
+                      "id": "constraint-6",
+                      "kind": "precondition",
+                      "text": "审核通过后才启用登录",
+                      "scope": {
+                        "type": "intent",
+                        "intentId": "intent-6"
+                      }
+                    },
+                    {
+                      "id": "constraint-7",
+                      "kind": "preference",
+                      "text": "优先沿用现有样式",
+                      "scope": {
+                        "type": "intent",
+                        "intentId": "intent-6"
+                      }
+                    }
+                  ],
+                  "inputs": {},
+                  "references": [],
+                  "children": [],
+                  "extensions": {}
+                }
+              ],
+              "extensions": {},
+              "expectedOutput": [
+                "英文使用说明"
+              ]
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "vip",
+      "title": "VIP优惠：为订单000123设置VIP=true，优惠15",
+      "config": {
+        "language": "zh-CN",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            },
+            "isVip": {
+              "type": "boolean"
+            },
+            "discount": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "if": {
+            "properties": {
+              "isVip": {
+                "const": true
+              }
+            },
+            "required": [
+              "isVip"
+            ]
+          },
+          "then": {
+            "properties": {
+              "discount": {
+                "maximum": 20
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "discount": {
+                "maximum": 10
+              }
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "为订单000123设置VIP=true，优惠15",
+        "fields": "all"
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "为订单000123设置VIP=true，优惠15",
+        "status": "complete",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "为订单000123设置VIP=true，优惠15",
+          "intentIds": [
+            "intent-8"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-8"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-8",
+              "domain": null,
+              "action": "设置",
+              "target": "订单000123的VIP和优惠",
+              "goal": "设置订单000123的VIP和优惠",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {
+                "orderId": "000123",
+                "isVip": true,
+                "discount": 15
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [
+          {
+            "container": "inputs",
+            "intentId": "intent-8",
+            "field": "orderId",
+            "path": "/orderId",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          },
+          {
+            "container": "inputs",
+            "intentId": "intent-8",
+            "field": "isVip",
+            "path": "/isVip",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          },
+          {
+            "container": "inputs",
+            "intentId": "intent-8",
+            "field": "discount",
+            "path": "/discount",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          }
+        ],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "vip-changed",
+      "title": "VIP优惠：这个订单改为非VIP，其他不变",
+      "config": {
+        "language": "zh-CN",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            },
+            "isVip": {
+              "type": "boolean"
+            },
+            "discount": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "if": {
+            "properties": {
+              "isVip": {
+                "const": true
+              }
+            },
+            "required": [
+              "isVip"
+            ]
+          },
+          "then": {
+            "properties": {
+              "discount": {
+                "maximum": 20
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "discount": {
+                "maximum": 10
+              }
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "这个订单改为非VIP，其他不变",
+        "fields": [
+          "isVip"
+        ],
+        "baseline": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-8",
+              "domain": null,
+              "action": "设置",
+              "target": "订单000123的VIP和优惠",
+              "goal": "设置订单000123的VIP和优惠",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {
+                "orderId": "000123",
+                "isVip": true,
+                "discount": 15
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        }
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "这个订单改为非VIP，其他不变",
+        "status": "complete",
+        "turn": {
+          "kind": "amendment",
+          "normalizedInput": "这个订单改为非VIP，其他不变",
+          "intentIds": [
+            "intent-8"
+          ],
+          "changes": [
+            {
+              "operation": "modify",
+              "target": {
+                "kind": "intent",
+                "id": "intent-8"
+              },
+              "description": "只修改本轮指定内容",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "provided_materials",
+          "intents": [
+            {
+              "id": "intent-8",
+              "domain": null,
+              "action": "设置",
+              "target": "订单000123的VIP和优惠",
+              "goal": "设置订单000123的VIP和优惠",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {
+                "orderId": "000123",
+                "isVip": false
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [
+          {
+            "container": "inputs",
+            "intentId": "intent-8",
+            "field": "isVip",
+            "path": "/isVip",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          },
+          {
+            "container": "inputs",
+            "intentId": "intent-8",
+            "field": "discount",
+            "path": "/discount",
+            "status": "invalidated",
+            "trigger": "invalidation",
+            "explanation": "提供值违反声明规则。",
+            "sourceRefs": [
+              {
+                "root": "baseline",
+                "pointer": "/intents/0/inputs/discount"
+              }
+            ]
+          }
+        ],
+        "issues": [
+          {
+            "id": "field-0",
+            "code": "FIELD_INVALIDATED",
+            "category": "data",
+            "message": "提供值违反声明规则。",
+            "container": "inputs",
+            "field": "discount",
+            "path": "/discount",
+            "sourceRefs": [
+              {
+                "root": "baseline",
+                "pointer": "/intents/0/inputs/discount"
+              }
+            ],
+            "intentId": "intent-8"
+          }
+        ],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "vip-fixed",
+      "title": "VIP优惠：优惠改为5",
+      "config": {
+        "language": "zh-CN",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            },
+            "isVip": {
+              "type": "boolean"
+            },
+            "discount": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "if": {
+            "properties": {
+              "isVip": {
+                "const": true
+              }
+            },
+            "required": [
+              "isVip"
+            ]
+          },
+          "then": {
+            "properties": {
+              "discount": {
+                "maximum": 20
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "discount": {
+                "maximum": 10
+              }
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "优惠改为5",
+        "fields": [
+          "discount"
+        ],
+        "baseline": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "provided_materials",
+          "intents": [
+            {
+              "id": "intent-8",
+              "domain": null,
+              "action": "设置",
+              "target": "订单000123的VIP和优惠",
+              "goal": "设置订单000123的VIP和优惠",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {
+                "orderId": "000123",
+                "isVip": false
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "context": {
+          "previousIssues": [
+            {
+              "id": "field-0",
+              "code": "FIELD_INVALIDATED",
+              "category": "data",
+              "message": "提供值违反声明规则。",
+              "container": "inputs",
+              "field": "discount",
+              "path": "/discount",
+              "sourceRefs": [
+                {
+                  "root": "baseline",
+                  "pointer": "/intents/0/inputs/discount"
+                }
+              ],
+              "intentId": "intent-8"
+            }
+          ]
+        }
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "优惠改为5",
+        "status": "complete",
+        "turn": {
+          "kind": "amendment",
+          "normalizedInput": "优惠改为5",
+          "intentIds": [
+            "intent-8"
+          ],
+          "changes": [
+            {
+              "operation": "modify",
+              "target": {
+                "kind": "intent",
+                "id": "intent-8"
+              },
+              "description": "只修改本轮指定内容",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "provided_materials",
+          "intents": [
+            {
+              "id": "intent-8",
+              "domain": null,
+              "action": "设置",
+              "target": "订单000123的VIP和优惠",
+              "goal": "设置订单000123的VIP和优惠",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {
+                "orderId": "000123",
+                "isVip": false,
+                "discount": 5
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [
+          {
+            "container": "inputs",
+            "intentId": "intent-8",
+            "field": "discount",
+            "path": "/discount",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          }
+        ],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "removed",
+      "title": "撤回字段要求",
+      "config": {
+        "language": "zh-CN",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            },
+            "isVip": {
+              "type": "boolean"
+            },
+            "discount": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "if": {
+            "properties": {
+              "isVip": {
+                "const": true
+              }
+            },
+            "required": [
+              "isVip"
+            ]
+          },
+          "then": {
+            "properties": {
+              "discount": {
+                "maximum": 20
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "discount": {
+                "maximum": 10
+              }
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "撤回优惠参数要求，VIP和编号保持不变",
+        "fields": [
+          "discount"
+        ],
+        "baseline": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "provided_materials",
+          "intents": [
+            {
+              "id": "intent-8",
+              "domain": null,
+              "action": "设置",
+              "target": "订单000123的VIP和优惠",
+              "goal": "设置订单000123的VIP和优惠",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {
+                "orderId": "000123",
+                "isVip": false,
+                "discount": 5
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        }
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "撤回优惠参数要求，VIP和编号保持不变",
+        "status": "complete",
+        "turn": {
+          "kind": "amendment",
+          "normalizedInput": "撤回优惠参数要求，VIP和编号保持不变",
+          "intentIds": [
+            "intent-8"
+          ],
+          "changes": [
+            {
+              "operation": "modify",
+              "target": {
+                "kind": "intent",
+                "id": "intent-8"
+              },
+              "description": "只修改本轮指定内容",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "provided_materials",
+          "intents": [
+            {
+              "id": "intent-8",
+              "domain": null,
+              "action": "设置",
+              "target": "订单000123的VIP和优惠",
+              "goal": "设置订单000123的VIP和优惠",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {
+                "orderId": "000123",
+                "isVip": false
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [
+          {
+            "container": "inputs",
+            "intentId": "intent-8",
+            "field": "discount",
+            "path": "/discount",
+            "status": "removed",
+            "trigger": "selection",
+            "explanation": "用户改变了原值，不提取未选择的替代值。",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          }
+        ],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "facts",
+      "title": "没有操作的事实",
+      "config": {
+        "language": "zh-CN",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "订单编号是000123。",
+        "fields": [
+          "orderId"
+        ]
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "订单编号是000123。",
+        "status": "complete",
+        "turn": {
+          "kind": "statement",
+          "normalizedInput": "订单编号是000123。",
+          "intentIds": [],
+          "changes": [],
+          "facts": {
+            "orderId": "000123"
+          }
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [
+          {
+            "container": "facts",
+            "intentId": null,
+            "field": "orderId",
+            "path": "/orderId",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          }
+        ],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "fact-query",
+      "title": "显式续传事实再查询",
+      "config": {
+        "language": "zh-CN",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "查询这个订单，不要取消订单",
+        "fields": [
+          "orderId"
+        ],
+        "context": {
+          "previousFacts": {
+            "orderId": "000123"
+          }
+        }
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "查询这个订单，不要取消订单",
+        "status": "complete",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "查询这个订单，不要取消订单",
+          "intentIds": [
+            "intent-9"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-9"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "constraint",
+                "id": "constraint-8"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "provided_materials",
+          "intents": [
+            {
+              "id": "intent-9",
+              "domain": null,
+              "action": "查询",
+              "target": "订单000123",
+              "goal": "查询订单000123",
+              "understanding": "clear",
+              "constraints": [
+                {
+                  "id": "constraint-8",
+                  "kind": "prohibition",
+                  "text": "不要取消订单",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-9"
+                  }
+                }
+              ],
+              "inputs": {
+                "orderId": "000123"
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [
+          {
+            "container": "inputs",
+            "intentId": "intent-9",
+            "field": "orderId",
+            "path": "/orderId",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "context",
+                "pointer": "/previousFacts/orderId"
+              }
+            ]
+          }
+        ],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "ambiguity",
+      "title": "对象不明时澄清",
+      "config": {
+        "language": "zh-CN"
+      },
+      "request": {
+        "input": "采用第三个方案，但方案列表未提供；先不修改代码"
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "采用第三个方案，但方案列表未提供；先不修改代码",
+        "status": "partial",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "采用第三个方案，但方案列表未提供；先不修改代码",
+          "intentIds": [
+            "intent-10"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-10"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "constraint",
+                "id": "constraint-9"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "partial",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-10",
+              "domain": null,
+              "action": "采用",
+              "target": "第三个方案",
+              "goal": "采用第三个方案",
+              "understanding": "ambiguous",
+              "constraints": [],
+              "inputs": {},
+              "references": [
+                {
+                  "id": "reference-1",
+                  "kind": "entity",
+                  "ref": null,
+                  "resolved": false,
+                  "description": "未提供列表中的第三个方案",
+                  "sourceRefs": [
+                    {
+                      "root": "input",
+                      "pointer": ""
+                    }
+                  ]
+                }
+              ],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [
+            {
+              "id": "constraint-9",
+              "kind": "prohibition",
+              "text": "先不修改代码",
+              "scope": {
+                "type": "global"
+              }
+            }
+          ],
+          "relations": [],
+          "unresolved": [
+            "未提供方案列表，不能确定第三个方案。"
+          ]
+        },
+        "fieldResults": [],
+        "issues": [
+          {
+            "id": "issue-proposal",
+            "code": "AMBIGUOUS_REFERENCE",
+            "category": "ambiguity",
+            "message": "未提供方案列表，不能确定第三个方案。",
+            "intentId": "intent-10",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ],
+            "questions": [
+              {
+                "question": "请提供第三个方案的内容。"
+              }
+            ]
+          }
+        ],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "answer",
+      "title": "回答澄清仍保留禁止事项",
+      "config": {
+        "language": "zh-CN"
+      },
+      "request": {
+        "input": "第三个方案就是邮箱验证码方案，采用它，仍不修改代码",
+        "baseline": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "partial",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-10",
+              "domain": null,
+              "action": "采用",
+              "target": "第三个方案",
+              "goal": "采用第三个方案",
+              "understanding": "ambiguous",
+              "constraints": [],
+              "inputs": {},
+              "references": [
+                {
+                  "id": "reference-1",
+                  "kind": "entity",
+                  "ref": null,
+                  "resolved": false,
+                  "description": "未提供列表中的第三个方案",
+                  "sourceRefs": [
+                    {
+                      "root": "input",
+                      "pointer": ""
+                    }
+                  ]
+                }
+              ],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [
+            {
+              "id": "constraint-9",
+              "kind": "prohibition",
+              "text": "先不修改代码",
+              "scope": {
+                "type": "global"
+              }
+            }
+          ],
+          "relations": [],
+          "unresolved": [
+            "未提供方案列表，不能确定第三个方案。"
+          ]
+        },
+        "context": {
+          "previousIssues": [
+            {
+              "id": "issue-proposal",
+              "code": "AMBIGUOUS_REFERENCE",
+              "category": "ambiguity",
+              "message": "未提供方案列表，不能确定第三个方案。",
+              "intentId": "intent-10",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "questions": [
+                {
+                  "question": "请提供第三个方案的内容。"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "第三个方案就是邮箱验证码方案，采用它，仍不修改代码",
+        "status": "complete",
+        "turn": {
+          "kind": "answer",
+          "normalizedInput": "第三个方案就是邮箱验证码方案，采用它，仍不修改代码",
+          "intentIds": [
+            "intent-10"
+          ],
+          "changes": [
+            {
+              "operation": "modify",
+              "target": {
+                "kind": "intent",
+                "id": "intent-10"
+              },
+              "description": "只修改本轮指定内容",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "provided_materials",
+          "intents": [
+            {
+              "id": "intent-10",
+              "domain": null,
+              "action": "采用",
+              "target": "邮箱验证码方案",
+              "goal": "采用邮箱验证码方案",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {},
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [
+            {
+              "id": "constraint-9",
+              "kind": "prohibition",
+              "text": "先不修改代码",
+              "scope": {
+                "type": "global"
+              }
+            }
+          ],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "candidates",
+      "title": "调用方材料中的多个候选",
+      "config": {
+        "language": "zh-CN"
+      },
+      "request": {
+        "input": "实现登录，短信验证码或邮箱验证码，方式还没确定；先不修改代码"
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "实现登录，短信验证码或邮箱验证码，方式还没确定；先不修改代码",
+        "status": "partial",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "实现登录，短信验证码或邮箱验证码，方式还没确定；先不修改代码",
+          "intentIds": [
+            "intent-11"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-11"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "constraint",
+                "id": "constraint-10"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "partial",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-11",
+              "domain": null,
+              "action": "实现",
+              "target": "登录",
+              "goal": "实现登录",
+              "understanding": "ambiguous",
+              "constraints": [],
+              "inputs": {},
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [
+            {
+              "id": "constraint-10",
+              "kind": "prohibition",
+              "text": "先不修改代码",
+              "scope": {
+                "type": "global"
+              }
+            }
+          ],
+          "relations": [],
+          "unresolved": [
+            "登录方式有两个未确认选项。"
+          ]
+        },
+        "fieldResults": [],
+        "issues": [
+          {
+            "id": "issue-method",
+            "code": "AMBIGUOUS_REFERENCE",
+            "category": "ambiguity",
+            "message": "登录方式有两个未确认选项。",
+            "intentId": "intent-11",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ],
+            "candidates": [
+              {
+                "id": "sms",
+                "description": "短信验证码",
+                "sourceRefs": [
+                  {
+                    "root": "input",
+                    "pointer": ""
+                  }
+                ]
+              },
+              {
+                "id": "email",
+                "description": "邮箱验证码",
+                "sourceRefs": [
+                  {
+                    "root": "input",
+                    "pointer": ""
+                  }
+                ]
+              }
+            ],
+            "questions": [
+              {
+                "question": "选择哪种登录方式？",
+                "optionIds": [
+                  "sms",
+                  "email"
+                ]
+              }
+            ]
+          }
+        ],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "chosen",
+      "title": "第二个选项必须有对应材料",
+      "config": {
+        "language": "zh-CN"
+      },
+      "request": {
+        "input": "选第二个，其他要求不变",
+        "baseline": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "partial",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-11",
+              "domain": null,
+              "action": "实现",
+              "target": "登录",
+              "goal": "实现登录",
+              "understanding": "ambiguous",
+              "constraints": [],
+              "inputs": {},
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [
+            {
+              "id": "constraint-10",
+              "kind": "prohibition",
+              "text": "先不修改代码",
+              "scope": {
+                "type": "global"
+              }
+            }
+          ],
+          "relations": [],
+          "unresolved": [
+            "登录方式有两个未确认选项。"
+          ]
+        },
+        "context": {
+          "previousIssues": [
+            {
+              "id": "issue-method",
+              "code": "AMBIGUOUS_REFERENCE",
+              "category": "ambiguity",
+              "message": "登录方式有两个未确认选项。",
+              "intentId": "intent-11",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "candidates": [
+                {
+                  "id": "sms",
+                  "description": "短信验证码",
+                  "sourceRefs": [
+                    {
+                      "root": "input",
+                      "pointer": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "email",
+                  "description": "邮箱验证码",
+                  "sourceRefs": [
+                    {
+                      "root": "input",
+                      "pointer": ""
+                    }
+                  ]
+                }
+              ],
+              "questions": [
+                {
+                  "question": "选择哪种登录方式？",
+                  "optionIds": [
+                    "sms",
+                    "email"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "选第二个，其他要求不变",
+        "status": "complete",
+        "turn": {
+          "kind": "answer",
+          "normalizedInput": "选第二个，其他要求不变",
+          "intentIds": [
+            "intent-11"
+          ],
+          "changes": [
+            {
+              "operation": "modify",
+              "target": {
+                "kind": "intent",
+                "id": "intent-11"
+              },
+              "description": "只修改本轮指定内容",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "provided_materials",
+          "intents": [
+            {
+              "id": "intent-11",
+              "domain": null,
+              "action": "实现",
+              "target": "邮箱验证码登录",
+              "goal": "实现邮箱验证码登录",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {},
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [
+            {
+              "id": "constraint-10",
+              "kind": "prohibition",
+              "text": "先不修改代码",
+              "scope": {
+                "type": "global"
+              }
+            }
+          ],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "inference",
+      "title": "推断不当作已确认事实",
+      "config": {
+        "language": "zh-CN"
+      },
+      "request": {
+        "input": "分析这个服务，可能是订单服务，但我还没确认",
+        "output": {
+          "evidence": false
+        }
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "分析这个服务，可能是订单服务，但我还没确认",
+        "status": "partial",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "分析这个服务，可能是订单服务，但我还没确认",
+          "intentIds": [
+            "intent-12"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-12"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "partial",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-12",
+              "domain": null,
+              "action": "分析",
+              "target": null,
+              "goal": "分析所指服务",
+              "understanding": "ambiguous",
+              "constraints": [],
+              "inputs": {},
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": [
+            "当前材料不足，需要澄清。"
+          ]
+        },
+        "fieldResults": [],
+        "issues": [
+          {
+            "id": "understanding-intent-12",
+            "code": "AMBIGUOUS_REFERENCE",
+            "category": "ambiguity",
+            "message": "当前材料不足，需要澄清。",
+            "intentId": "intent-12"
+          }
+        ],
+        "inferences": [
+          {
+            "target": "/effective/intents/0/target",
+            "explanation": "用户表示可能是订单服务，但尚未确认。",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ],
+            "candidate": "订单服务"
+          }
+        ]
+      }
+    },
+    {
+      "slug": "field-states",
+      "title": "完整意图也可能有字段问题",
+      "config": {
+        "language": "zh-CN",
+        "schema": {
+          "type": "object",
+          "required": [
+            "orderId"
+          ],
+          "properties": {
+            "orderId": {
+              "type": "string"
+            },
+            "amount": {
+              "type": "number",
+              "minimum": 0
+            },
+            "note": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "address": {
+              "type": "string"
+            },
+            "pickup": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "设置订单参数：金额-5，备注明确为null；编号没提供，地址还不确定，本次不涉及自提信息",
+        "fields": "all"
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "设置订单参数：金额-5，备注明确为null；编号没提供，地址还不确定，本次不涉及自提信息",
+        "status": "complete",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "设置订单参数：金额-5，备注明确为null；编号没提供，地址还不确定，本次不涉及自提信息",
+          "intentIds": [
+            "intent-13"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-13"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-13",
+              "domain": null,
+              "action": "设置",
+              "target": "订单参数",
+              "goal": "设置订单参数",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {
+                "note": null
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [
+          {
+            "container": "inputs",
+            "intentId": "intent-13",
+            "field": "orderId",
+            "path": "/orderId",
+            "status": "not_provided",
+            "trigger": "selection",
+            "explanation": "未提供确定值。"
+          },
+          {
+            "container": "inputs",
+            "intentId": "intent-13",
+            "field": "amount",
+            "path": "/amount",
+            "status": "invalid",
+            "trigger": "selection",
+            "explanation": "提供值违反声明规则。",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          },
+          {
+            "container": "inputs",
+            "intentId": "intent-13",
+            "field": "note",
+            "path": "/note",
+            "status": "explicit_null",
+            "trigger": "selection",
+            "explanation": "用户明确提供null且声明允许。",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          },
+          {
+            "container": "inputs",
+            "intentId": "intent-13",
+            "field": "address",
+            "path": "/address",
+            "status": "unknown",
+            "trigger": "selection",
+            "explanation": "未提供确定值。"
+          },
+          {
+            "container": "inputs",
+            "intentId": "intent-13",
+            "field": "pickup",
+            "path": "/pickup",
+            "status": "not_applicable",
+            "trigger": "selection",
+            "explanation": "字段不适用于当前目标。"
+          }
+        ],
+        "issues": [
+          {
+            "id": "field-0",
+            "code": "FIELD_REQUIRED_MISSING",
+            "category": "data",
+            "message": "未提供确定值。",
+            "container": "inputs",
+            "field": "orderId",
+            "path": "/orderId",
+            "intentId": "intent-13"
+          },
+          {
+            "id": "field-1",
+            "code": "FIELD_VALUE_INVALID",
+            "category": "data",
+            "message": "提供值违反声明规则。",
+            "container": "inputs",
+            "field": "amount",
+            "path": "/amount",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ],
+            "intentId": "intent-13"
+          },
+          {
+            "id": "field-2",
+            "code": "FIELD_APPLICABILITY_UNKNOWN",
+            "category": "data",
+            "message": "未提供确定值。",
+            "container": "inputs",
+            "field": "address",
+            "path": "/address",
+            "intentId": "intent-13"
+          }
+        ],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "output-options",
+      "title": "扩展标签与输出开关",
+      "config": {
+        "language": "zh-CN",
+        "extensionSchema": {
+          "type": "object",
+          "properties": {
+            "audience": {
+              "type": "string",
+              "enum": [
+                "internal",
+                "external"
+              ]
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "生成内部报告",
+        "output": {
+          "extensions": true,
+          "suggestions": true,
+          "evidence": true
+        }
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "生成内部报告",
+        "status": "complete",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "生成内部报告",
+          "intentIds": [
+            "intent-14"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-14"
+              },
+              "description": "新增本轮明确请求",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-14",
+              "domain": null,
+              "action": "生成",
+              "target": "内部报告",
+              "goal": "生成内部报告",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {},
+              "references": [],
+              "children": [],
+              "extensions": {
+                "audience": "internal"
+              }
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [
+          {
+            "container": "extensions",
+            "intentId": "intent-14",
+            "field": "audience",
+            "path": "/audience",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          }
+        ],
+        "issues": [],
+        "inferences": [],
+        "evidence": [
+          {
+            "target": "/effective/intents/0/goal",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          }
+        ],
+        "suggestions": [
+          {
+            "kind": "clarification",
+            "text": "如需限定篇幅，可补充期望长度。",
+            "relatesTo": [
+              "intent-14"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

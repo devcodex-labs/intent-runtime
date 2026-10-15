@@ -1,0 +1,147 @@
+{
+  "slug": "conditional",
+  "title": "条件未成立不提前撤回",
+  "config": {
+    "language": "zh-CN",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        }
+      }
+    }
+  },
+  "request": {
+    "input": "如果检查失败才撤回查询，尚未检查，其他不变",
+    "baseline": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-2",
+          "domain": null,
+          "action": "查询",
+          "target": "订单000123",
+          "goal": "查询订单000123",
+          "understanding": "clear",
+          "constraints": [
+            {
+              "id": "constraint-2",
+              "kind": "prohibition",
+              "text": "不要取消订单",
+              "scope": {
+                "type": "intent",
+                "intentId": "intent-2"
+              }
+            }
+          ],
+          "inputs": {
+            "orderId": "000123"
+          },
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    }
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "如果检查失败才撤回查询，尚未检查，其他不变",
+    "status": "complete",
+    "turn": {
+      "kind": "amendment",
+      "normalizedInput": "如果检查失败才撤回查询，尚未检查，其他不变",
+      "intentIds": [
+        "intent-2"
+      ],
+      "changes": [
+        {
+          "operation": "add",
+          "target": {
+            "kind": "constraint",
+            "id": "constraint-3"
+          },
+          "description": "新增本轮明确请求",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        },
+        {
+          "operation": "withdraw",
+          "target": {
+            "kind": "intent",
+            "id": "intent-2"
+          },
+          "description": "撤回所指目标",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "conditional",
+          "conditionId": "constraint-3"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "provided_materials",
+      "intents": [
+        {
+          "id": "intent-2",
+          "domain": null,
+          "action": "查询",
+          "target": "订单000123",
+          "goal": "查询订单000123",
+          "understanding": "clear",
+          "constraints": [
+            {
+              "id": "constraint-2",
+              "kind": "prohibition",
+              "text": "不要取消订单",
+              "scope": {
+                "type": "intent",
+                "intentId": "intent-2"
+              }
+            },
+            {
+              "id": "constraint-3",
+              "kind": "precondition",
+              "text": "只有检查失败才撤回查询，当前尚未检查",
+              "scope": {
+                "type": "intent",
+                "intentId": "intent-2"
+              }
+            }
+          ],
+          "inputs": {
+            "orderId": "000123"
+          },
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [],
+    "issues": [],
+    "inferences": []
+  }
+}

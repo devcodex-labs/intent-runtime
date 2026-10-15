@@ -2,6 +2,17 @@
 
 这里列出SDK公开类型；参数默认值、调用行为和失败恢复见配置与API页面。根、模型API与MCP分别从对应入口导出。
 
+| 你要标注的对象 | 类型与章节 | 行为说明 |
+|---|---|---|
+| 实例、请求与结果 | [IntentConfig / IntentParseRequest / IntentResult](#native结果与错误) | [Native API](/api/intent)、[响应字段](/api/response) |
+| Context 与业务值 | [JsonObject / JsonValue](#native结果与错误) | [多轮材料](/guide/multi-turn)，自由键名不是强制消息格式 |
+| 业务 Schema、字段及约束 | [IntentSchema / FieldResult / IntentConstraint](#native结果与错误) | [Schema 支持范围](/guide/fields) |
+| 模型 API 配置 | [ApiExecutorConfig](#responses-适配器) | [模型来源](/integrations/api) |
+| MCP 配置、工具与交接 | [IntentMcpAdapterConfig / HostTask](#mcp-与宿主交接) | [MCP](/integrations/mcp)、[Codex](/integrations/codex) |
+| CLI 维护输出 | [MaintenanceReport](#维护报告) | [安装与维护](/guide/installation) |
+
+可直接导入所需类型，不必复制本页声明；以下定义用于完整查阅，保持与公开源码一致。
+
 ## Native、结果与错误
 
 ```ts

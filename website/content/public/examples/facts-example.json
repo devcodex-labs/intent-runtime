@@ -1,0 +1,63 @@
+{
+  "slug": "facts",
+  "title": "没有操作的事实",
+  "config": {
+    "language": "zh-CN",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        }
+      }
+    }
+  },
+  "request": {
+    "input": "订单编号是000123。",
+    "fields": [
+      "orderId"
+    ]
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "订单编号是000123。",
+    "status": "complete",
+    "turn": {
+      "kind": "statement",
+      "normalizedInput": "订单编号是000123。",
+      "intentIds": [],
+      "changes": [],
+      "facts": {
+        "orderId": "000123"
+      }
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "current_request",
+      "intents": [],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [
+      {
+        "container": "facts",
+        "intentId": null,
+        "field": "orderId",
+        "path": "/orderId",
+        "status": "present",
+        "trigger": "selection",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      }
+    ],
+    "issues": [],
+    "inferences": []
+  }
+}

@@ -2,11 +2,10 @@ import {Layout as BaseLayout} from '@rspress/core/theme-original';
 import {IconMoon, IconSun} from '@rspress/core/theme-original';
 import {ThemeContext} from '@rspress/core/runtime';
 import {useContext} from 'react';
-import IntentExample from '../components/IntentExample';
 export * from '@rspress/core/theme-original';
 
 export function Layout() {
-  return <BaseLayout beforeHero={<h1 className="intent-sr-only">Intent Runtime：将用户意图结构化</h1>} afterHero={<IntentExample />} />;
+  return <BaseLayout />;
 }
 
 export function SwitchAppearance({onClick}: {onClick?: () => void}) {

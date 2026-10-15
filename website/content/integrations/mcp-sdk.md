@@ -10,6 +10,14 @@ npm install @modelcontextprotocol/server@2.3.1
 
 下面两个完整文件保存到同一目录，运行node server.mjs。stdout只传MCP，应用日志用stderr。客户端应能发现ping和三个ir_前缀意图工具；原资源、Prompt也保持可用。
 
+| 文件或资源 | 职责 |
+|---|---|
+| attach.mjs | 合并工具列表；未命中的调用交回原路由；管理本次 Adapter/session |
+| server.mjs | 用 SDK 协商协议并承载 stdio；创建 Intent；保留原 tools/resources/prompts |
+| 宿主模型 | prepare 后按任务生成候选，调用 accept；服务端不另调 API |
+
+请求路径为“客户端 → SDK → 对应逻辑 session → 识别核心”。连接结束时关闭 session/Adapter，进程结束时再 dispose 调用方拥有的 Intent；不要为 prepare 和 accept 分别创建新 session。
+
 ### 完整转接函数
 
 <!-- example: examples/mcp/attach.mjs -->

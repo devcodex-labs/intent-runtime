@@ -2,6 +2,7 @@ import {readFile, readdir, access} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import ts from 'typescript';
+import {checkResponseFields, checkTypeSnippet} from './contract-check.mjs';
 
 const website = fileURLToPath(new URL('../', import.meta.url)), repo = path.resolve(website, '..'), root = path.join(website, 'content');
 const files = [];
@@ -19,6 +20,7 @@ for (const file of [...files, readme, config]) {
   if (/开发预览|Intent\.bridge|coreJson|dataJson|setup codex|\/api\/bridge-mcp|TDR-\d|TAF-\d|DEV-\d|GATE-\d|codex-temp|PrototypeCoverageError|Usage Contract v\d/.test(text)) fail('Obsolete or internal documentation: ' + file);
   const prose = text.replace(/```[\s\S]*?```/g, '');
   const targets = [...prose.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)].map(m => m[1]);
+  for (const target of targets) if (target.startsWith('/') && target.split('#')[0].endsWith('.json')) fail('Use a native download anchor for JSON assets (Rspress rewrites Markdown links): ' + target);
   targets.push(...[...prose.matchAll(/withBase\(['"](\/[^'"]+)['"]\)/g)].map(m => m[1]));
   targets.push(...[...prose.matchAll(/href=["'](\/intent-runtime\/[^"']+)["']/g)].map(m => m[1].slice('/intent-runtime'.length)));
   targets.push(...[...text.matchAll(/\blink:\s*['"]?(\/[^\s'"},]+)/g)].map(m => m[1]));
@@ -42,6 +44,16 @@ for (const file of [...files, readme, config]) {
     const source = await readFile(path.join(repo, match[1]), 'utf8');
     if (match[2].trimEnd() !== source.trimEnd()) fail('Stale executable example: ' + match[1] + ' in ' + file);
     examples++;
+  }
+  for (const match of text.matchAll(/<!-- typecheck -->\s*```ts\n([\s\S]*?)\n```/g)) checkTypeSnippet(match[1]);
+  for (const match of text.matchAll(/<!-- result: ([\w-]+) -->\s*```json\n([\s\S]*?)\n```/g)) {
+    const bundle = JSON.parse(await readFile(path.join(root, 'public/examples/scenarios.json'), 'utf8'));
+    const expected = bundle.cases.find(c => c.slug === match[1])?.result;
+    if (!expected || JSON.stringify(JSON.parse(match[2])) !== JSON.stringify(expected)) fail('Stale full Result example: ' + match[1]);
+  }
+  for (const match of text.matchAll(/<!-- json: ([\w-]+) -->\s*```json\n([\s\S]*?)\n```/g)) {
+    const expected = JSON.parse(await readFile(path.join(root, 'public/examples', match[1] + '.json'), 'utf8'));
+    if (JSON.stringify(JSON.parse(match[2])) !== JSON.stringify(expected)) fail('Stale JSON example: ' + match[1]);
   }
 }
 const typeReference = pages.get('/api/types').text;
@@ -96,13 +108,9 @@ for (const name of ['maxOutputTokens','maxResponseBytes']) {
   if (!value || !apiDoc.split('\n').some(line => line.startsWith('| ' + name + ' |') && line.includes('| ' + value + ' |'))) fail('Incorrect API default: ' + name);
 }
 const response = pages.get('/api/response').text;
-for (const name of ['IntentResult','FieldResult','IntentChangeBase','IntentRelation','IntentConstraint','StructuredIntent','TurnUnderstanding','SourceRef']) {
-  const tree = ts.createSourceFile('native.ts', native, ts.ScriptTarget.Latest, true);
-  const node = tree.statements.find(n => ts.isTypeAliasDeclaration(n) && n.name.text === name);
-  for (const field of node?.type?.members ?? []) if (field.name && !response.includes(field.name.getText(tree))) fail('Undocumented result field: ' + name + '.' + field.name.getText(tree));
-}
+const resultRows = checkResponseFields(native, response);
 for (const name of ['present','explicit_null','not_provided','unknown','not_applicable','invalid','invalidated','removed','precondition','depends_on','parallel','exclusive']) if (!response.includes(name)) fail('Missing response variant: ' + name);
 const versionSource = await readFile(path.join(website, 'site.ts'), 'utf8');
 if (!versionSource.includes('version = metadata.version;')) fail('Document the full package version.');
 if (!pages.has('/guide/multi-turn')) fail('Missing multi-turn guide.');
-console.log(`User documentation checked: ${files.length} pages, ${links} links/assets/anchors, ${examples} exact examples, ${publicDeclarations} API/MCP declarations, CLI report and configuration defaults.`);
+console.log(`User documentation checked: ${files.length} pages, ${links} links/assets/anchors, ${examples} exact examples, ${resultRows} public result rows, ${publicDeclarations} API/MCP declarations, CLI report and configuration defaults.`);

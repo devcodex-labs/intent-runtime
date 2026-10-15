@@ -27,6 +27,18 @@ intent-runtime-mcp --config /absolute/path/intent.host.config.mjs
 
 executor实例要配置[模型执行器](/integrations/api)，host无需executor。支持--help/--version；无效参数退出2，加载/启动失败退出1，正常EOF或SIGINT/SIGTERM退出0。stdout仅传MCP，日志用stderr。
 
+### 使用所配 API 的完整配置
+
+与 host 配置二选一。以下文件要保存在已安装 V2 的项目内，设置 INTENT_API_KEY 和 INTENT_MODEL 后，使用该文件的绝对路径启动。它默认不选业务字段，只识别目标与约束。
+
+<!-- example: examples/mcp/intent.executor.config.mjs -->
+```js
+import {createApiExecutor} from '@devcodex/intent-runtime/adapters/api';
+const apiKey = process.env.INTENT_API_KEY, model = process.env.INTENT_MODEL;
+if (!apiKey || !model) throw new Error('Set INTENT_API_KEY and INTENT_MODEL.');
+export default {mode: 'executor', instances: {main: {language: 'zh-CN', executor: createApiExecutor({provider: 'openai', apiKey, model})}}};
+```
+
 ## 添加到已有 MCP tools
 
 先按[安装与版本](/guide/installation)将V2装到已有服务项目。adapter提供工具定义和调用转接；你的MCP SDK继续管理协议、transport、原tools、resources和prompts。
@@ -88,6 +100,25 @@ session.close(): Promise<void>
 
 executor模式只暴露intent_parse。输入为Native的input、fields、context、baseline、referenceTime、output，加instance。默认值和错误见[Native参考](/api/intent)。schema、executor、apiKey、signal、配置路径与mode不能由MCP调用者传入。
 
+单实例 main 可以省略 instance。完成 SDK 协商后，标准 tools/call 请求例如：
+
+<!-- json: executor-request -->
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "intent_parse",
+    "arguments": {
+      "input": "查询订单000123，不要取消订单"
+    }
+  }
+}
+```
+
+本例没有 Schema，因此不附 orderId 字段选择；成功的 structuredContent 是<a href="/intent-runtime/examples/basic-example.json" download target="_blank" rel="noopener noreferrer">无 Schema 完整结果</a>对应的 IntentResult 结构，content[0].text 是同一对象的 JSON 字符串，isError=false。这不是另一套精简响应。需要参数时先在可信实例配置添加 Schema，再从请求选择字段。
+
 host的三个工具请求/回复见[Codex工具参考](/integrations/codex#工具与回复)，完整类型见[类型参考](/api/types)。
 
 ## 成功与错误信封
@@ -106,3 +137,108 @@ host的三个工具请求/回复见[Codex工具参考](/integrations/codex#工�
 支持目标为2025-06-18、2025-11-25、2026-07-28；前两版成功信封为content/structuredContent/isError，2026工具回复额外含resultType=complete。协商、discover和请求信封由匹配的SDK处理，不靠改工具参数选择协议。
 
 远程使用时，将相同listTools/callTool转接挂到你已有的Streamable HTTP SDK处理器。认证、监听和断线恢复属于服务；逻辑session仍存续时，短暂HTTP断流不等于close。独立bin没有--port或HTTP监听选项。链接的完整可运行示例是stdio，不将它的验证结果当成任意HTTP部署已经兼容。
+
+## 完整 executor 回复
+
+以下是 tools/call 的 result 内容，不含外层 jsonrpc/id。由实际 Adapter 与核心生成固定样例，语言候选受控；不是任意真实模型的逐字输出。
+
+<a href="/intent-runtime/examples/executor-request.json" download target="_blank" rel="noopener noreferrer">下载标准请求</a> · <a href="/intent-runtime/examples/executor-result.json" download target="_blank" rel="noopener noreferrer">下载完整工具回复</a>
+
+<details>
+<summary>展开完整工具回复</summary>
+
+<!-- json: executor-result -->
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"schemaVersion\":\"2.0-draft.6\",\"input\":\"查询订单000123，不要取消订单\",\"status\":\"complete\",\"turn\":{\"kind\":\"request\",\"normalizedInput\":\"查询订单000123，不要取消订单\",\"intentIds\":[\"intent-1\"],\"changes\":[{\"operation\":\"add\",\"target\":{\"kind\":\"intent\",\"id\":\"intent-1\"},\"description\":\"新增本轮明确请求\",\"sourceRefs\":[{\"root\":\"input\",\"pointer\":\"\"}],\"effect\":\"applied\"},{\"operation\":\"add\",\"target\":{\"kind\":\"constraint\",\"id\":\"constraint-1\"},\"description\":\"新增本轮明确请求\",\"sourceRefs\":[{\"root\":\"input\",\"pointer\":\"\"}],\"effect\":\"applied\"}],\"facts\":{}},\"effective\":{\"schemaVersion\":\"2.0-draft.6\",\"coverage\":\"complete\",\"scope\":\"current_request\",\"intents\":[{\"id\":\"intent-1\",\"domain\":null,\"action\":\"查询\",\"target\":\"订单000123\",\"goal\":\"查询订单000123\",\"understanding\":\"clear\",\"constraints\":[{\"id\":\"constraint-1\",\"kind\":\"prohibition\",\"text\":\"不要取消订单\",\"scope\":{\"type\":\"intent\",\"intentId\":\"intent-1\"}}],\"inputs\":{},\"references\":[],\"children\":[],\"extensions\":{}}],\"constraints\":[],\"relations\":[],\"unresolved\":[]},\"fieldResults\":[],\"issues\":[],\"inferences\":[]}"
+    }
+  ],
+  "structuredContent": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "查询订单000123，不要取消订单",
+    "status": "complete",
+    "turn": {
+      "kind": "request",
+      "normalizedInput": "查询订单000123，不要取消订单",
+      "intentIds": [
+        "intent-1"
+      ],
+      "changes": [
+        {
+          "operation": "add",
+          "target": {
+            "kind": "intent",
+            "id": "intent-1"
+          },
+          "description": "新增本轮明确请求",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        },
+        {
+          "operation": "add",
+          "target": {
+            "kind": "constraint",
+            "id": "constraint-1"
+          },
+          "description": "新增本轮明确请求",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-1",
+          "domain": null,
+          "action": "查询",
+          "target": "订单000123",
+          "goal": "查询订单000123",
+          "understanding": "clear",
+          "constraints": [
+            {
+              "id": "constraint-1",
+              "kind": "prohibition",
+              "text": "不要取消订单",
+              "scope": {
+                "type": "intent",
+                "intentId": "intent-1"
+              }
+            }
+          ],
+          "inputs": {},
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [],
+    "issues": [],
+    "inferences": []
+  },
+  "isError": false
+}
+```
+
+</details>

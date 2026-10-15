@@ -1,24 +1,9 @@
 ---
-pageType: home
-hero:
-  name: Intent Runtime
-  text: 将用户意图结构化
-  tagline: 把自然语言中的目标、约束与业务参数，转成应用和 AI 客户端可以读取的结构化结果。
-  actions:
-    - theme: brand
-      text: 在 Node.js 中使用
-      link: /guide/quick-start
-    - theme: alt
-      text: 接入 Codex
-      link: /integrations/codex
-    - theme: alt
-      text: 添加到 MCP tools
-      link: /integrations/mcp
-features:
-  - title: 保留用户真正的要求
-    details: 同时表达目标、禁止事项、条件与先后关系；有歧义时保留问题和候选。
-  - title: 按对象提取业务参数
-    details: 使用 Schema 定义字段，区分明确值、缺失、无效与旧值失效；多个对象各有归属。
-  - title: 接续变化，保持边界
-    details: 显式传入上下文，识别补充、修改与撤回；应用继续负责工具、授权和执行。
+pageType: custom
+title: Intent Runtime · 将用户意图结构化
+description: 将用户请求中的目标、要求、限制与业务参数转成应用和 MCP tools 可以读取的结构化结果。
 ---
+
+import IntentHome from '../components/IntentHome';
+
+<IntentHome />

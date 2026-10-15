@@ -1,0 +1,191 @@
+{
+  "slug": "field-states",
+  "title": "完整意图也可能有字段问题",
+  "config": {
+    "language": "zh-CN",
+    "schema": {
+      "type": "object",
+      "required": [
+        "orderId"
+      ],
+      "properties": {
+        "orderId": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number",
+          "minimum": 0
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "address": {
+          "type": "string"
+        },
+        "pickup": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "request": {
+    "input": "设置订单参数：金额-5，备注明确为null；编号没提供，地址还不确定，本次不涉及自提信息",
+    "fields": "all"
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "设置订单参数：金额-5，备注明确为null；编号没提供，地址还不确定，本次不涉及自提信息",
+    "status": "complete",
+    "turn": {
+      "kind": "request",
+      "normalizedInput": "设置订单参数：金额-5，备注明确为null；编号没提供，地址还不确定，本次不涉及自提信息",
+      "intentIds": [
+        "intent-13"
+      ],
+      "changes": [
+        {
+          "operation": "add",
+          "target": {
+            "kind": "intent",
+            "id": "intent-13"
+          },
+          "description": "新增本轮明确请求",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-13",
+          "domain": null,
+          "action": "设置",
+          "target": "订单参数",
+          "goal": "设置订单参数",
+          "understanding": "clear",
+          "constraints": [],
+          "inputs": {
+            "note": null
+          },
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [
+      {
+        "container": "inputs",
+        "intentId": "intent-13",
+        "field": "orderId",
+        "path": "/orderId",
+        "status": "not_provided",
+        "trigger": "selection",
+        "explanation": "未提供确定值。"
+      },
+      {
+        "container": "inputs",
+        "intentId": "intent-13",
+        "field": "amount",
+        "path": "/amount",
+        "status": "invalid",
+        "trigger": "selection",
+        "explanation": "提供值违反声明规则。",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      },
+      {
+        "container": "inputs",
+        "intentId": "intent-13",
+        "field": "note",
+        "path": "/note",
+        "status": "explicit_null",
+        "trigger": "selection",
+        "explanation": "用户明确提供null且声明允许。",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      },
+      {
+        "container": "inputs",
+        "intentId": "intent-13",
+        "field": "address",
+        "path": "/address",
+        "status": "unknown",
+        "trigger": "selection",
+        "explanation": "未提供确定值。"
+      },
+      {
+        "container": "inputs",
+        "intentId": "intent-13",
+        "field": "pickup",
+        "path": "/pickup",
+        "status": "not_applicable",
+        "trigger": "selection",
+        "explanation": "字段不适用于当前目标。"
+      }
+    ],
+    "issues": [
+      {
+        "id": "field-0",
+        "code": "FIELD_REQUIRED_MISSING",
+        "category": "data",
+        "message": "未提供确定值。",
+        "container": "inputs",
+        "field": "orderId",
+        "path": "/orderId",
+        "intentId": "intent-13"
+      },
+      {
+        "id": "field-1",
+        "code": "FIELD_VALUE_INVALID",
+        "category": "data",
+        "message": "提供值违反声明规则。",
+        "container": "inputs",
+        "field": "amount",
+        "path": "/amount",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ],
+        "intentId": "intent-13"
+      },
+      {
+        "id": "field-2",
+        "code": "FIELD_APPLICABILITY_UNKNOWN",
+        "category": "data",
+        "message": "未提供确定值。",
+        "container": "inputs",
+        "field": "address",
+        "path": "/address",
+        "intentId": "intent-13"
+      }
+    ],
+    "inferences": []
+  }
+}

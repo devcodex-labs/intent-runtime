@@ -39,24 +39,29 @@ export default defineConfig({
       '/': [
         {text: '开始使用', items: [
           {text: '项目定位', link: '/guide/introduction'},
-          {text: '快速开始', link: '/guide/quick-start'},
           {text: '安装与版本', link: '/guide/installation'},
+          {text: '快速开始', link: '/guide/quick-start'},
+        ]},
+        {text: '使用指南', items: [
           {text: '如何读取结果', link: '/guide/results'},
-          {text: '配置参考', link: '/guide/configuration'},
           {text: 'Schema 与多轮字段', link: '/guide/fields'},
           {text: '多轮对话与结果消费', link: '/guide/multi-turn'},
         ]},
-        {text: 'API 与接入', items: [
+        {text: '接入方式', items: [
           {text: '选择接入方式', link: '/integrations/index'},
+          {text: '配置模型来源', link: '/integrations/api'},
+          {text: '接入 Codex', link: '/integrations/codex'},
+          {text: 'MCP 与已有 tools', link: '/integrations/mcp'},
+          {text: '完整 SDK Server', link: '/integrations/mcp-sdk'},
+        ]},
+        {text: 'API 与配置', items: [
+          {text: '配置参考', link: '/guide/configuration'},
           {text: 'Native API', link: '/api/intent'},
           {text: '完整响应', link: '/api/response'},
           {text: '完整 TypeScript 类型', link: '/api/types'},
           {text: '错误与恢复', link: '/api/errors'},
-          {text: 'Responses API', link: '/integrations/api'},
-          {text: '标准 MCP tools', link: '/integrations/mcp'},
-          {text: 'Codex 与 stdio', link: '/integrations/codex'},
         ]},
-        {text: '使用与验证', items: [
+        {text: '场景与支持', items: [
           {text: '场景示例', link: '/examples/index'},
           {text: '兼容与支持', link: '/testing/validation'},
         ]},

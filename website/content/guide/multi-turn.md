@@ -16,7 +16,7 @@ baseline不是完整记忆：不包含全部事实、候选、问题或原始消
 
 ## 事实如何接续成请求
 
-下面是调用方辅助函数；传入按[快速开始](/guide/quick-start)配置了orderId字段与执行器的Intent。实例由调用方最终dispose。
+下面是调用方辅助函数，不能单独运行。传入按[订单字段完整示例](/examples/index#订单字段提取)配置了 orderId Schema 与执行器的 Intent；无 Schema 的快速开始实例不能直接选择 orderId。实例由调用方最终 dispose。
 
 ```js
 async function queryWithSuppliedFact(intent) {
@@ -40,6 +40,8 @@ async function queryWithSuppliedFact(intent) {
 这只是关键路径说明，真实返回仍是完整IntentResult。需要独立可运行的Schema和三轮修改文件时，见[场景示例](/examples/index)。
 
 ## 修改、撤回和继承
+
+以下辅助函数复用调用方已经配置执行器的 Intent；不要求业务字段 Schema。完整前后材料可下载：[父子需求与撤回](/api/response#完整场景与多轮材料)。
 
 ```js
 async function changeRequirements(intent) {
@@ -85,6 +87,18 @@ async function answerQuestion(intent, previous, answer) {
 3. 按container + intentId + path读取fieldResults，再找所属inputs/facts/extensions。继承值没有本轮报告，意味着未本轮复验，不是自动通过。
 4. effective.scope/coverage针对当前相关材料，不代表应用全部任务。局部视图缺少某个无关目标不意味着用户撤回了它。
 5. 识别失败时保留上次结果、原消息和未处理变更。不要把错误当空结果覆盖状态。
+
+## 谁保存什么
+
+| 数据或资源 | 调用方应如何处理 |
+|---|---|
+| effective | 按 scope/coverage 保存对应范围的快照；用于相关下一轮 baseline，不覆盖无关业务状态 |
+| facts、issues、候选和原消息 | 有续接需要时另行保存并显式放入 Context；effective 不是完整会话备份 |
+| 本轮技术失败 | 保留旧快照和未处理输入，不保存错误为新成功结果 |
+| Intent 实例释放或进程重启 | 不会从实例自动恢复历史；重新创建后传入自己保存的相关材料 |
+| host 交接 | 同一逻辑 session 完成 prepare/accept；关闭 session 会结束所属交接，不能当业务持久化 |
+
+默认 timeoutMs=0 不增加识别期限，不需要为了长任务设置一个业务会话有效期。宿主连接、取消和进程生命周期仍由实际运行环境决定。
 
 ## 并发返回顺序
 

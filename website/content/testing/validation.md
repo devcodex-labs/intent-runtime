@@ -28,14 +28,18 @@
 
 ## 验证记录与范围
 
+当前 main 的自动检查可查看 [CI 工作流](https://github.com/devcodex-labs/intent-runtime/actions/workflows/ci.yml)。下表是固定日期与版本的证据，不能据此认定以后每个提交或你的模型配置都已经验证。
+
 | 记录日期 | 环境/方法 | 可支持的结论与证据 |
 |---|---|---|
-| 2026-10-15 | Linux/Windows/macOS × Node20.0.0/24.x；质量、文档共8项 | [对应V2基线的CI](https://github.com/devcodex-labs/intent-runtime/actions/runs/38673172052)全部通过；证明工程回归和打包检查，不证明模型语义准确率 |
+| 2026-10-15 | Linux/Windows/macOS × Node20.0.0/24.x；质量、文档共8项 | [已核实V2基线的CI](https://github.com/devcodex-labs/intent-runtime/actions/runs/38686149645)全部通过；证明工程回归和打包检查，不证明模型语义准确率 |
 | 2026-10-15 | 实际MCP SDK2.3.1，三个声明协议 | [示例检查脚本](https://github.com/devcodex-labs/intent-runtime/blob/f36f11163c4cbe7ea492fd4673a6c81197a0d0aa/scripts/check-doc-examples.mjs)使用可控语言候选与真实核心/Validator；验证协议和字段链，不作为真实模型验收 |
 | 2026-10-14 | Linux、Codex CLI0.162.1、gpt-6.1-sol、high配置 | 已执行当前模型prepare/accept及语义样本；原始交接/逐样本记录内部保留，完整验收尚未放行，不作总体准确率保证 |
 | 尚未完成 | Codex Desktop与直接OpenAI/xAI供应商 | 配置/适配器实现及模拟故障检查不代表真实环境验收通过 |
 
 完整模型验收和特定用户输入能否正确识别需要分开判断；反馈问题时提供实际模型与客户端版本。新示例的可控执行器检查不会提高真实语义验收通过率。
+
+[完整结构场景](/api/response#完整场景与多轮材料)采用固定语言候选与正式核心，业务字段经过真实 Validator，覆盖要求、父子、多轮、事实、歧义和字段状态。它们用于核对契约，不是供应商模型准确率报告；无 Schema 的例子不额外套业务校验。
 
 ## 选择发行版本
 

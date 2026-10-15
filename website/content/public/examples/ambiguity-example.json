@@ -1,0 +1,125 @@
+{
+  "slug": "ambiguity",
+  "title": "对象不明时澄清",
+  "config": {
+    "language": "zh-CN"
+  },
+  "request": {
+    "input": "采用第三个方案，但方案列表未提供；先不修改代码"
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "采用第三个方案，但方案列表未提供；先不修改代码",
+    "status": "partial",
+    "turn": {
+      "kind": "request",
+      "normalizedInput": "采用第三个方案，但方案列表未提供；先不修改代码",
+      "intentIds": [
+        "intent-10"
+      ],
+      "changes": [
+        {
+          "operation": "add",
+          "target": {
+            "kind": "intent",
+            "id": "intent-10"
+          },
+          "description": "新增本轮明确请求",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        },
+        {
+          "operation": "add",
+          "target": {
+            "kind": "constraint",
+            "id": "constraint-9"
+          },
+          "description": "新增本轮明确请求",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "partial",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-10",
+          "domain": null,
+          "action": "采用",
+          "target": "第三个方案",
+          "goal": "采用第三个方案",
+          "understanding": "ambiguous",
+          "constraints": [],
+          "inputs": {},
+          "references": [
+            {
+              "id": "reference-1",
+              "kind": "entity",
+              "ref": null,
+              "resolved": false,
+              "description": "未提供列表中的第三个方案",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ]
+            }
+          ],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [
+        {
+          "id": "constraint-9",
+          "kind": "prohibition",
+          "text": "先不修改代码",
+          "scope": {
+            "type": "global"
+          }
+        }
+      ],
+      "relations": [],
+      "unresolved": [
+        "未提供方案列表，不能确定第三个方案。"
+      ]
+    },
+    "fieldResults": [],
+    "issues": [
+      {
+        "id": "issue-proposal",
+        "code": "AMBIGUOUS_REFERENCE",
+        "category": "ambiguity",
+        "message": "未提供方案列表，不能确定第三个方案。",
+        "intentId": "intent-10",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ],
+        "questions": [
+          {
+            "question": "请提供第三个方案的内容。"
+          }
+        ]
+      }
+    ],
+    "inferences": []
+  }
+}

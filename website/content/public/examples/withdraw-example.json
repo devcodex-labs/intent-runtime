@@ -1,0 +1,262 @@
+{
+  "slug": "withdraw",
+  "title": "撤回子项并修改交付语言",
+  "config": {
+    "language": "zh-CN"
+  },
+  "request": {
+    "input": "撤回注册和对应并行关系，登录保留，说明文档改英文，其他不变",
+    "baseline": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-5",
+          "domain": null,
+          "action": "实现",
+          "target": "用户模块",
+          "goal": "实现用户模块",
+          "understanding": "clear",
+          "constraints": [
+            {
+              "id": "constraint-4",
+              "kind": "prohibition",
+              "text": "不要修改数据库",
+              "scope": {
+                "type": "intent",
+                "intentId": "intent-5"
+              }
+            }
+          ],
+          "inputs": {},
+          "references": [],
+          "children": [
+            {
+              "id": "intent-6",
+              "domain": null,
+              "action": "实现",
+              "target": "登录",
+              "goal": "实现登录",
+              "understanding": "clear",
+              "constraints": [
+                {
+                  "id": "constraint-5",
+                  "kind": "requirement",
+                  "text": "登录需要邮箱验证码",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-6"
+                  }
+                },
+                {
+                  "id": "constraint-6",
+                  "kind": "precondition",
+                  "text": "审核通过后才启用登录",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-6"
+                  }
+                },
+                {
+                  "id": "constraint-7",
+                  "kind": "preference",
+                  "text": "优先沿用现有样式",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-6"
+                  }
+                }
+              ],
+              "inputs": {},
+              "references": [],
+              "children": [],
+              "extensions": {}
+            },
+            {
+              "id": "intent-7",
+              "domain": null,
+              "action": "实现",
+              "target": "注册",
+              "goal": "实现注册",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {},
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "extensions": {},
+          "expectedOutput": [
+            "中文使用说明"
+          ]
+        }
+      ],
+      "constraints": [],
+      "relations": [
+        {
+          "id": "relation-1",
+          "fromId": "intent-6",
+          "toId": "intent-7",
+          "kind": "parallel"
+        }
+      ],
+      "unresolved": []
+    }
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "撤回注册和对应并行关系，登录保留，说明文档改英文，其他不变",
+    "status": "complete",
+    "turn": {
+      "kind": "amendment",
+      "normalizedInput": "撤回注册和对应并行关系，登录保留，说明文档改英文，其他不变",
+      "intentIds": [
+        "intent-5",
+        "intent-6"
+      ],
+      "changes": [
+        {
+          "operation": "modify",
+          "target": {
+            "kind": "intent",
+            "id": "intent-5"
+          },
+          "description": "只修改本轮指定内容",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied",
+          "deltas": [
+            {
+              "path": "/expectedOutput",
+              "operation": "set",
+              "after": [
+                "英文使用说明"
+              ],
+              "before": [
+                "中文使用说明"
+              ]
+            }
+          ]
+        },
+        {
+          "operation": "withdraw",
+          "target": {
+            "kind": "intent",
+            "id": "intent-7"
+          },
+          "description": "撤回所指目标",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        },
+        {
+          "operation": "withdraw",
+          "target": {
+            "kind": "relation",
+            "id": "relation-1"
+          },
+          "description": "撤回所指目标",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "provided_materials",
+      "intents": [
+        {
+          "id": "intent-5",
+          "domain": null,
+          "action": "实现",
+          "target": "用户模块",
+          "goal": "实现用户模块",
+          "understanding": "clear",
+          "constraints": [
+            {
+              "id": "constraint-4",
+              "kind": "prohibition",
+              "text": "不要修改数据库",
+              "scope": {
+                "type": "intent",
+                "intentId": "intent-5"
+              }
+            }
+          ],
+          "inputs": {},
+          "references": [],
+          "children": [
+            {
+              "id": "intent-6",
+              "domain": null,
+              "action": "实现",
+              "target": "登录",
+              "goal": "实现登录",
+              "understanding": "clear",
+              "constraints": [
+                {
+                  "id": "constraint-5",
+                  "kind": "requirement",
+                  "text": "登录需要邮箱验证码",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-6"
+                  }
+                },
+                {
+                  "id": "constraint-6",
+                  "kind": "precondition",
+                  "text": "审核通过后才启用登录",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-6"
+                  }
+                },
+                {
+                  "id": "constraint-7",
+                  "kind": "preference",
+                  "text": "优先沿用现有样式",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-6"
+                  }
+                }
+              ],
+              "inputs": {},
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "extensions": {},
+          "expectedOutput": [
+            "英文使用说明"
+          ]
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [],
+    "issues": [],
+    "inferences": []
+  }
+}

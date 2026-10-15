@@ -16,6 +16,15 @@ const request = {input: '查询订单000123', fields: ['orderId']};
 
 如果用户只说“查询订单”而没有编号，读取字段状态及issues，不根据Schema生成编号。VIP依赖的完整配置、三轮调用及结果表见[多轮修改示例](/examples/index#多轮修改与旧值失效)。
 
+| 输入与前提 | 值的位置 | 如何判断 |
+|---|---|---|
+| 查询订单000123，选择字符串 orderId | 所属意图 inputs.orderId | 本轮 present，值为 "000123" |
+| 只陈述编号000123，同样选择 orderId | turn.facts.orderId | facts 归属、intentId=null，不创造查询操作 |
+| 金额-5，Schema 声明 minimum=0 | 不写入有效 inputs | invalid 与对应问题；意图本身仍可能 complete |
+| 明确备注为 null，Schema 允许 null | 所属容器 note=null | explicit_null，与未提供不同 |
+
+完整配置、请求及结果见<a href="/intent-runtime/examples/field-states-example.json" download target="_blank" rel="noopener noreferrer">字段状态示例</a>。字段是否适用也需要材料依据，不能把每个 Schema 字段都强行套到所有意图上。
+
 ## 支持范围
 
 | 定义范围 | 行为 |

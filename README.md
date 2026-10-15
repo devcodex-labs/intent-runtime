@@ -13,6 +13,8 @@
 | 独立MCP服务 | intent-runtime-mcp --config <绝对路径.mjs> |
 | 已有MCP tools | /mcp的createIntentMcpAdapter，SDK继续管理传输与原路由 |
 
+先按你的任务选入口，无需先了解 host/executor。Node.js 与 executor MCP 使用你配置的模型；Codex host 复用当前模型。远程 HTTP 由你的已有 MCP 服务承载 Adapter，独立命令提供 stdio。
+
 要求Node.js≥20.0.0、ESM、schema-dsl@3.0.4。本文对应V2；截至2026-10-15，npm latest为1.0.2，V2尚未发行。先按[安装与版本](https://devcodex-labs.github.io/intent-runtime/guide/installation.html)构建并安装V2的tgz。结果/baseline的schemaVersion为2.0-draft.6，与npm版本不同。
 
 ## 在应用中调用
@@ -73,6 +75,8 @@ intent-runtime clean --host codex
 默认timeoutMs=0不加识别期限。doctor只读诊断，repair/clean保护用户修改。使用包导入的配置仍需本地依赖，不由全局目录自动解析。
 
 基础无Schema示例见[快速开始](https://devcodex-labs.github.io/intent-runtime/guide/quick-start.html)，读取目标、约束与字段见[结果指南](https://devcodex-labs.github.io/intent-runtime/guide/results.html)。
+
+响应中的正向要求在 constraints，交付物在 expectedOutput；没有独立 requirements 副本。根级 complete 仍可能伴随无效字段，使用参数前检查对应 fieldResults 与 issues。固定的完整输入、Schema、多轮材料和结果可在[响应场景目录](https://devcodex-labs.github.io/intent-runtime/api/response.html#完整场景与多轮材料)下载。
 
 ## 使用文档
 

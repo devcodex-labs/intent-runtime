@@ -1,0 +1,11 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "intent_parse",
+    "arguments": {
+      "input": "查询订单000123，不要取消订单"
+    }
+  }
+}

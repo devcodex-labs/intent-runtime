@@ -109,11 +109,26 @@ try {
 
 以下是行为说明或标明用途的配置片段，不是可单独运行的程序；完整配置、参数和字段状态见对应指南。
 
-## 需求修改与澄清
+### 完整结构样例
+
+需要完整请求和结果，而不是零散片段时，使用[响应参考的场景目录](/api/response#完整场景与多轮材料)。每个下载包括 config、request、result，多轮附必要 baseline/Context：
+
+| 你的问题 | 对照场景 |
+|---|---|
+| requirements 在哪里，禁止与偏好如何区分 | 父子需求与四类约束；正向要求在 constraints，不存在独立 requirements 数组 |
+| 多订单会不会串值 | 两个订单各自 inputs 与 fieldResults.intentId |
+| 撤回后旧 ID 不在新树中怎么办 | 撤回子项、修改交付语言的前后材料 |
+| 用户只给事实或回答“第二个” | facts 续传、候选列表及后续回答 |
+| complete 为什么还缺参数 | 字段状态示例与 issues |
+| 推断、建议、扩展有什么不同 | inference 与 output-options 场景 |
+
+这些是受控语言候选经过真实核心的固定结果；有业务字段时使用真实 Validator。无 Schema 的例子不人为增加 Schema，技术失败则按发生阶段验证。真实模型仍需使用你的配置运行上面的完整程序。
+
+### 需求修改与澄清
 
 父目标“用户模块包括登录和注册；禁止写库；交付文档”→“取消注册，文档改英文”保留幸存身份、父级限制和交付→“用第二种方式”需要相关候选→回答“邮箱验证码，先不改代码”只解除对应歧义。完整材料传法见[多轮对话](/guide/multi-turn)。
 
-## 术语和动作
+### 术语和动作
 
 ```js
 const semantics = {
@@ -125,7 +140,7 @@ const semantics = {
 
 将semantics传入new Intent。明确匹配“挂起订单”时action可保留ORDER_HOLD，不随language翻译。定义说明含义，不表示项目真的有执行该操作的工具。
 
-## 扩展和输出开关
+### 扩展和输出开关
 
 ```js
 const config = {
@@ -140,13 +155,13 @@ const request = {input: '生成供内部团队使用的报告', output: {extensi
 
 明确语义标签进入该目标的extensions，参数仍在inputs；没有操作时不为扩展标签创造目标。output按项覆盖默认，关闭evidence仍保留必要inferences/issues。suggestions是独立语义建议，不成为新的正式目标。没有extensionSchema却开extensions会报SCHEMA_NOT_CONFIGURED。
 
-## 条件、逻辑和作用域
+### 条件、逻辑和作用域
 
 “审查通过且负责人确认，或预发布通过时才发布”保留AND/OR组合；“未批准不得发布”保留否定，不查询实际审批。global限制适用相关目标树；intent限制适用目标及其明确子项；phase指用户明确阶段；target通过该目标references中的稳定referenceId定位对象。不能把程序自动推导的实施步骤当用户阶段。
 
 before表示from先于to，depends_on表示from依赖to，parallel/exclusive为对称语义。独立不自动代表并行，不能抹掉明确先后。相反顺序要求可成为正常partial与RELATION_CONFLICT，不能删掉一边伪装成功。
 
-## 引用、重复与纠正
+### 引用、重复与纠正
 
 | 输入 | 理解 |
 |---|---|
@@ -157,7 +172,7 @@ before表示from先于to，depends_on表示from依赖to，parallel/exclusive为�
 | “加短信登录，算了改邮箱登录” | 只保留邮箱目标，normalizedInput说明同句修正 |
 | “创建临时目录，然后删除它” | 真实两阶段，保留两动作和顺序 |
 
-## 时间与描述规则
+### 时间与描述规则
 
 有referenceTime才可靠规范化“明天”；没有基准时保留相对时间及必要不确定性，不用本机时钟补日期。时间偏移、单位、总量与每项数量应保留。
 

@@ -1,0 +1,157 @@
+{
+  "slug": "chosen",
+  "title": "第二个选项必须有对应材料",
+  "config": {
+    "language": "zh-CN"
+  },
+  "request": {
+    "input": "选第二个，其他要求不变",
+    "baseline": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "partial",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-11",
+          "domain": null,
+          "action": "实现",
+          "target": "登录",
+          "goal": "实现登录",
+          "understanding": "ambiguous",
+          "constraints": [],
+          "inputs": {},
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [
+        {
+          "id": "constraint-10",
+          "kind": "prohibition",
+          "text": "先不修改代码",
+          "scope": {
+            "type": "global"
+          }
+        }
+      ],
+      "relations": [],
+      "unresolved": [
+        "登录方式有两个未确认选项。"
+      ]
+    },
+    "context": {
+      "previousIssues": [
+        {
+          "id": "issue-method",
+          "code": "AMBIGUOUS_REFERENCE",
+          "category": "ambiguity",
+          "message": "登录方式有两个未确认选项。",
+          "intentId": "intent-11",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "candidates": [
+            {
+              "id": "sms",
+              "description": "短信验证码",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ]
+            },
+            {
+              "id": "email",
+              "description": "邮箱验证码",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ]
+            }
+          ],
+          "questions": [
+            {
+              "question": "选择哪种登录方式？",
+              "optionIds": [
+                "sms",
+                "email"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "选第二个，其他要求不变",
+    "status": "complete",
+    "turn": {
+      "kind": "answer",
+      "normalizedInput": "选第二个，其他要求不变",
+      "intentIds": [
+        "intent-11"
+      ],
+      "changes": [
+        {
+          "operation": "modify",
+          "target": {
+            "kind": "intent",
+            "id": "intent-11"
+          },
+          "description": "只修改本轮指定内容",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "provided_materials",
+      "intents": [
+        {
+          "id": "intent-11",
+          "domain": null,
+          "action": "实现",
+          "target": "邮箱验证码登录",
+          "goal": "实现邮箱验证码登录",
+          "understanding": "clear",
+          "constraints": [],
+          "inputs": {},
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [
+        {
+          "id": "constraint-10",
+          "kind": "prohibition",
+          "text": "先不修改代码",
+          "scope": {
+            "type": "global"
+          }
+        }
+      ],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [],
+    "issues": [],
+    "inferences": []
+  }
+}

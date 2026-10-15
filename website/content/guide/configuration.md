@@ -2,6 +2,18 @@
 
 `new Intent(config)` 创建实例并快照配置。改变规则时创建新实例；之后修改原配置对象不会更新已创建的实例。模型执行器保留调用方服务对象的连接状态，库不关闭共享服务。
 
+## 按任务查配置
+
+| 你要做什么 | 需要配置 | 完整入口 |
+|---|---|---|
+| 首次识别目标与约束 | executor，可选 language | [快速开始](/guide/quick-start) |
+| 提取订单编号 | schema，加请求 fields | [订单字段](/examples/index#订单字段提取) |
+| 带上前轮材料 | 请求 context/baseline，不是新增实例会话配置 | [多轮指南](/guide/multi-turn) |
+| 复用 Codex 当前模型 | host 配置，无需 executor | [Codex](/integrations/codex) |
+| 详细证据、建议或语义标签 | defaultOutput/output，扩展需 extensionSchema | [输出选项](/guide/configuration#输出选项) |
+
+保持默认 limits 与 timeoutMs 即可开始；它们不是首次接入必填项，也不替代宿主自己的连接配置。
+
 ## IntentConfig
 
 | 路径 | 类型 / 必填 | 默认 | 用途与规则 |
@@ -19,6 +31,8 @@
 
 ## semantics
 
+本节行名相对 semantics，例如 terms[].name 的完整路径为 `semantics.terms[].name`。
+
 | 路径 | 类型 / 必填 | 规则 |
 |---|---|---|
 | domain | string / 否 | 领域名称 |
@@ -26,9 +40,21 @@
 | terms | 数组 / 否 | 每项name、meaning非空；aliases为可选字符串数组 |
 | actions | 数组 / 否 | 每项name、meaning非空；examples/counterExamples为可选字符串数组 |
 
+| 完整嵌套路径 | 类型 / 必填 | 缺省 | 用途 |
+|---|---|---|---|
+| semantics.terms[].name | 非空 string / 是 | 无 | 术语名 |
+| semantics.terms[].meaning | 非空 string / 是 | 无 | 术语的业务含义 |
+| semantics.terms[].aliases | string[] / 否 | 省略 | 对应别名，不新增用户事实 |
+| semantics.actions[].name | 非空 string / 是 | 无 | 明确匹配时保留的动作标识 |
+| semantics.actions[].meaning | 非空 string / 是 | 无 | 动作含义 |
+| semantics.actions[].examples | string[] / 否 | 省略 | 正例 |
+| semantics.actions[].counterExamples | string[] / 否 | 省略 | 反例，帮助区分容易混淆的动作 |
+
 同名含义冲突报CONFIG_INVALID。明确匹配的domain/action保留配置名称，不随输出语言翻译。定义帮助理解，不把未支持动作删除或把示例当用户事实。
 
 ## 输出选项
+
+下表行名相对 `defaultOutput` 或请求 `output`，例如 `defaultOutput.evidence`、`request.output.evidence`。未指定时合并实例默认值。
 
 | 路径 | 类型 / 默认 | 开启后 | 关闭后 |
 |---|---|---|---|
@@ -40,6 +66,8 @@
 `defaultOutput: {evidence:true}` 加 `output:{}` 仍开启证据；`output:{evidence:false}` 明确关闭。开启extensions却没有extensionSchema报SCHEMA_NOT_CONFIGURED；扩展不能绕过fields提取操作参数。
 
 ## limits
+
+下表行名均相对 `limits`，例如完整路径 `limits.maxValidationChecks`。省略对象或其中某项均使用对应默认值。
 
 | 路径 | 默认 | 统计范围 |
 |---|---:|---|

@@ -1,0 +1,154 @@
+{
+  "slug": "vip",
+  "title": "VIP优惠：为订单000123设置VIP=true，优惠15",
+  "config": {
+    "language": "zh-CN",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        },
+        "isVip": {
+          "type": "boolean"
+        },
+        "discount": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "if": {
+        "properties": {
+          "isVip": {
+            "const": true
+          }
+        },
+        "required": [
+          "isVip"
+        ]
+      },
+      "then": {
+        "properties": {
+          "discount": {
+            "maximum": 20
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "discount": {
+            "maximum": 10
+          }
+        }
+      }
+    }
+  },
+  "request": {
+    "input": "为订单000123设置VIP=true，优惠15",
+    "fields": "all"
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "为订单000123设置VIP=true，优惠15",
+    "status": "complete",
+    "turn": {
+      "kind": "request",
+      "normalizedInput": "为订单000123设置VIP=true，优惠15",
+      "intentIds": [
+        "intent-8"
+      ],
+      "changes": [
+        {
+          "operation": "add",
+          "target": {
+            "kind": "intent",
+            "id": "intent-8"
+          },
+          "description": "新增本轮明确请求",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-8",
+          "domain": null,
+          "action": "设置",
+          "target": "订单000123的VIP和优惠",
+          "goal": "设置订单000123的VIP和优惠",
+          "understanding": "clear",
+          "constraints": [],
+          "inputs": {
+            "orderId": "000123",
+            "isVip": true,
+            "discount": 15
+          },
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [
+      {
+        "container": "inputs",
+        "intentId": "intent-8",
+        "field": "orderId",
+        "path": "/orderId",
+        "status": "present",
+        "trigger": "selection",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      },
+      {
+        "container": "inputs",
+        "intentId": "intent-8",
+        "field": "isVip",
+        "path": "/isVip",
+        "status": "present",
+        "trigger": "selection",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      },
+      {
+        "container": "inputs",
+        "intentId": "intent-8",
+        "field": "discount",
+        "path": "/discount",
+        "status": "present",
+        "trigger": "selection",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      }
+    ],
+    "issues": [],
+    "inferences": []
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "slug": "two-orders",
+  "title": "多个订单各有归属",
+  "config": {
+    "language": "zh-CN",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        }
+      }
+    }
+  },
+  "request": {
+    "input": "查询订单000123和000456",
+    "fields": [
+      "orderId"
+    ]
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "查询订单000123和000456",
+    "status": "complete",
+    "turn": {
+      "kind": "request",
+      "normalizedInput": "查询订单000123和000456",
+      "intentIds": [
+        "intent-3",
+        "intent-4"
+      ],
+      "changes": [
+        {
+          "operation": "add",
+          "target": {
+            "kind": "intent",
+            "id": "intent-3"
+          },
+          "description": "新增本轮明确请求",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        },
+        {
+          "operation": "add",
+          "target": {
+            "kind": "intent",
+            "id": "intent-4"
+          },
+          "description": "新增本轮明确请求",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-3",
+          "domain": null,
+          "action": "查询",
+          "target": "订单000123",
+          "goal": "查询订单000123",
+          "understanding": "clear",
+          "constraints": [],
+          "inputs": {
+            "orderId": "000123"
+          },
+          "references": [],
+          "children": [],
+          "extensions": {}
+        },
+        {
+          "id": "intent-4",
+          "domain": null,
+          "action": "查询",
+          "target": "订单000456",
+          "goal": "查询订单000456",
+          "understanding": "clear",
+          "constraints": [],
+          "inputs": {
+            "orderId": "000456"
+          },
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [
+      {
+        "container": "inputs",
+        "intentId": "intent-3",
+        "field": "orderId",
+        "path": "/orderId",
+        "status": "present",
+        "trigger": "selection",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      },
+      {
+        "container": "inputs",
+        "intentId": "intent-4",
+        "field": "orderId",
+        "path": "/orderId",
+        "status": "present",
+        "trigger": "selection",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      }
+    ],
+    "issues": [],
+    "inferences": []
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "slug": "fact-query",
+  "title": "显式续传事实再查询",
+  "config": {
+    "language": "zh-CN",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        }
+      }
+    }
+  },
+  "request": {
+    "input": "查询这个订单，不要取消订单",
+    "fields": [
+      "orderId"
+    ],
+    "context": {
+      "previousFacts": {
+        "orderId": "000123"
+      }
+    }
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "查询这个订单，不要取消订单",
+    "status": "complete",
+    "turn": {
+      "kind": "request",
+      "normalizedInput": "查询这个订单，不要取消订单",
+      "intentIds": [
+        "intent-9"
+      ],
+      "changes": [
+        {
+          "operation": "add",
+          "target": {
+            "kind": "intent",
+            "id": "intent-9"
+          },
+          "description": "新增本轮明确请求",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        },
+        {
+          "operation": "add",
+          "target": {
+            "kind": "constraint",
+            "id": "constraint-8"
+          },
+          "description": "新增本轮明确请求",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "provided_materials",
+      "intents": [
+        {
+          "id": "intent-9",
+          "domain": null,
+          "action": "查询",
+          "target": "订单000123",
+          "goal": "查询订单000123",
+          "understanding": "clear",
+          "constraints": [
+            {
+              "id": "constraint-8",
+              "kind": "prohibition",
+              "text": "不要取消订单",
+              "scope": {
+                "type": "intent",
+                "intentId": "intent-9"
+              }
+            }
+          ],
+          "inputs": {
+            "orderId": "000123"
+          },
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [
+      {
+        "container": "inputs",
+        "intentId": "intent-9",
+        "field": "orderId",
+        "path": "/orderId",
+        "status": "present",
+        "trigger": "selection",
+        "sourceRefs": [
+          {
+            "root": "context",
+            "pointer": "/previousFacts/orderId"
+          }
+        ]
+      }
+    ],
+    "issues": [],
+    "inferences": []
+  }
+}

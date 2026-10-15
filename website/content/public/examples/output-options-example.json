@@ -1,0 +1,120 @@
+{
+  "slug": "output-options",
+  "title": "扩展标签与输出开关",
+  "config": {
+    "language": "zh-CN",
+    "extensionSchema": {
+      "type": "object",
+      "properties": {
+        "audience": {
+          "type": "string",
+          "enum": [
+            "internal",
+            "external"
+          ]
+        }
+      }
+    }
+  },
+  "request": {
+    "input": "生成内部报告",
+    "output": {
+      "extensions": true,
+      "suggestions": true,
+      "evidence": true
+    }
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "生成内部报告",
+    "status": "complete",
+    "turn": {
+      "kind": "request",
+      "normalizedInput": "生成内部报告",
+      "intentIds": [
+        "intent-14"
+      ],
+      "changes": [
+        {
+          "operation": "add",
+          "target": {
+            "kind": "intent",
+            "id": "intent-14"
+          },
+          "description": "新增本轮明确请求",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-14",
+          "domain": null,
+          "action": "生成",
+          "target": "内部报告",
+          "goal": "生成内部报告",
+          "understanding": "clear",
+          "constraints": [],
+          "inputs": {},
+          "references": [],
+          "children": [],
+          "extensions": {
+            "audience": "internal"
+          }
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [
+      {
+        "container": "extensions",
+        "intentId": "intent-14",
+        "field": "audience",
+        "path": "/audience",
+        "status": "present",
+        "trigger": "selection",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      }
+    ],
+    "issues": [],
+    "inferences": [],
+    "evidence": [
+      {
+        "target": "/effective/intents/0/goal",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      }
+    ],
+    "suggestions": [
+      {
+        "kind": "clarification",
+        "text": "如需限定篇幅，可补充期望长度。",
+        "relatesTo": [
+          "intent-14"
+        ]
+      }
+    ]
+  }
+}

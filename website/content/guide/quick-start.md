@@ -19,6 +19,8 @@
 
 本文先识别目标与约束，不配置业务Schema。需要订单编号等结构化参数时，再运行[订单字段示例](/examples/index#订单字段提取)。
 
+这一条路径使用你的模型 API 凭据。希望复用 Codex 当前模型、无需额外模型 Key 时，直接按 [Codex 接入](/integrations/codex)操作。
+
 ## 2. 配置模型
 
 例子使用OpenAI Responses API。将 `INTENT_API_KEY` 和 `INTENT_MODEL` 设为你的凭据与可用模型名。这两个环境变量由应用读取，不是库自动读取的固定配置。xAI与自有网关见[模型接入](/integrations/api)。
@@ -69,6 +71,15 @@ node parse.mjs
 ## 4. 读取结果
 
 本例的理解结果应保留查询目标和禁止取消的约束。订单编号会出现在自然语言目标中；只有另行配置Schema并选择orderId后，才提取到inputs。完整文本与生成ID可以变化。
+
+| 检查项 | 应观察到什么 |
+|---|---|
+| 目标 | 查询订单000123 |
+| 约束 | prohibition：不取消订单 |
+| 参数 | 本例没有选字段，inputs 没有新提取的 orderId |
+| 问题 | 按实际 issues 判断是否需要补充，不以是否打印 JSON 作为理解正确的唯一依据 |
+
+如需对照完整结构，可下载<a href="/intent-runtime/examples/basic-example.json" download target="_blank" rel="noopener noreferrer">无 Schema 完整示例</a>或查看[带订单字段的 Native 响应](/api/response#默认-native-调用与结果)。
 
 - effective.intents是目标树；同时读取全局与各目标的constraints。
 - issues说明歧义、缺失或冲突；先补充材料，不自行执行某个候选。

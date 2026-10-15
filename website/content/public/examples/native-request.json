@@ -1,0 +1,20 @@
+{
+  "config": {
+    "language": "zh-CN",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        }
+      }
+    }
+  },
+  "request": {
+    "input": "查询订单000123，不要取消订单",
+    "fields": [
+      "orderId"
+    ]
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "slug": "inference",
+  "title": "推断不当作已确认事实",
+  "config": {
+    "language": "zh-CN"
+  },
+  "request": {
+    "input": "分析这个服务，可能是订单服务，但我还没确认",
+    "output": {
+      "evidence": false
+    }
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "分析这个服务，可能是订单服务，但我还没确认",
+    "status": "partial",
+    "turn": {
+      "kind": "request",
+      "normalizedInput": "分析这个服务，可能是订单服务，但我还没确认",
+      "intentIds": [
+        "intent-12"
+      ],
+      "changes": [
+        {
+          "operation": "add",
+          "target": {
+            "kind": "intent",
+            "id": "intent-12"
+          },
+          "description": "新增本轮明确请求",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "partial",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-12",
+          "domain": null,
+          "action": "分析",
+          "target": null,
+          "goal": "分析所指服务",
+          "understanding": "ambiguous",
+          "constraints": [],
+          "inputs": {},
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": [
+        "当前材料不足，需要澄清。"
+      ]
+    },
+    "fieldResults": [],
+    "issues": [
+      {
+        "id": "understanding-intent-12",
+        "code": "AMBIGUOUS_REFERENCE",
+        "category": "ambiguity",
+        "message": "当前材料不足，需要澄清。",
+        "intentId": "intent-12"
+      }
+    ],
+    "inferences": [
+      {
+        "target": "/effective/intents/0/target",
+        "explanation": "用户表示可能是订单服务，但尚未确认。",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ],
+        "candidate": "订单服务"
+      }
+    ]
+  }
+}

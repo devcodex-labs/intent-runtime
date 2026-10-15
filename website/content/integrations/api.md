@@ -2,6 +2,8 @@
 
 Node调用和executor模式MCP需要显式ModelExecutor。你可以使用内置OpenAI/xAI Responses API，也可以接入已有模型网关。Codex复用当前模型时使用[host路径](/integrations/codex)，不把宿主交接暗中替换成API。
 
+先用内置 Responses 配置跑通一次，再按需设置网关地址或自定义协议。INTENT_MODEL 与 INTENT_API_KEY 是下方应用示例读取的环境变量，库不会自动替你读取；模型名称、权限与费用由你选择的供应商环境决定。
+
 ## OpenAI / xAI Responses API
 
 ```js

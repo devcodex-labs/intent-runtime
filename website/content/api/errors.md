@@ -2,6 +2,14 @@
 
 技术失败抛出 IntentError，不把截断候选或设施异常返回为正常成功。字段问题保存在正常结果 issues。
 
+| 示例 | 可观察结果 | 应对 |
+|---|---|---|
+| 选 orderId，但实例没有 schema | Promise 拒绝，SCHEMA_NOT_CONFIGURED | 补正确 Schema 并新建实例，或不需要字段时不选择 |
+| Schema 已配置，用户未给必需订单号 | 正常 IntentResult，字段及 issues 说明缺失 | 向用户补问，不把业务缺失当网络故障 |
+| 只有 VIP 改为 false，旧优惠15超出非VIP规则 | 正常结果，discount invalidated | 不消费旧值，下一轮选择 discount 并提供合法值 |
+
+完整恢复过程是“确认 code/问题类别 → 修复对应输入或配置 → 显式新调用 → 检查新结果”，不是默认重试所有失败。MCP 外层错误形式见[信封](/integrations/mcp#成功与错误信封)。
+
 | 技术码 | 含义 |
 |---|---|
 | INPUT_INVALID / CONFIG_INVALID / FIELD_UNKNOWN | 请求、可信配置或选择字段不合法 |

@@ -40,6 +40,20 @@ function readOrderIds(result) {
 - status=complete表示当前意图理解的完整度，不保证所有字段齐全或合法，也不表示授权或已执行业务。status=partial仍可能含可确定部分。
 - 技术失败通过IntentError或MCP错误信封返回。保存之前的结果与原消息，按[错误与恢复](/api/errors)处理，不用空结果覆盖状态。
 
+## 根据结果决定下一步
+
+| 观察到什么 | 如何处理 | 不应得出的结论 |
+|---|---|---|
+| complete，所需字段本轮 present/explicit_null | 按归属读取确定值；结合业务要求决定后续 | 不等于获授权或已经执行 |
+| complete，但某个字段 invalid/invalidated | 不使用该字段；按相关 issues 修正或补充，再识别 | 不能仅检查根 status 就使用所有参数 |
+| partial，含歧义或未解决对象 | 使用已确定部分展示理解，按 questions 澄清 | 不自行选候选、不丢弃其余明确限制 |
+| 没有意图，有 turn.facts | 保存或展示所选事实；后续显式续传 | 不凭事实新增查询或设置动作 |
+| 有 inferences | 把候选与已确认信息区分，必要时澄清 | 推断不是默认值或用户承诺 |
+| 抛异常/MCP isError=true | 按错误码恢复；保留此前状态 | 不是空成功结果，也不应盲目重复调用 |
+| 修改或撤回 | 核对 effect 和 scope/coverage，更新对应意图快照 | changes 不是可直接执行的业务 patch |
+
+“补充材料”与“修复配置”是两条路径：用户没给订单号时应澄清；选择 orderId 却没配 Schema 时应修复实例配置。完整前后结果见[场景下载](/api/response#完整场景与多轮材料)。
+
 ## 接下一轮
 
 把本次effective作为baseline可保留目标与身份；事实、问题、候选按需放到context。应用负责结果存储、并发顺序、授权和业务动作，见[多轮对话](/guide/multi-turn)。
