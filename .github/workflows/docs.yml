@@ -31,6 +31,7 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             website/package-lock.json
+      - run: npm ci --ignore-scripts
       - run: npm ci --ignore-scripts --prefix website
       - run: npm --prefix website run check
       - run: npm --prefix website run build
