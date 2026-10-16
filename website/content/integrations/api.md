@@ -1,4 +1,8 @@
-# 配置模型来源
+# 连接模型 API 与自有网关
+
+<a id="配置模型来源"></a>
+
+第一次调用优先使用[快速开始](/guide/quick-start)的一条模型路径。本页用于切换受支持的 Responses 供应商、调整 API 参数，或把自有网关转换成 ModelExecutor；host 复用当前模型时不需要本页的独立 API 凭据。
 
 Node调用和executor模式MCP需要显式ModelExecutor。你可以使用内置OpenAI/xAI Responses API，也可以接入已有模型网关。Codex复用当前模型时使用[host路径](/integrations/codex)，不把宿主交接暗中替换成API。
 

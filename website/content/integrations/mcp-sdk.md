@@ -1,8 +1,10 @@
-# 完整 SDK Server 示例
+# 给已有 MCP Server 添加工具
 
-这是添加到已有MCP服务的进阶示例。普通使用先读[独立服务与最小挂接](/integrations/mcp)。本例使用真实@modelcontextprotocol/server@2.3.1 SDK，host模式由当前模型生成候选，不需要额外API Key。
+<a id="完整-sdk-server-示例"></a>
 
-先按[安装与版本](/guide/installation)在应用项目安装V2与schema-dsl@3.0.4，再安装SDK：
+在已有服务中保留原tools/resources/prompts，同时添加意图识别工具。若只需要直接启动一个服务，使用[独立MCP教程](/integrations/mcp)。本例使用真实@modelcontextprotocol/server@2.3.1 SDK，host模式由当前模型生成候选，不需要额外API Key。
+
+先在服务项目执行 `npm install @devcodex/intent-runtime`，所需依赖会自动安装。再为已有 MCP 服务安装 SDK：
 
 ```bash
 npm install @modelcontextprotocol/server@2.3.1

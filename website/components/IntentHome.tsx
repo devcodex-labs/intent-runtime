@@ -47,12 +47,20 @@ export default function IntentHome() {
       <div className="ir-intro-copy">
         <p className="ir-eyebrow"><span aria-hidden="true">//</span> INTENT RUNTIME</p>
         <h1 id="ir-title">一句请求，<br /><span>不止一个意思。</span></h1>
-        <p className="ir-lead">将用户意图结构化。读出目标、要求、限制和业务参数，让应用看清已知内容与待澄清的问题。</p>
-        <div className="ir-actions"><a className="ir-button ir-button-primary" href={withBase('/guide/quick-start')}>快速开始 <span aria-hidden="true">↗</span></a><a className="ir-button" href={withBase('/api/response')}>查看响应契约 <span aria-hidden="true">→</span></a></div>
+        <p className="ir-lead">将用户请求转成目标、约束和业务参数。保留“查询订单”的目标，也保留“不取消”的限制；理解之后，由你的应用决定下一步。</p>
+        <div className="ir-actions"><a className="ir-button ir-button-primary" href={withBase('/guide/quick-start')}>快速开始 <span aria-hidden="true">↗</span></a><a className="ir-button" href={withBase('/guide/results')}>看懂结果 <span aria-hidden="true">→</span></a></div>
         <p className="ir-stack">Node.js ≥20 · TypeScript · 标准 MCP</p>
+        <nav className="ir-paths" aria-label="选择接入方式"><a href={withBase('/guide/quick-start')}>Node.js 应用 →</a><a href={withBase('/integrations/codex')}>Codex →</a><a href={withBase('/integrations/mcp')}>MCP →</a></nav>
       </div>
       <div className="ir-annotation" aria-hidden="true"><span>原文</span><i /><span>意图</span><i /><span>结构</span><div>保留意义<br />清楚表达</div></div>
     </section>
+
+    <section className="ir-entries" aria-labelledby="ir-entry-title"><div><p className="ir-eyebrow">从你的使用场景开始</p><h2 id="ir-entry-title">让理解，接入你的应用。</h2><p>先选调用方式，再选模型来源。所有入口共用同一识别核心。</p><a href={withBase('/guide/installation')}>查看当前版本与安装方式 →</a></div><ol>{[
+      ['在 Node.js 项目中调用', '配置模型，调用 parse，读取结构化结果。', '/guide/quick-start'],
+      ['在 Codex 中使用当前模型', '登记 MCP，由当前宿主完成识别交接。', '/integrations/codex'],
+      ['给已有 MCP 添加工具', '保留你的 SDK、连接与原工具，合并识别能力。', '/integrations/mcp-sdk'],
+      ['启动独立 MCP 服务', '提供可信配置，通过 stdio 暴露工具。', '/integrations/mcp#独立-stdio-服务'],
+    ].map(([title, description, url], index) => <li key={url}><a href={withBase(url)}><span className="ir-entry-number">0{index + 1}</span><div><h3>{title}</h3><p>{description}</p></div><span aria-hidden="true">↗</span></a></li>)}</ol></section>
 
     <section className="ir-workbench" aria-label="固定意图结构化演示">
       <div className="ir-workbench-top"><span><span className="ir-signal" aria-hidden="true" /> 观察一次理解</span><span>固定示例 · 可查看完整材料</span></div>
@@ -85,13 +93,7 @@ export default function IntentHome() {
       <div className="ir-workbench-bottom"><details key={example.slug}><summary>查看完整 JSON</summary><pre tabIndex={0}><code>{JSON.stringify(example, null, 2)}</code></pre></details><div className="ir-export"><button type="button" onClick={() => {void copy();}}>复制完整示例</button><a href={withBase('/examples/' + example.slug + '-example.json')} download target="_blank" rel="noopener noreferrer">下载 JSON <span aria-hidden="true">↓</span></a></div><span className="ir-copy-state" role="status">{copyState}</span></div>
     </section>
 
-    <section className="ir-entries" aria-labelledby="ir-entry-title"><div><p className="ir-eyebrow">从你的使用场景开始</p><h2 id="ir-entry-title">让理解，接入你的应用。</h2><p>先选调用方式，再选模型来源。所有入口共用同一识别核心。</p><a href={withBase('/guide/installation')}>查看当前版本与安装方式 →</a></div><ol>{[
-      ['在 Node.js 项目中调用', '配置模型，调用 parse，读取结构化结果。', '/guide/quick-start'],
-      ['在 Codex 中使用当前模型', '登记 MCP，由当前宿主完成识别交接。', '/integrations/codex'],
-      ['给已有 MCP 添加工具', '保留你的 SDK、连接与原工具，合并识别能力。', '/integrations/mcp#添加到已有-mcp-tools'],
-      ['启动独立 MCP 服务', '提供可信配置，通过 stdio 暴露工具。', '/integrations/mcp#独立-stdio-服务'],
-    ].map(([title, description, url], index) => <li key={url}><a href={withBase(url)}><span className="ir-entry-number">0{index + 1}</span><div><h3>{title}</h3><p>{description}</p></div><span aria-hidden="true">↗</span></a></li>)}</ol></section>
     <section className="ir-handoff"><span className="ir-section-label">从理解到使用</span><h2>理解之后，由你的应用接手。</h2><p>Intent Runtime 只理解你提供的材料。消息与历史由你提供，工具、授权和业务执行由应用管理。</p><div><a href={withBase('/guide/results')}>如何消费结果 →</a><a href={withBase('/guide/multi-turn')}>接续下一轮 →</a><a href={withBase('/api/errors')}>处理问题与失败 →</a></div></section>
-    <footer className="ir-footer">适用包版本 {version} · MIT License · devcodex-labs</footer>
+    <footer className="ir-footer">{version} 文档 · MIT License · devcodex-labs</footer>
   </main>;
 }

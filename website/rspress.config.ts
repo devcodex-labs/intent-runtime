@@ -16,7 +16,7 @@ export default defineConfig({
   logoText: "intent-runtime",
   icon: "/favicon.svg",
   plugins: [pluginSitemap({ siteUrl })],
-  search: { codeBlocks: true },
+  search: { codeBlocks: true, searchHooks: fileURLToPath(new URL('./theme/search.tsx', import.meta.url)) },
   head: [
     ["meta", { property: "og:type", content: "website" }],
     ["meta", { property: "og:title", content: "intent-runtime · 中文文档" }],
@@ -30,7 +30,7 @@ export default defineConfig({
     nav: [
       { text: "开始使用", link: "/guide/quick-start", activeMatch: "^/guide/" },
       { text: "接入方式", link: "/integrations/index", activeMatch: "^/integrations/" },
-      { text: "API 参考", link: "/api/intent", activeMatch: "^/api/" },
+      { text: "参考", link: "/api/intent", activeMatch: "^/api/" },
       { text: "示例", link: "/examples/index", activeMatch: "^/examples/" },
       { text: "兼容与支持", link: "/testing/validation", activeMatch: "^/testing/" },
       { text: "更新日志", link: `${repository}/blob/main/CHANGELOG.md` },
@@ -44,30 +44,33 @@ export default defineConfig({
         ]},
         {text: '使用指南', items: [
           {text: '如何读取结果', link: '/guide/results'},
-          {text: 'Schema 与多轮字段', link: '/guide/fields'},
-          {text: '多轮对话与结果消费', link: '/guide/multi-turn'},
+          {text: '提取字段与订单号', link: '/guide/fields'},
+          {text: '多轮识别与旧值失效', link: '/guide/multi-turn'},
         ]},
         {text: '接入方式', items: [
           {text: '选择接入方式', link: '/integrations/index'},
-          {text: '配置模型来源', link: '/integrations/api'},
+          {text: '模型 API 与自有网关', link: '/integrations/api'},
           {text: '接入 Codex', link: '/integrations/codex'},
-          {text: 'MCP 与已有 tools', link: '/integrations/mcp'},
-          {text: '完整 SDK Server', link: '/integrations/mcp-sdk'},
+          {text: 'MCP 接入与使用', link: '/integrations/mcp'},
+          {text: '给已有 MCP 添加工具', link: '/integrations/mcp-sdk'},
         ]},
-        {text: 'API 与配置', items: [
+        {text: '参考', items: [
           {text: '配置参考', link: '/guide/configuration'},
           {text: 'Native API', link: '/api/intent'},
           {text: '完整响应', link: '/api/response'},
           {text: '完整 TypeScript 类型', link: '/api/types'},
+          {text: 'Schema 支持范围', link: '/api/schema'},
+          {text: 'MCP 工具与协议', link: '/api/mcp'},
           {text: '错误与恢复', link: '/api/errors'},
         ]},
-        {text: '场景与支持', items: [
+        {text: '运维与支持', items: [
+          {text: 'Codex 安装维护', link: '/operations/codex'},
           {text: '场景示例', link: '/examples/index'},
           {text: '兼容与支持', link: '/testing/validation'},
         ]},
       ],
     },
     socialLinks: [{ icon: "github", mode: "link", content: repository }],
-    footer: { message: `适用包版本 ${version} · MIT License · devcodex-labs` },
+    footer: { message: `${version} 文档 · MIT License · devcodex-labs` },
   },
 });

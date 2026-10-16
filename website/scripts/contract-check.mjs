@@ -3,6 +3,25 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const repo = fileURLToPath(new URL('../../', import.meta.url));
+export const normalizeText = text => text.replace(/\r\n?/g, '\n');
+export function documentationBlocks(text, kind) {
+  const value = normalizeText(text);
+  const patterns = {
+    example: /<!-- example: ([\w/.-]+) -->\s*```(?:js|ts)\n([\s\S]*?)\n```/g,
+    typecheck: /<!-- typecheck -->\s*```ts\n([\s\S]*?)\n```/g,
+    result: /<!-- result: ([\w-]+) -->\s*```json\n([\s\S]*?)\n```/g,
+    json: /<!-- json: ([\w-]+) -->\s*```json\n([\s\S]*?)\n```/g,
+  };
+  if (!Object.hasOwn(patterns, kind)) throw new Error('Unknown documentation block kind: ' + kind);
+  const markers = [...value.matchAll(new RegExp('<!--\\s*' + kind + '(?:\\s*:|\\s*-->)', 'g'))];
+  const blocks = [...value.matchAll(patterns[kind])];
+  if (markers.length !== blocks.length) throw new Error('Unmatched documentation marker: ' + kind);
+  return blocks;
+}
+export function checkPublicTypes(source, markdown) {
+  const types = normalizeText(source).replace(/^\/\/ Public contract:[^\n]*\n/, '').trimStart();
+  if (!normalizeText(markdown).includes(types)) throw new Error('Root public type reference is stale.');
+}
 export function checkTypeSnippet(code) {
   const file = path.join(repo, 'website/__documentation_typecheck__.ts');
   const options = {strict: true, noEmit: true, skipLibCheck: true, target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext, baseUrl: repo,

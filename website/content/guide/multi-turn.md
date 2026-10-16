@@ -14,6 +14,16 @@
 
 baseline不是完整记忆：不包含全部事实、候选、问题或原始消息。它的schemaVersion必须为2.0-draft.6；自己的业务状态不符合快照类型时放Context。
 
+## 三轮修改与旧值失效
+
+先运行[完整三轮文件](/examples/index#多轮修改与旧值失效)：VIP=true且优惠15 → 只改VIP=false → 优惠改为5。第二轮显式续传 first.effective，优惠15因不再满足非VIP上限10而失效；第三轮选择discount并给5。不要把旧值继续显示为有效，也不要把缺字段当模型网络故障。
+
+| 轮次 | 传入什么 | 应检查什么 |
+|---|---|---|
+| 初次设置 | input、fields=all | orderId为字符串，VIP=true，discount=15 |
+| 修改条件 | 上轮effective作baseline，fields只选isVip | false被保留，discount被移除并报告invalidated |
+| 修复优惠 | 最新effective、discount选择及必要issues | discount=5，对应失效问题解除 |
+
 ## 事实如何接续成请求
 
 下面是调用方辅助函数，不能单独运行。传入按[订单字段完整示例](/examples/index#订单字段提取)配置了 orderId Schema 与执行器的 Intent；无 Schema 的快速开始实例不能直接选择 orderId。实例由调用方最终 dispose。

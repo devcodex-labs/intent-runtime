@@ -4,6 +4,12 @@ Intent Runtime 将用户意图结构化，供你的应用或 MCP tools 读取。
 
 例如用户说“查询订单000123，不取消订单”：组件识别查询目标和禁止取消的约束；配置orderId字段后，还能保留字符串编号"000123"。应用读取这些结果，决定是否调用自己的订单系统。Intent Runtime本身不会查询或取消订单。
 
+## 适合哪些任务
+
+适合把自然语言请求交给应用处理前，先保留目标、禁止事项、条件和待澄清问题；需要订单号等业务参数时，再配置字段规则。它不是订单系统、业务任务管理器或自动执行 Agent。
+
+## 输入和结果
+
 | 你提供 | 你得到 |
 |---|---|
 | 原始 input | 当前用户表达的目标与约束 |
@@ -21,4 +27,8 @@ Intent Runtime 将用户意图结构化，供你的应用或 MCP tools 读取。
 
 应用拥有消息、模型来源、最终结果和业务状态。多轮调用显式传入相关 Context 或上次 `effective`。模型候选经过来源、业务规则、身份和公共结构检查；程序检查不等于自然语言正确率。
 
-V2 API 与结果版本为两种标识：npm 包报告其 package version；成功结果和 baseline 的 `schemaVersion` 固定为 `2.0-draft.6`。
+## 下一步
+
+[选择接入方式](/integrations/index)，或直接在 Node.js 中完成[第一次识别](/guide/quick-start)。
+
+包版本与结果版本为两种标识：npm 包报告其 package version；成功结果和 baseline 的 `schemaVersion` 固定为 `2.0-draft.6`。

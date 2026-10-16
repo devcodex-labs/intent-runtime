@@ -1,6 +1,17 @@
 # 使用场景
 
-先按[安装与版本](/guide/installation)在应用目录安装V2及schema-dsl@3.0.4。前三个例子都是完整.mjs文件，各自创建并释放Intent，不依赖另一个例子的变量。它们调用你配置的真实模型API，需要INTENT_API_KEY和INTENT_MODEL；设置方法见[快速开始](/guide/quick-start#2-配置模型)。
+按任务选择一个完整文件即可开始；先按[安装](/guide/installation)和[模型配置](/guide/quick-start#2-配置模型)准备环境。下载JSON用于核对结构，不是在浏览器执行模型。
+
+| 你想完成什么 | 从这里开始 |
+|---|---|
+| 识别目标与禁止事项 | [无Schema首次调用](/guide/quick-start) |
+| 提取字段、订单号并保留前导零 | [订单字段提取](#订单字段提取) |
+| 多轮修改、检查旧值失效 | [三轮VIP与优惠](#多轮修改与旧值失效) |
+| 处理歧义、撤回、父子与推断 | [完整场景目录](/api/response#完整场景与多轮材料) |
+| 接入已有MCP服务 | [完整SDK示例](/integrations/mcp-sdk) |
+
+
+先在应用目录执行 `npm install @devcodex/intent-runtime`，所需依赖会自动安装。前三个例子都是完整.mjs文件，各自创建并释放Intent，不依赖另一个例子的变量。它们调用你配置的真实模型API，需要INTENT_API_KEY和INTENT_MODEL；设置方法见[快速开始](/guide/quick-start#2-配置模型)。
 
 输出中的描述、ID与组织方式可能随模型变化。以下成功判断针对可观察行为；固定完整JSON另见[响应参考](/api/response)，不能把它当成每次模型会逐字返回的结果。异常通过安全IntentError摘要输出，具体恢复见[错误参考](/api/errors)。
 

@@ -2,6 +2,14 @@
 
 本页回答“返回了什么、什么时候出现、应该怎样消费”。首次接入可先运行[快速开始](/guide/quick-start)，处理顺序见[如何读取结果](/guide/results)，所有公开定义见[TypeScript 类型](/api/types)。
 
+| 你要核对什么 | 直接查看 |
+|---|---|
+| 用户目标、禁止事项和本轮变化 | [turn](#本轮-turn-与变更)、[effective](#有效理解-effective) |
+| 参数属于哪个意图，false/null是否能用 | [字段状态](#状态与消费规则) |
+| 歧义、候选和未确认推断 | [问题与推断](#问题候选与推断) |
+| 完整配置、请求和结果 | [场景下载](#完整场景与多轮材料) |
+| MCP外层工具回复 | [工具与协议参考](/api/mcp#成功与错误信封) |
+
 TypeScript 消费方直接引用公开类型，字段类型可通过索引访问取得：
 
 <!-- typecheck -->
@@ -13,7 +21,7 @@ type TurnKind = TurnUnderstanding['kind'];
 
 ## 默认 Native 调用与结果
 
-按[快速开始的模型配置](/guide/quick-start#2-配置模型)设置环境变量，在已安装 V2 的项目保存以下完整文件并运行 `node native-response.mjs`。这里选择了 orderId；默认输出不开启建议、详细证据、诊断和扩展提取。
+按[快速开始的模型配置](/guide/quick-start#2-配置模型)设置环境变量，在已安装匹配版本的项目保存以下完整文件并运行 `node native-response.mjs`。这里选择了 orderId；默认输出不开启建议、详细证据、诊断和扩展提取。
 
 <!-- example: examples/api/native-response.mjs -->
 ```js
@@ -649,7 +657,7 @@ JSON Pointer：空串指根，`/meta/` 指空属性名，`~0` 表示波浪号，
 - executor MCP 的 intent_parse 成功把相同 IntentResult 放在 structuredContent，content 中为同一 JSON，isError=false。
 - host 的 prepare 返回 HostTask，当前宿主生成 candidateText，accept 才返回最终 IntentResult；cancel 返回取消状态。候选不是最终响应。
 - MCP 技术失败为 isError=true，content 文本包含 `{error: SerializedIntentError}`，不附 structuredContent 或 partialResult。
-- 声明协议对应的额外信封字段和 SDK 协商见[MCP 接入](/integrations/mcp#协议与远程调用)，不把协议外层字段加到 Native IntentResult。
+- 声明协议对应的额外信封字段和 SDK 协商见[MCP 接入](/api/mcp#协议与远程调用)，不把协议外层字段加到 Native IntentResult。
 
 <a href="/intent-runtime/examples/executor-request.json" download target="_blank" rel="noopener noreferrer">executor 标准请求</a> · <a href="/intent-runtime/examples/executor-result.json" download target="_blank" rel="noopener noreferrer">executor 完整工具回复</a>
 

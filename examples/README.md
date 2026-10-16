@@ -7,7 +7,7 @@
 | api/basic.mjs | 无Schema的基础目标与约束识别 | 项目安装运行库，环境INTENT_API_KEY/INTENT_MODEL |
 | api/native-response.mjs | 默认完整 Native 响应，与响应参考使用同一调用 | 项目安装运行库，环境INTENT_API_KEY/INTENT_MODEL |
 | api/multi-turn.mjs | 完整VIP Schema与三轮失效/修正 | 项目安装运行库，环境INTENT_API_KEY/INTENT_MODEL |
-| api/parse.mjs | API识别与所属字段消费 | 项目安装运行库/schema-dsl，环境INTENT_API_KEY/INTENT_MODEL |
+| api/parse.mjs | API识别与所属字段消费 | 项目安装运行库，环境INTENT_API_KEY/INTENT_MODEL |
 | custom-executor.ts | 自有模型网关适配 | ESM TypeScript项目，网关符合示例请求/回复协议 |
 | codex/intent.host.config.mjs | Codex全局host配置 | 无包导入，任意可信可访问目录；当前宿主生成候选 |
 | mcp/intent.executor.config.mjs | 独立API执行器MCP配置 | 配置文件所在项目可解析运行库，环境凭据与模型 |

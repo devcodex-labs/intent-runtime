@@ -1,8 +1,10 @@
-import {readFile, readdir, access} from 'node:fs/promises';
+import {readFile as readRawFile, readdir, access} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import ts from 'typescript';
-import {checkResponseFields, checkTypeSnippet} from './contract-check.mjs';
+import {checkResponseFields, checkTypeSnippet, checkPublicTypes, documentationBlocks, normalizeText} from './contract-check.mjs';
+
+const readFile = async (...args) => normalizeText(await readRawFile(...args));
 
 const website = fileURLToPath(new URL('../', import.meta.url)), repo = path.resolve(website, '..'), root = path.join(website, 'content');
 const files = [];
@@ -12,12 +14,13 @@ const pages = new Map(await Promise.all(files.map(async file => ['/' + path.rela
 pages.set('/', pages.get('/index'));
 const fail = message => {throw new Error(message);};
 const slug = text => text.toLowerCase().replace(/<[^>]+>/g, '').replace(/[^\p{L}\p{N}\s_-]/gu, '').replace(/\s/g, '-');
-function anchors(text) {return new Set([...text.matchAll(/^#{1,6}\s+(.+)$/gm)].map(m => slug(m[1])));}
+function anchors(text) {return new Set([...text.matchAll(/^#{1,6}\s+(.+)$/gm)].map(m => slug(m[1])).concat([...text.matchAll(/\bid=["']([^"']+)["']/g)].map(m => m[1])));}
 let links = 0, examples = 0;
 const readme = path.join(repo, 'README.md'), config = path.join(website, 'rspress.config.ts');
 for (const file of [...files, readme, config]) {
   const text = await readFile(file, 'utf8');
-  if (/开发预览|Intent\.bridge|coreJson|dataJson|setup codex|\/api\/bridge-mcp|TDR-\d|TAF-\d|DEV-\d|GATE-\d|codex-temp|PrototypeCoverageError|Usage Contract v\d/.test(text)) fail('Obsolete or internal documentation: ' + file);
+  if (/开发预览|Intent\.bridge|coreJson|dataJson|setup codex|\/api\/bridge-mcp|TDR-\d|TAF-\d|DEV-\d|GATE-\d|codex-temp|PrototypeCoverageError|Usage Contract v\d|匹配的新版发布后|确认.{0,15}新版.{0,5}已发布|尚无对应本文接口的新版发行|当前发行状态/.test(text)) fail('Obsolete or internal documentation: ' + file);
+  if (/npm install (?:-g )?@devcodex\/intent-runtime(?:@[^\s`]+|[^\n]*\bschema-dsl\b)/.test(text)) fail('Default installation must use only the unversioned runtime package: ' + file);
   const prose = text.replace(/```[\s\S]*?```/g, '');
   const targets = [...prose.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)].map(m => m[1]);
   for (const target of targets) if (target.startsWith('/') && target.split('#')[0].endsWith('.json')) fail('Use a native download anchor for JSON assets (Rspress rewrites Markdown links): ' + target);
@@ -40,26 +43,25 @@ for (const file of [...files, readme, config]) {
     if (hash && destination && !anchors(destination.text).has(decodeURIComponent(hash))) fail('Missing anchor: ' + target + ' in ' + file);
     links++;
   }
-  for (const match of text.matchAll(/<!-- example: ([\w/.-]+) -->\s*```(?:js|ts)\n([\s\S]*?)\n```/g)) {
+  for (const match of documentationBlocks(text, 'example')) {
     const source = await readFile(path.join(repo, match[1]), 'utf8');
     if (match[2].trimEnd() !== source.trimEnd()) fail('Stale executable example: ' + match[1] + ' in ' + file);
     examples++;
   }
-  for (const match of text.matchAll(/<!-- typecheck -->\s*```ts\n([\s\S]*?)\n```/g)) checkTypeSnippet(match[1]);
-  for (const match of text.matchAll(/<!-- result: ([\w-]+) -->\s*```json\n([\s\S]*?)\n```/g)) {
+  for (const match of documentationBlocks(text, 'typecheck')) checkTypeSnippet(match[1]);
+  for (const match of documentationBlocks(text, 'result')) {
     const bundle = JSON.parse(await readFile(path.join(root, 'public/examples/scenarios.json'), 'utf8'));
     const expected = bundle.cases.find(c => c.slug === match[1])?.result;
     if (!expected || JSON.stringify(JSON.parse(match[2])) !== JSON.stringify(expected)) fail('Stale full Result example: ' + match[1]);
   }
-  for (const match of text.matchAll(/<!-- json: ([\w-]+) -->\s*```json\n([\s\S]*?)\n```/g)) {
+  for (const match of documentationBlocks(text, 'json')) {
     const expected = JSON.parse(await readFile(path.join(root, 'public/examples', match[1] + '.json'), 'utf8'));
     if (JSON.stringify(JSON.parse(match[2])) !== JSON.stringify(expected)) fail('Stale JSON example: ' + match[1]);
   }
 }
 const typeReference = pages.get('/api/types').text;
 const native = await readFile(path.join(repo, 'src/contracts/public.ts'), 'utf8');
-const publicTypes = native.replace(/^\/\/ Public contract:[^\n]*\n/, '').trimStart();
-if (!typeReference.includes(publicTypes)) fail('Root public type reference is stale.');
+checkPublicTypes(native, typeReference);
 const norm = value => value.replace(/\b(export|declare)\s+/g, '').replace(/\s|;/g, '');
 function declarations(source) {
   const tree = ts.createSourceFile('types.ts', source, ts.ScriptTarget.Latest, true);
@@ -85,7 +87,7 @@ for (const sourceFile of ['src/adapters/api.ts', 'src/mcp/index.ts']) {
 const maintenance = await readFile(path.join(repo, 'src/cli/maintenance.ts'), 'utf8');
 const report = declarations(maintenance).find(([name]) => name === 'MaintenanceReport');
 if (!report || declared.get(report[0]) !== report[1]) fail('Stale CLI MaintenanceReport shape.');
-const maintenanceDoc = pages.get('/guide/installation').text;
+const maintenanceDoc = pages.get('/operations/codex').text;
 const commandSource = await readFile(path.join(repo, 'src/cli/index.ts'), 'utf8');
 const flags = new Set([...commandSource.matchAll(/['"](--[a-z-]+)['"]/g)].map(m => m[1]));
 for (const flag of flags) if (!maintenanceDoc.includes(flag)) fail('Missing CLI flag: ' + flag);
@@ -111,6 +113,7 @@ const response = pages.get('/api/response').text;
 const resultRows = checkResponseFields(native, response);
 for (const name of ['present','explicit_null','not_provided','unknown','not_applicable','invalid','invalidated','removed','precondition','depends_on','parallel','exclusive']) if (!response.includes(name)) fail('Missing response variant: ' + name);
 const versionSource = await readFile(path.join(website, 'site.ts'), 'utf8');
-if (!versionSource.includes('version = metadata.version;')) fail('Document the full package version.');
+if (!versionSource.includes("version = `V${metadata.version.split('.')[0]}`;")) fail('Document the package major version without development suffixes.');
 if (!pages.has('/guide/multi-turn')) fail('Missing multi-turn guide.');
+if (examples === 0 || declared.size === 0 || publicDeclarations === 0) fail('Documentation contract coverage must not be empty.');
 console.log(`User documentation checked: ${files.length} pages, ${links} links/assets/anchors, ${examples} exact examples, ${resultRows} public result rows, ${publicDeclarations} API/MCP declarations, CLI report and configuration defaults.`);

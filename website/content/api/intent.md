@@ -1,6 +1,6 @@
 # Native API
 
-根入口提供 `Intent`、`IntentError`、只读 `INTENT_RESULT_SCHEMA` 与公共类型。模型API和MCP是独立导出入口，见[接入选择](/guide/quick-start)。
+根入口提供 `Intent`、`IntentError`、只读 `INTENT_RESULT_SCHEMA` 与公共类型。模型API和MCP是独立导出入口，见[接入选择](/integrations/index)。
 
 | 要查什么 | 位置 | 失败形式 |
 |---|---|---|

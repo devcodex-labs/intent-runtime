@@ -7,8 +7,14 @@
 | 在Node.js应用中调用 | [快速开始](/guide/quick-start) | 显式配置模型API或自定义执行器 |
 | 在Codex中使用当前模型 | [Codex接入](/integrations/codex) | 当前宿主生成候选，无需额外模型API Key |
 | 启动一个独立MCP服务 | [stdio服务](/integrations/mcp#独立-stdio-服务) | host用当前模型；executor用服务端所配API |
-| 添加到已有MCP的tools | [挂接adapter](/integrations/mcp#添加到已有-mcp-tools) | 保留原服务的连接和工具，按需选host/executor |
+| 添加到已有MCP的tools | [完整挂载示例](/integrations/mcp-sdk) | 保留原服务的连接和工具，按需选host/executor |
 | 接入自有模型网关 | [自定义执行器](/integrations/api#自定义-modelexecutor) | 应用将网关协议转换成ModelReply |
+
+| 路径 | 是否需要独立模型 Key | 连接与状态由谁管理 |
+|---|---|---|
+| Node / executor | 使用所配 API 时需要 | 应用管理调用、历史与业务状态 |
+| Codex / host | 不需要额外 Key | Codex 提供当前模型，Runtime 管本次交接 |
+| 已有 MCP Server | 按所选模式 | 原 SDK 管 transport，每逻辑客户端一个 session |
 
 ## 各入口要准备什么
 
@@ -21,7 +27,7 @@
 
 全局安装不让任意配置文件自动解析全局依赖；配置需要导入包时，放在装有依赖的项目内。远程 HTTP 用已有 HTTP MCP 服务承载 Adapter，独立命令不提供 HTTP 监听。完整步骤见各入口，不必先阅读全部类型。
 
-先按[安装与版本](/guide/installation)获取本文对应的V2包。Native、独立MCP和已有MCP共用同一识别核心，成功结果均为[IntentResult](/guide/results)。
+先按[安装与版本](/guide/installation)完成本地或全局安装，再进入所选路径。Native、独立MCP和已有MCP共用同一识别核心，成功结果均为[IntentResult](/guide/results)。
 
 ## host和executor有什么区别
 

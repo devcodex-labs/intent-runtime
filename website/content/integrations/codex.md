@@ -21,19 +21,17 @@ export default {
 
 ## 2. 安装与登记
 
-先按[安装与版本](/guide/installation#获取当前-v2-包)构建本文对应的V2包。保存配置后，将下面tgz和配置路径换为真实绝对路径，用两行安装和登记：
+先按[安装与版本](/guide/installation)完成全局安装，再将下面配置路径换为真实绝对路径执行登记。安装提供命令，setup才修改本模块的宿主登记：
 
 Windows PowerShell：
 
 ```powershell
-npm install -g "D:\Worker\devcodex-intent-runtime-2.0.0-dev.0.tgz"
 intent-runtime setup --host codex --config "D:\Worker\intent.host.config.mjs"
 ```
 
 macOS/Linux：
 
 ```bash
-npm install -g /absolute/path/devcodex-intent-runtime-2.0.0-dev.0.tgz
 intent-runtime setup --host codex --config "$HOME/intent.host.config.mjs"
 ```
 
@@ -62,15 +60,7 @@ instance=orders，fields=["orderId"]，原始input：查询订单000123，不取
 
 ## 工具与回复
 
-| 工具 | 输入 | 成功返回 |
-|---|---|---|
-| intent_prepare | Native请求加可选instance | HostTask：kind=model_task、requestId、submissionToken、instructions、input、outputSchema |
-| intent_accept | requestId、submissionToken、完整candidateText字符串 | IntentResult |
-| intent_cancel | requestId，可选reason=cancelled/refusal/incomplete | requestId、status=cancelled/already_cancelled/already_completed |
-
-当前模型按HostTask材料和outputSchema生成候选，不按最终Result猜格式。服务端不另调模型。随包Skill对可纠正格式错误按明确反馈最多纠正一次；信息缺失或字段无法判断不触发格式纠正。无法完成时cancel，拒绝/截断分别用refusal/incomplete。
-
-相同token和逐字相同候选并发共享校验；完成回复仍保留时可重放。不同候选冲突。显式纠正不重置校验预算。默认无识别期限；显式timeout从prepare开始。终态回复每adapter最多32项/8MiB，session关闭、进程重启或记录回收后需重新prepare。这些记录不替应用持久保存需求或对话。
+首次识别按上面的prepare → 当前模型生成候选 → accept完成；无法完成时cancel。完整参数、令牌回放、预算和记录回收见[宿主交接参考](/api/mcp#宿主交接)。记录只服务本次识别，不是应用的持久会话。
 
 ## 手动填写 MCP 表单
 
@@ -99,4 +89,4 @@ intent-runtime doctor --host codex
 | 模型未完成候选 | 结束此识别，不把普通宿主回复当成功Result |
 | HOST_REQUEST_NOT_FOUND | 是否换session/重启；重新prepare并传完整材料 |
 
-诊断不调用模型。更新、修复与移除见[安装与维护](/guide/installation)。
+诊断不调用模型。更新、修复、移除、dry-run、全部命令选项和退出码见[Codex安装维护](/operations/codex)。

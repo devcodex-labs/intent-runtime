@@ -1,6 +1,6 @@
 # 快速开始
 
-选择与你的应用相符的接入方式：
+本页完成一次 Node.js 调用：识别“查询订单000123，不取消订单”，找到目标与禁止事项。无需先配置业务字段。其他接入方式可直接选择：
 
 <div className="intent-entry-matrix">
 
@@ -15,7 +15,13 @@
 
 ## 1. 安装到项目
 
-要求Node.js≥20.0.0、ESM。先按[安装与版本](/guide/installation#获取当前-v2-包)获取V2的tgz并安装到应用目录。当前npm latest仍为V1，直接省略版本安装不能得到本文入口。
+需要 Node.js ≥20 和 ESM。在应用目录执行：
+
+```bash
+npm install @devcodex/intent-runtime
+```
+
+所需依赖由 npm 自动安装。将示例保存为 `.mjs` 即可使用 ESM；其他安装方式见[安装与版本](/guide/installation)。
 
 本文先识别目标与约束，不配置业务Schema。需要订单编号等结构化参数时，再运行[订单字段示例](/examples/index#订单字段提取)。
 
@@ -41,7 +47,7 @@ export INTENT_MODEL="你的模型名称"
 
 ## 3. 保存并运行
 
-将下例保存为安装依赖的项目中的 `parse.mjs`。包导入从文件位置解析。
+将下例保存为安装依赖的项目中的 `basic.mjs`。包导入从文件位置解析。
 
 <!-- example: examples/api/basic.mjs -->
 ```js
@@ -65,7 +71,7 @@ try {
 ```
 
 ```bash
-node parse.mjs
+node basic.mjs
 ```
 
 ## 4. 读取结果

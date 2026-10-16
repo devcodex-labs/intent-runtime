@@ -14,7 +14,10 @@ function run(command, args, cwd, overrides = {}) {const r = spawnSync(command, a
 run(process.execPath, ['scripts/build.mjs'], repo, {INTENT_BUILD_DIR: path.join(stage, 'dist')});
 for (const name of ['package.json','README.md','CHANGELOG.md','LICENSE','integrations']) await cp(path.join(repo, name), path.join(stage, name), {recursive: true});
 const npmBin = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const npm = (args,cwd) => process.env.npm_execpath ? run(process.execPath, [process.env.npm_execpath, ...args], cwd, {npm_config_cache:path.join(base,'cache')}) : run(npmBin,args,cwd,{npm_config_cache:path.join(base,'cache')});
+// Keep the include/omit experiment independent of the caller's npm settings.
+// Both spellings matter on POSIX; Windows resolves environment names without case.
+const npmEnv = {npm_config_cache:path.join(base,'cache'), npm_config_include:'', NPM_CONFIG_INCLUDE:'', npm_config_omit:'', NPM_CONFIG_OMIT:''};
+const npm = (args,cwd) => process.env.npm_execpath ? run(process.execPath, [process.env.npm_execpath, ...args], cwd, npmEnv) : run(npmBin,args,cwd,npmEnv);
 const [{filename}] = JSON.parse(npm(['pack','--ignore-scripts','--pack-destination',archives,'--json'], stage));
 const tarball = path.join(archives, filename), packed = await readFile(tarball), hash = createHash('sha256').update(packed).digest('hex');
 await writeFile(path.join(archives, 'SHA256SUMS'), hash + '  ' + filename + '\n');

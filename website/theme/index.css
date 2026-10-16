@@ -52,6 +52,8 @@ a:focus-visible, button:focus-visible, summary:focus-visible, [tabindex]:focus-v
 .rp-dark .ir-button-primary {background: #62d7bf; color: #102d28 !important; border-color: #62d7bf;}
 .ir-button:hover {box-shadow: 0 4px 14px #153d3020; transform: translateY(-1px);}
 .ir-stack {margin: 20px 0 0; color: var(--ir-muted); font-family: ui-monospace, monospace; font-size: 12px;}
+.ir-paths {display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 20px; font-size: 13px; font-weight: 600;}
+.ir-home .ir-paths a {color: var(--rp-c-brand); padding: 6px 0;}
 .ir-annotation {justify-self: end; position: relative; width: 285px; height: 230px; display: grid; grid-template-columns: 40px 1fr 40px 1fr 40px; align-items: center; color: var(--ir-muted); font-size: 12px; background-image: radial-gradient(var(--ir-line) 1px, transparent 1px); background-size: 16px 16px; border-radius: 50%;}
 .ir-annotation > span {padding: 10px 0; text-align: center; background: var(--ir-panel); border: 1px solid var(--ir-line); border-radius: 4px; z-index: 1;}
 .ir-annotation i {height: 1px; background: var(--rp-c-brand);}
