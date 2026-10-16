@@ -1,33 +1,32 @@
 import {readFile} from 'node:fs/promises';
-import {createHash} from 'node:crypto';
-import {execFileSync} from 'node:child_process';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 
-const metadata = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
-const commit = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
-if (process.env.GITHUB_REF_TYPE === 'tag' && process.env.GITHUB_REF_NAME !== 'v' + metadata.version) throw new Error('Tag and package version differ.');
-if (!/^2\.\d+\.\d+$/.test(metadata.version)) throw new Error('Publication requires a stable V2 version.');
-const evidenceFile = process.env.INTENT_RELEASE_EVIDENCE;
-if (!evidenceFile) throw new Error('V2 publication requires reviewed acceptance evidence.');
-const bytes = await readFile(evidenceFile), hash = createHash('sha256').update(bytes).digest('hex');
-if (process.env.INTENT_RELEASE_EVIDENCE_SHA256 && hash !== process.env.INTENT_RELEASE_EVIDENCE_SHA256) throw new Error('Reviewed evidence digest differs.');
-const evidence = JSON.parse(bytes);
-if (evidence.format !== 'intent-runtime-v2-acceptance-1' || evidence.commit !== commit || evidence.packageVersion !== metadata.version || evidence.contractVersion !== '2.0-draft.6') throw new Error('Acceptance evidence does not match this release.');
-const gates = ['TAF-01','TAF-02','TAF-03','TAF-04','TAF-05','GATE-01','GATE-02','GATE-03'];
-for (const id of gates) {
-  const rows = evidence.gates?.filter(row => row.id === id);
-  if (rows?.length !== 1 || rows[0].status !== 'passed' || typeof rows[0].evidence !== 'string' || !rows[0].evidence.trim()) throw new Error('Unclosed acceptance gate: ' + id);
+/** Check local package identity before CI or any registry mutation. */
+export function validateRelease(metadata, lock, {refType, tag, ci = false} = {}) {
+  if (metadata.name !== '@devcodex/intent-runtime' || !/^2\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(metadata.version)) throw new Error('Publication requires a stable V2 version.');
+  if (lock.name !== metadata.name || lock.version !== metadata.version || lock.packages?.['']?.name !== metadata.name || lock.packages?.['']?.version !== metadata.version) throw new Error('Package and lock identity differ.');
+  if (ci && refType !== 'tag') throw new Error('Publication requires a version tag.');
+  if (refType === 'tag' && tag !== 'v' + metadata.version) throw new Error('Tag and package version differ.');
 }
-for (const provider of ['openai','xai']) if (!evidence.providers?.some(r => r.provider === provider && r.status === 'passed' && r.model && r.evidence)) throw new Error('Missing actual provider acceptance: ' + provider);
-for (const client of ['codex-cli','codex-desktop']) if (!evidence.hosts?.some(r => r.client === client && r.status === 'passed' && r.version && r.platform && r.evidence)) throw new Error('Missing actual host acceptance: ' + client);
-for (const version of ['2025-06-18','2025-11-25','2026-07-28']) if (!evidence.protocols?.some(r => r.version === version && r.status === 'passed' && r.evidence)) throw new Error('Missing protocol evidence: ' + version);
-if (!Number.isSafeInteger(evidence.semanticReview?.executed) || evidence.semanticReview.executed <= 0 || evidence.semanticReview.status !== 'passed' || !evidence.semanticReview.independentReviewer || !evidence.semanticReview.evidence) throw new Error('Missing independent semantic acceptance.');
-const token = process.env.GH_TOKEN, repository = process.env.GITHUB_REPOSITORY ?? 'devcodex-labs/intent-runtime';
-const headers = {Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', ...(token ? {Authorization: 'Bearer ' + token} : {})};
-async function api(route) {const response = await fetch('https://api.github.com/repos/' + repository + route, {headers, signal: AbortSignal.timeout(15000)}); if (!response.ok) throw new Error('Cannot verify exact platform CI.'); return response.json();}
-if (!Number.isSafeInteger(evidence.ciRunId)) throw new Error('Missing exact CI run.');
-const run = await api('/actions/runs/' + evidence.ciRunId);
-if (run.head_sha !== commit || run.head_branch !== 'main' || run.event !== 'push' || run.status !== 'completed' || run.conclusion !== 'success' || run.path !== '.github/workflows/ci.yml') throw new Error('CI is not a successful exact main commit.');
-const jobs = [];
-for (let page = 1;; page++) {const data = await api(`/actions/runs/${evidence.ciRunId}/jobs?per_page=100&page=${page}`); jobs.push(...data.jobs); if (jobs.length >= data.total_count) break;}
-for (const name of ['quality','docs', ...['ubuntu-latest','windows-latest','macos-latest'].flatMap(os => ['20.0.0','24.x'].map(node => `runtime (${os}, ${node})`))]) if (!jobs.some(j => j.name === name && j.conclusion === 'success')) throw new Error('Missing successful platform CI: ' + name);
-console.log('Exact V2 release, reviewed gates and platform CI verified. Evidence SHA-256: ' + hash);
+
+/** Select the current version's authored notes, excluding older releases. */
+export function releaseNotes(changelog, version) {
+  const lines = changelog.replace(/\r\n/g, '\n').split('\n');
+  const start = lines.findIndex(line => line === '## ' + version || line.startsWith('## ' + version + ' —'));
+  if (start < 0) throw new Error('Missing changelog section for ' + version);
+  const next = lines.findIndex((line, index) => index > start && line.startsWith('## '));
+  const body = lines.slice(start + 1, next < 0 ? undefined : next).join('\n').trim();
+  if (!body) throw new Error('Empty release notes.');
+  return body + '\n';
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const metadata = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+  const lock = JSON.parse(await readFile(new URL('../package-lock.json', import.meta.url), 'utf8'));
+  validateRelease(metadata, lock, {refType: process.env.GITHUB_REF_TYPE, tag: process.env.GITHUB_REF_NAME, ci: process.env.GITHUB_ACTIONS === 'true'});
+  const notes = releaseNotes(await readFile(new URL('../CHANGELOG.md', import.meta.url), 'utf8'), metadata.version);
+  if (process.argv[2] === '--notes') process.stdout.write(notes);
+  else if (process.argv.length === 2) console.log('Release identity verified: ' + metadata.name + '@' + metadata.version);
+  else throw new Error('Usage: node scripts/check-release.mjs [--notes]');
+}

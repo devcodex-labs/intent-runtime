@@ -8,37 +8,27 @@ concurrency:
 permissions:
   contents: read
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with: {node-version: '24.x'}
+      - run: node scripts/check-release.mjs
+  validate:
+    needs: preflight
+    uses: ./.github/workflows/ci.yml
   publish:
+    needs: validate
     runs-on: ubuntu-latest
     environment: npm-release
-    permissions: {contents: read, actions: read, id-token: write}
+    permissions: {contents: read, id-token: write}
     steps:
       - uses: actions/checkout@v6
         with: {fetch-depth: 0}
       - uses: actions/setup-node@v7
         with: {node-version: '24.x', registry-url: 'https://registry.npmjs.org/', package-manager-cache: false}
-      - name: Require reviewed V2 acceptance coordinates
-        env:
-          EVIDENCE_RUN_ID: ${{ vars.RELEASE_EVIDENCE_RUN_ID }}
-          EVIDENCE_SHA256: ${{ vars.RELEASE_EVIDENCE_SHA256 }}
-        run: node --input-type=module -e 'if (!/^\d+$/.test(process.env.EVIDENCE_RUN_ID || "") || !/^[a-f0-9]{64}$/.test(process.env.EVIDENCE_SHA256 || "")) throw new Error("V2 acceptance is not configured.");'
-      - uses: actions/download-artifact@v7
-        with:
-          name: release-acceptance
-          run-id: ${{ vars.RELEASE_EVIDENCE_RUN_ID }}
-          github-token: ${{ github.token }}
-          path: ${{ runner.temp }}/intent-release-evidence
-      - name: Verify stable V2 tag, reviewed gates and exact platform CI
-        run: node scripts/check-release.mjs
-        env:
-          GH_TOKEN: ${{ github.token }}
-          INTENT_RELEASE_EVIDENCE: ${{ runner.temp }}/intent-release-evidence/release-acceptance.json
-          INTENT_RELEASE_EVIDENCE_SHA256: ${{ vars.RELEASE_EVIDENCE_SHA256 }}
       - run: npm ci --ignore-scripts
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm test
-        env: {INTENT_TEST_DIR: '${{ runner.temp }}/intent-tests'}
       - run: npm run check:package
         env: {INTENT_PACKAGE_CHECK_DIR: '${{ runner.temp }}/intent-package-check'}
       - uses: actions/upload-artifact@v6
@@ -48,16 +38,44 @@ jobs:
             ${{ runner.temp }}/intent-package-check/archives/*.tgz
             ${{ runner.temp }}/intent-package-check/archives/SHA256SUMS
           if-no-files-found: error
+      - name: Check whether this exact package was already published
+        id: registry
+        run: npm run release:registry -- plan "${{ runner.temp }}/intent-package-check/archives/"*.tgz
       - name: Publish the verified package
+        if: steps.registry.outputs.publish == 'true'
         run: npm publish "${{ runner.temp }}/intent-package-check/archives/"*.tgz --access public --provenance
         env: {NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}'}
+      - name: Verify registry bytes, default installation and installed entry points
+        run: npm run release:registry -- verify "${{ runner.temp }}/intent-package-check/archives/"*.tgz
+        env: {INTENT_RELEASE_VERIFY_DIR: '${{ runner.temp }}/intent-registry-verification'}
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: npm-registry-verification
+          path: ${{ runner.temp }}/intent-registry-verification/registry-verification.json
+          if-no-files-found: warn
   release:
     needs: publish
     runs-on: ubuntu-latest
     permissions: {contents: write}
     steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with: {node-version: '24.x'}
       - uses: actions/download-artifact@v7
         with: {name: npm-package, path: '${{ runner.temp }}/intent-release-assets'}
-      - name: Create the tagged GitHub Release
+      - name: Create or resume the tagged GitHub Release
         env: {GH_TOKEN: '${{ github.token }}', RELEASE_TAG: '${{ github.ref_name }}'}
-        run: gh release create "$RELEASE_TAG" "${{ runner.temp }}/intent-release-assets/"*.tgz "${{ runner.temp }}/intent-release-assets/SHA256SUMS" --repo "$GITHUB_REPOSITORY" --verify-tag --title "$RELEASE_TAG" --generate-notes
+        run: |
+          node scripts/check-release.mjs --notes > "$RUNNER_TEMP/intent-release-notes.md"
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --notes-file "$RUNNER_TEMP/intent-release-notes.md"
+            gh release upload "$RELEASE_TAG" "$RUNNER_TEMP/intent-release-assets/"*.tgz "$RUNNER_TEMP/intent-release-assets/SHA256SUMS" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$RELEASE_TAG" "$RUNNER_TEMP/intent-release-assets/"*.tgz "$RUNNER_TEMP/intent-release-assets/SHA256SUMS" --repo "$GITHUB_REPOSITORY" --verify-tag --title "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/intent-release-notes.md"
+          fi
+  docs:
+    needs: release
+    uses: ./.github/workflows/docs.yml
+    with: {ref: '${{ github.sha }}'}
+    permissions: {contents: read, pages: write, id-token: write}

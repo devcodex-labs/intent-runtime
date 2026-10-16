@@ -82,6 +82,8 @@ host的三个工具请求/回复见[宿主交接](#宿主交接)，完整类型�
 
 独立命令支持 `--transport http --host 127.0.0.1 --port 3001 --path /mcp`，使用有状态 Streamable HTTP 的2025-06-18 / 2025-11-25协议；stdio支持上面三个版本。HTTP启动选项、客户端URL和会话限额见[教程](/integrations/mcp#使用-http-与指定端口)。
 
+`--public-origin` 显式配置公开 HTTP/HTTPS 源地址，独立于监听地址；必须不含凭据、通配域名、路径、query 或 fragment。绑定0.0.0.0/::时必填。公开 Host 与 Origin 精确匹配配置，本机诊断地址另保留；不信任任意转发头。TLS代理步骤及非默认端口规则见[远程部署](/integrations/mcp#远程地址与-https-代理)。
+
 已有服务也可将相同工具列表/调用转接挂到原HTTP SDK处理器。认证、监听和断线恢复属于该服务；逻辑session存续时，短暂HTTP断流不等于close。不要给每次HTTP请求创建新的host session，否则prepare/accept无法衔接。HTTP部署仍需验证实际客户端、代理与认证配置。
 
 ## 完整 executor 回复

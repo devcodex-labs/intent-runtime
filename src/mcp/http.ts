@@ -4,11 +4,14 @@ import {randomUUID} from 'node:crypto';
 import {WebStandardStreamableHTTPServerTransport} from '@modelcontextprotocol/server';
 import type {IntentMcpServerConfig} from './index.js';
 import {createSdkBinding} from './sdk.js';
+import {publicOrigin} from './http-origin.js';
 
 // Stateful Streamable HTTP uses one SDK server and adapter session per client.
 // The 2025 session protocol is intentional; modern per-request MCP is not a
 // substitute for the host prepare/accept conversation's logical identity.
-export async function startHttp(config: IntentMcpServerConfig, options: {host: string; port: number; path: string}) {
+export async function startHttp(config: IntentMcpServerConfig, options: {host: string; port: number; path: string; publicOrigin?: string}) {
+  const published = publicOrigin(options.publicOrigin);
+  if (['0.0.0.0','::'].includes(options.host) && !published) throw new Error('Wildcard binding requires a public origin.');
   const binding = createSdkBinding(config);
   type Connection = {transport: WebStandardStreamableHTTPServerTransport; server: ReturnType<typeof binding.createServer>; touched: number};
   const sessions = new Map<string, Connection>(), connections = new Set<Connection>();
@@ -24,8 +27,8 @@ export async function startHttp(config: IntentMcpServerConfig, options: {host: s
     if (!address || typeof address === 'string') {outgoing.writeHead(503).end(); return;}
     const host = incoming.headers.host?.toLowerCase();
     const names = [options.host, 'localhost', '127.0.0.1', '[::1]'].map(name => name.includes(':') && !name.startsWith('[') ? '[' + name + ']' : name);
-    if (!host || !names.some(name => host === name.toLowerCase() + ':' + address.port || address.port === 80 && host === name.toLowerCase())) {outgoing.writeHead(403).end(); return;}
-    const endpoint = 'http://' + host;
+    if (!host || !(host === published?.host || names.some(name => host === name.toLowerCase() + ':' + address.port || address.port === 80 && host === name.toLowerCase()))) {outgoing.writeHead(403).end(); return;}
+    const endpoint = host === published?.host ? published.origin : 'http://' + host;
     if (incoming.headers.origin && incoming.headers.origin !== endpoint) {outgoing.writeHead(403).end(); return;}
     if (incoming.url !== options.path) {outgoing.writeHead(404).end(); return;}
     const id = incoming.headers['mcp-session-id'];

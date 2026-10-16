@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp, mkdir, readFile, writeFile, unlink, symlink, access} from 'node:fs/promises';
+import {mkdtemp, mkdir, readFile, writeFile, copyFile, unlink, symlink, access} from 'node:fs/promises';
 import path from 'node:path';
 import {maintain, type MaintenanceOptions} from '../src/cli/maintenance.js';
 import {tableRange} from '../src/cli/toml.js';
@@ -28,6 +28,28 @@ test('Dry-run does not execute a trusted module or create the registration/state
   await writeFile(f.config, `import {writeFileSync} from 'node:fs'; writeFileSync(${JSON.stringify(marker)}, 'executed'); export default {mode:'host',instances:{main:{}}};`);
   const r = await maintain({...f.options, dryRun: true}); assert.equal(r.exitCode, 0); assert.equal(r.report.status, 'planned'); assert.equal(r.report.changed, false);
   for (const file of [marker, f.codex, f.registry, f.skill]) await assert.rejects(access(file));
+});
+
+test('An old same-name registration stays protected until backed up and explicitly removed', async () => {
+  const f = await fixture(), unrelated = '# user settings\nmodel="test"\n[mcp_servers.other]\ncommand="other"\n';
+  const old = '[mcp_servers.intent-runtime]\ncommand="old-intent-runtime-mcp"\n', oldSkill = '# Old managed skill with user additions\n';
+  await writeFile(f.codex, unrelated + old); await mkdir(path.dirname(f.skill),{recursive:true}); await writeFile(f.skill,oldSkill);
+  const oldState = path.join(process.env.INTENT_RUNTIME_HOME!,'state.json');
+  await mkdir(path.dirname(oldState),{recursive:true}); await writeFile(oldState,'{"schemaVersion":1,"status":"configured","version":"1.0.2"}\n');
+  for (const command of ['setup','doctor','clean'] as const) {
+    const result = await maintain({...f.options,command}); assert.equal(result.exitCode,3);
+    assert.equal(await readFile(f.codex,'utf8'),unrelated + old); assert.equal(await readFile(f.skill,'utf8'),oldSkill);
+  }
+  // Reproduce the documented manual path in an isolated home, never auto-adopt it.
+  await copyFile(f.codex,f.codex + '.backup'); await copyFile(f.skill,f.skill + '.backup');
+  const current = await readFile(f.codex,'utf8'), range = tableRange(current,'intent-runtime')!;
+  await writeFile(f.codex,current.slice(0,range.start) + current.slice(range.end)); await unlink(f.skill);
+  assert.equal((await maintain(f.options)).exitCode,0);
+  assert.equal((await maintain({...f.options,command:'doctor'})).exitCode,0);
+  assert.equal((await maintain({...f.options,command:'clean'})).exitCode,0);
+  assert.equal(await readFile(f.codex,'utf8'),unrelated);
+  assert.equal(await readFile(f.codex + '.backup','utf8'),unrelated + old); assert.equal(await readFile(f.skill + '.backup','utf8'),oldSkill);
+  assert.equal(await readFile(oldState,'utf8'),'{"schemaVersion":1,"status":"configured","version":"1.0.2"}\n');
 });
 
 test('Setup and doctor load an ESM .js configuration from its own project', async () => {

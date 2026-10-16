@@ -1,12 +1,16 @@
 # Changelog
 
-## 2.0.0 — 未发布
+## 2.0.0
 
 - 完全重写识别核心；完整意图只保存在 effective，本轮使用 turn.intentIds 和 changes 关联，结果与 baseline 使用 2.0-draft.6。
 - 使用真实 schema-dsl 3.0.4 进行所选字段、声明依赖与多轮失效校验；区分存在性和值域，保护前导零与字段归属。
-- Native、Responses API、标准 MCP executor/host 共用单识别核心；没有隐式模型重试、模型降级或业务执行。
+- Native、Responses / Chat Completions API、标准 MCP executor/host 共用单识别核心；支持兼容网关与自定义 ModelExecutor，没有隐式模型重试、模型降级或业务执行。
+- 应用支持 ESM JavaScript / TypeScript；CLI 配置支持 `.js` / `.mjs`，TypeScript 配置先编译为 ESM。npm 正常安装会解析所需 schema-dsl peer，无需另行安装。
+- 独立 MCP 新增 Streamable HTTP 的监听地址、端口、路径及 `--public-origin` 配置。HTTP 使用有状态 2025-06-18 / 2025-11-25 协议；stdio 另支持 2026-07-28。明确区分绑定地址与公开 Host / HTTPS Origin，保留会话隔离及严格校验；TLS 与认证由部署层提供。
 - 新增显式 setup、doctor、clean，保留用户编辑与其他 MCP；普通安装不修改宿主配置。
 - 替换旧版接入、示例、文档与工程脚本。本版本不保留旧版 API 兼容层。
+- 重新设计英文 README 与中文站点使用路径，补齐模型执行器、已有 MCP 服务最小接入、结果读取及错误恢复。已有自动登记需先备份并按维护指南迁移；不强行接管未知登记或用户修改。
+- 推送匹配版本的 tag 自动执行完整 CI、候选包检查、npm 发布及 registry 隔离安装验收，再以本节内容创建 GitHub Release 并同步该提交的站点。相同版本仅在包完整性一致时允许跳过重复发布；发布中断的恢复步骤见维护者发布指南。
 
 ## V1 归档变更 — 未发布
 

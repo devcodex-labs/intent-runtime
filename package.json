@@ -1,6 +1,6 @@
 {
   "name": "@devcodex/intent-runtime",
-  "version": "2.0.0-dev.0",
+  "version": "2.0.0",
   "description": "A model-driven Node.js component that structures user intent and extracts schema-defined data for applications and MCP servers.",
   "type": "module",
   "license": "MIT",
@@ -57,6 +57,8 @@
     "schema:generate": "node scripts/generate-schema.mjs",
     "lint": "node scripts/check-imports.mjs",
     "check:package": "node scripts/check-package.mjs",
+    "test:release": "node --test scripts/check-release.test.mjs scripts/release-registry.test.mjs",
+    "release:registry": "node scripts/release-registry.mjs",
     "docs:check": "npm --prefix website run check",
     "docs:build": "npm --prefix website run build",
     "prepack": "node scripts/build.mjs"

@@ -19,3 +19,5 @@
 JavaScript 示例可在ESM项目中保存为.js，也可独立使用.mjs；CLI配置支持两者。TypeScript先编译为ESM .js。独立服务：`intent-runtime-mcp --config <绝对路径.js或.mjs>`；HTTP追加`--transport http --port 3001`，客户端URL为`http://127.0.0.1:3001/mcp`。已有SDK完整示例：同目录保存attach.mjs和server.mjs后运行 `node server.mjs`。stdio的stdout只传协议，日志写stderr。
 
 TypeScript例子在有type=module的项目编译，INTENT_GATEWAY_URL/INTENT_MODEL/INTENT_API_KEY通过环境提供。类型检查只证明接口使用，不证明你的网关已经接受候选Schema或具有语义准确性。
+
+远程HTTP部署通过`--public-origin https://mcp.example.com`明确公开地址；通配监听0.0.0.0/::时必填。TLS、认证及保留Host/Origin的代理示例见[HTTP部署教程](https://devcodex-labs.github.io/intent-runtime/integrations/mcp.html#远程地址与-https-代理)。

@@ -90,10 +90,43 @@ intent-runtime-mcp --config /absolute/path/intent.host.config.js --transport htt
 | --host | 127.0.0.1 | HTTP 监听地址 |
 | --port | 3001 | HTTP 端口，1—65535 |
 | --path | /mcp | HTTP 路径，例如 /mcp；不含 query |
+| --public-origin | 不设置 | 公开 HTTP/HTTPS 源地址，含需要的端口，不含路径、凭据、query 或 fragment |
 
-host、port、path 属于启动选项，不写进 Intent 配置。stdio 不接受这些 HTTP 选项。HTTP 使用 MCP SDK 的有状态 Streamable HTTP，支持 2025-06-18 / 2025-11-25 协议；stdio 另支持 2026-07-28。客户端需支持相应协议。
+host、port、path、public-origin 属于启动选项，不写进 Intent 配置。stdio 不接受这些 HTTP 选项。HTTP 使用 MCP SDK 的有状态 Streamable HTTP，支持 2025-06-18 / 2025-11-25 协议；stdio 另支持 2026-07-28。客户端需支持相应协议。
 
 同一个客户端要保留协商得到的 `Mcp-Session-Id`，prepare 与 accept 使用同一逻辑会话。HTTP 会话最多128个，30分钟无新请求会回收；请求体上限4 MiB。它不是业务对话持久化。默认只监听本机；部署到其他机器时显式配置监听地址，并由部署层配置认证、HTTPS及访问地址；本命令不提供 OAuth 或代理管理。
+
+### 远程地址与 HTTPS 代理
+
+`--host` 是进程绑定地址；`--public-origin` 是客户端实际访问的源地址。这两者可以不同。绑定 `0.0.0.0` 或 `::` 时必须指定公开源地址，不能把通配地址直接当作客户端 URL。例如在受控局域网中：
+
+```bash
+intent-runtime-mcp --config /absolute/path/intent.host.config.js --transport http --host 0.0.0.0 --port 3001 --public-origin http://192.168.1.10:3001
+```
+
+将示例 IP 替换为本机真实地址，客户端访问 `http://192.168.1.10:3001/mcp`。它不会自动提供认证或加密；公网部署应在已配置 TLS 与访问控制的代理之后运行。
+
+HTTPS 域名示例：代理对外提供 `https://mcp.example.com/mcp`，进程只在本机监听：
+
+```bash
+intent-runtime-mcp --config /absolute/path/intent.host.config.js --transport http --host 127.0.0.1 --port 3001 --public-origin https://mcp.example.com
+```
+
+下面是加入**已有 TLS/访问控制 server 块**的 Nginx 路由片段；证书、认证和域名由你的部署配置提供：
+
+```nginx
+location = /mcp {
+    proxy_pass http://127.0.0.1:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Host $http_host;
+    proxy_buffering off;
+    proxy_read_timeout 3600s;
+}
+```
+
+客户端填写 `https://mcp.example.com/mcp`。代理须保留公开 `Host`、原始 `Origin`、MCP 会话/协议头及流式响应；带非默认端口时，公开源地址和 Host 必须包含相同端口。服务不会根据任意 `X-Forwarded-*` 头扩大允许范围，也不能通过改写错误 Origin 来绕过检查。公开 Host 只接受所配源地址的 Host；携带 Origin 时必须与它的 scheme、host、port 一致。本机地址仍可用于本机诊断。
+
+验证部署时，先连接、列工具，再在同一会话完成 prepare/accept；不匹配的 Host/Origin 应返回403。自动化覆盖这些请求边界，实际代理、证书和认证仍需在你的部署环境验证。
 
 ### 使用所配 API 的完整配置
 
@@ -129,7 +162,7 @@ executor模式应列出intent_parse：传入input“查询订单000123，不取�
 |---|---|
 | 启动失败/没有工具 | 核对绝对.js/.mjs路径、ESM项目配置、导入依赖及客户端stderr |
 | HTTP无法连接 | 核对监听地址、端口和/mcp路径；确认进程仍在运行 |
-| HTTP 403 | Host/Origin与服务地址是否匹配；通过代理时同步其转发地址 |
+| HTTP 403 | 核对公开 URL 与 --public-origin；代理保留公开 Host 和原始 Origin，包含非默认端口 |
 | 列出的工具与预期不符 | 核对mode并重启客户端连接 |
 | 有prepare但没有最终结果 | 完成同一session的accept，候选格式按outputSchema；不能把HostTask当结果 |
 | 返回isError=true | 读取error摘要并按[错误恢复](/api/errors)处理 |

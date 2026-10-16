@@ -1,8 +1,13 @@
 name: Deploy Docs
 
 on:
-  # Restore automatic deployment after the V2 documentation is reviewed.
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        description: Exact validated release commit
+        required: true
+        type: string
 
 concurrency:
   group: documentation-pages
@@ -13,10 +18,10 @@ permissions:
 
 jobs:
   build:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref_type == 'tag'
     runs-on: ubuntu-latest
     env:
-      DEPLOY_SHA: ${{ github.sha }}
+      DEPLOY_SHA: ${{ inputs.ref || github.sha }}
     steps:
       - uses: actions/checkout@v6
         with:

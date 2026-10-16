@@ -100,6 +100,22 @@ test('Standalone MCP help/version and invalid arguments do not import a configur
   }
 });
 
+test('Invalid public origin and HTTP-only CLI options reject before importing configuration', async () => {
+  const dir = await mkdtemp(path.join(process.env.INTENT_TEST_DIR!,'invalid-http-')), config = path.join(dir,'never-import.mjs');
+  await writeFile(config,"throw new Error('Must not be imported');\n");
+  const cli = path.join(process.env.INTENT_PACKAGE_TEST_ROOT!,'dist/cli/mcp.js');
+  for (const extra of [
+    ['--public-origin','https://example.test'],
+    ['--transport','http','--host','0.0.0.0'],
+    ['--transport','http','--public-origin','https://example.test/mcp'],
+    ['--transport','http','--public-origin','https://*.example.test'],
+    ['--transport','http','--public-origin','https://user:secret@example.test'],
+  ]) {
+    const r = spawnSync(process.execPath,[cli,'--config',config,...extra],{encoding:'utf8'});
+    assert.equal(r.status,2); assert(!r.stderr.includes('startup failed')); assert.equal(r.stdout,'');
+  }
+});
+
 for (const version of ['2025-06-18', '2025-11-25', '2026-07-28'] as const) test('Actual SDK stdio executor uses Native and emits the exact wire envelope: ' + version, async () => {
   const dir = await mkdtemp(path.join(process.env.INTENT_TEST_DIR!, 'stdio-executor-')), config = path.join(dir, 'executor.mjs');
   const d = draft(); d.observations = [observation('orderId', '000123')];

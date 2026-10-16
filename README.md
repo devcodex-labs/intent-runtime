@@ -1,8 +1,24 @@
 # Intent Runtime
 
-Turn natural-language requests into structured goals, constraints, changes, and schema-defined fields for Node.js applications and MCP clients.
+**[Documentation](https://devcodex-labs.github.io/intent-runtime/)** · [Quick start](#install) · [Examples](https://github.com/devcodex-labs/intent-runtime/tree/main/examples) · [npm](https://www.npmjs.com/package/@devcodex/intent-runtime) · [Issues](https://github.com/devcodex-labs/intent-runtime/issues)
+
+[![CI](https://github.com/devcodex-labs/intent-runtime/actions/workflows/ci.yml/badge.svg)](https://github.com/devcodex-labs/intent-runtime/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@devcodex/intent-runtime)](https://www.npmjs.com/package/@devcodex/intent-runtime)
+[![Node.js >=20](https://img.shields.io/badge/node-%3E%3D20-339933)](https://nodejs.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+### Understand the request before taking action.
+
+Turn natural-language requests into structured goals, constraints, changes, and schema-defined fields. Use the same core in your Node.js application, your MCP server, or a client that brings its own model.
 
 For example, “Look up order 000123. Do not cancel the order” contains both a goal and a prohibition. Intent Runtime preserves both. Your application remains responsible for authorization, tools, and execution; the library only interprets the material you provide.
+
+- **Goals and constraints together.** Preserve prohibitions, conditions, relationships, and unresolved questions alongside the requested action.
+- **Your business fields.** Select schema-defined fields, validate their values, and keep identifiers such as `000123` as strings.
+- **Explicit multi-turn state.** Supply context and a baseline to track changes without hidden conversation history.
+- **Your model, your transport.** Use Responses, Chat Completions, a custom executor, or the MCP client's current model.
+
+[Install and run](#install) · [Model APIs and gateways](#connect-a-model-or-gateway) · [MCP](#run-a-standalone-mcp-service) · [Codex](#use-the-current-codex-model) · [Contributing](#contributing)
 
 ## Choose an integration
 
@@ -123,7 +139,7 @@ The command uses stdio by default; your MCP client starts and manages that proce
 npx --no-install intent-runtime-mcp --config /absolute/path/intent.host.config.mjs --transport http --port 3001
 ```
 
-Connect the client to `http://127.0.0.1:3001/mcp`. Change the listener with `--host`, `--port`, and `--path`. HTTP supports the stateful MCP 2025-06-18 and 2025-11-25 protocols; stdio also supports 2026-07-28. Authentication and HTTPS for remote deployment belong to your deployment layer.
+Connect the client to `http://127.0.0.1:3001/mcp`. Change the listener with `--host`, `--port`, and `--path`. Set `--public-origin https://mcp.example.com` when using a public domain or HTTPS proxy; wildcard listeners require an explicit public origin. See the [remote deployment example](https://devcodex-labs.github.io/intent-runtime/integrations/mcp.html#远程地址与-https-代理). HTTP supports the stateful MCP 2025-06-18 and 2025-11-25 protocols; stdio also supports 2026-07-28. Authentication and HTTPS belong to your deployment layer.
 
 Ask your client to use the intent tools to identify the goal and prohibition in the example request. It should use `intent_prepare`, produce a candidate with its current model, and submit it through `intent_accept` in the same session. The tools do not automatically process every chat message. See [MCP client configuration and usage](https://devcodex-labs.github.io/intent-runtime/integrations/mcp.html).
 
@@ -139,6 +155,8 @@ intent-runtime setup --host codex --config /absolute/path/intent.host.config.mjs
 ```
 
 Use the trusted configuration above or follow the [Codex integration guide](https://devcodex-labs.github.io/intent-runtime/integrations/codex.html) to add business fields. Reload the client after setup. Ordinary installation does not modify Codex configuration; registration is explicit. The supplied Skill guides tool use when invoked and does not take over every message.
+
+Already have a registration from an automatic setup? Follow the [safe registration upgrade](https://devcodex-labs.github.io/intent-runtime/operations/codex.html#从自动登记方式升级) before replacing it. Setup protects existing entries and user edits.
 
 ## Troubleshooting
 
@@ -160,5 +178,21 @@ The full documentation is currently in Chinese:
 - [Complete response reference](https://devcodex-labs.github.io/intent-runtime/api/response.html) and [multi-turn requests](https://devcodex-labs.github.io/intent-runtime/guide/multi-turn.html)
 - [MCP](https://devcodex-labs.github.io/intent-runtime/integrations/mcp.html), [Codex](https://devcodex-labs.github.io/intent-runtime/integrations/codex.html), and [model APIs](https://devcodex-labs.github.io/intent-runtime/integrations/api.html)
 - [Scenarios](https://devcodex-labs.github.io/intent-runtime/examples/index.html), [validation scope](https://devcodex-labs.github.io/intent-runtime/testing/validation.html), and [source examples](https://github.com/devcodex-labs/intent-runtime/tree/main/examples)
+
+## Contributing
+
+Bug reports, reproducible examples, and pull requests are welcome. For an issue, include the package, Node.js, model and client versions, the input, and the observed result. Review any credentials or private data before sharing it.
+
+```bash
+git clone https://github.com/devcodex-labs/intent-runtime.git
+cd intent-runtime
+npm ci
+npm run typecheck
+npm run lint
+npm test
+npm run test:release
+```
+
+Documentation lives in `website/content`; runnable examples live in `examples`. To check documentation changes, run `npm --prefix website ci` and `npm run docs:check`. See the [release guide](https://github.com/devcodex-labs/intent-runtime/blob/main/RELEASING.md) for maintainers.
 
 Engineering tests and real-provider/client verification have separate scopes; fixture pass counts are not model accuracy measurements. See [CHANGELOG](CHANGELOG.md) for version history. Released under the [MIT License](LICENSE).

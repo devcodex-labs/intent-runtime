@@ -1,5 +1,6 @@
 name: CI
 on:
+  workflow_call:
   pull_request:
   push:
     branches: [main]
@@ -16,6 +17,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run typecheck
       - run: npm run lint
+      - run: npm run test:release
       - name: Verify generated schemas are current
         run: npm run schema:generate && git diff --exit-code -- src/contracts/generated.ts
   docs:

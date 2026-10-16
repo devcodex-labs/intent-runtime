@@ -21,7 +21,7 @@
 | Codex Desktop | 接入配置已提供；尚未独立验证真实客户端 |
 | 模型API | OpenAI / xAI Responses与显式Chat Completions；协议请求、回复与错误有自动化验证，真实供应商配置另验 |
 | JS / TS | 应用支持ESM JavaScript与TypeScript；CLI加载.js/.mjs，TS配置先编译 |
-| Streamable HTTP | 独立CLI可配监听地址、端口与路径；有状态2025-06-18/2025-11-25有SDK调用和会话隔离测试。已有服务可嵌入adapter；不代表任意远程认证或代理部署已验证 |
+| Streamable HTTP | 独立CLI可配监听地址、端口、路径与public-origin；有状态2025-06-18/2025-11-25有SDK调用和会话隔离测试，公开HTTPS Host/Origin与未知地址拒绝有请求级回归。已有服务可嵌入adapter；不代表任意远程认证或代理部署已验证 |
 | 其他宿主 | 核心可组合；没有专用安装适配或客户端兼容保证 |
 
 客户端支持目标与实测版本分别看待。更换模型/客户端版本、SDK或部署环境后，应验证自己的实际配置。结构检查不能保证所有自然语言正确，特定语料通过率不作为产品总体准确率承诺。
