@@ -3,7 +3,7 @@ import {fileURLToPath} from 'node:url';
 import {PACKAGE_VERSION} from '../internal/version.js';
 
 const args = process.argv.slice(2), version = PACKAGE_VERSION;
-const usage = 'intent-runtime setup --host codex --config <trusted-absolute-path.mjs> [--name <name>] [--dry-run] [--json]\nintent-runtime doctor --host codex [--name <name>] [--repair] [--dry-run] [--json]\nintent-runtime clean --host codex [--name <name>] [--dry-run] [--json]\n';
+const usage = 'intent-runtime setup --host codex --config <trusted-absolute-path.js|.mjs> [--name <name>] [--dry-run] [--json]\nintent-runtime doctor --host codex [--name <name>] [--repair] [--dry-run] [--json]\nintent-runtime clean --host codex [--name <name>] [--dry-run] [--json]\n';
 if (args.length === 1 && args[0] === '--help') process.stdout.write(usage);
 else if (args.length === 1 && args[0] === '--version') process.stdout.write(version + '\n');
 else {

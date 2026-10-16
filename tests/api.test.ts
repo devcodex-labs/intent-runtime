@@ -16,6 +16,50 @@ async function endpoint(handler: (q: IncomingMessage, s: ServerResponse) => void
 const request = (signal = new AbortController().signal): ModelRequest => ({instructions: 'Only structure supplied material', input: {language: 'en', request: {input: 'query order 000123'}}, outputSchema: CANDIDATE_SCHEMA, signal});
 const reply = (text = JSON.stringify(draft())) => JSON.stringify({status: 'completed', output: [{type: 'message', role: 'assistant', content: [{type: 'output_text', text}]}]});
 
+test('Chat Completions uses its own endpoint and schema request and validates through Native', async () => {
+  let calls = 0;
+  const d = draft(); d.observations = [observation('orderId', '000123')];
+  const e = await endpoint((q, s) => {
+    calls++; assert.equal(q.url, '/v1/chat/completions');
+    let text = ''; q.setEncoding('utf8'); q.on('data', c => text += c);
+    q.on('end', () => {
+      const body = JSON.parse(text);
+      assert.equal(body.messages[0].role, 'system'); assert.equal(body.messages[1].role, 'user');
+      assert.equal(body.response_format.type, 'json_schema'); assert.equal(body.response_format.json_schema.name, 'intent_candidate');
+      assert.equal(body.max_completion_tokens, 8192); assert.equal(body.stream, false); assert.equal(body.store, false);
+      assert.equal(body.tools, undefined); assert.equal(body.input, undefined);
+      s.end(JSON.stringify({choices: [{finish_reason: 'stop', message: {role: 'assistant', content: JSON.stringify(d)}}]}));
+    });
+  });
+  const intent = new Intent({executor: createApiExecutor({provider: 'openai', protocol: 'chat-completions', model: 'gateway-model', apiKey: 'test', baseURL: e.url + '/v1'}), schema: {type: 'object', properties: {orderId: {type: 'string'}}}});
+  try {
+    const result = await intent.parse({input: 'query order 000123', fields: ['orderId']});
+    assert.equal(result.effective.intents[0]!.inputs.orderId, '000123'); assert.equal(calls, 1);
+  } finally {await intent.dispose(); await e.close();}
+});
+
+for (const [finish, message, expected] of [
+  ['stop', {role: 'assistant', content: '{}'}, 'complete'],
+  ['stop', {role: 'assistant', content: null, refusal: 'declined'}, 'refusal'],
+  ['content_filter', {role: 'assistant', content: null}, 'refusal'],
+  ['length', {role: 'assistant', content: '{'}, 'incomplete'],
+] as const) test('Chat Completions maps ' + finish + '/' + expected, async () => {
+  const e = await endpoint((q, s) => {q.resume(); s.end(JSON.stringify({choices: [{finish_reason: finish, message}]}));});
+  try {assert.equal((await createApiExecutor({provider: 'openai', protocol: 'chat-completions', model: 'test', apiKey: 'test', baseURL: e.url, format: 'text'}).generate(request())).outcome, expected);} finally {await e.close();}
+});
+
+test('Chat Completions rejects tool calls and ambiguous choices and retains response limits', async () => {
+  let body: unknown = {choices: [{finish_reason: 'tool_calls', message: {role: 'assistant', tool_calls: [{}]}}]};
+  const e = await endpoint((q, s) => {q.resume(); s.end(JSON.stringify(body));});
+  const config = {provider: 'openai', protocol: 'chat-completions', model: 'test', apiKey: 'test', baseURL: e.url} as const;
+  try {
+    await assert.rejects(createApiExecutor(config).generate(request()), {code: 'MODEL_REQUEST_FAILED'});
+    body = {choices: [{}, {}]}; await assert.rejects(createApiExecutor(config).generate(request()), {code: 'MODEL_REQUEST_FAILED'});
+    await assert.rejects(createApiExecutor({...config, maxResponseBytes: 1}).generate(request()), {code: 'RESOURCE_LIMIT'});
+    assert.throws(() => createApiExecutor({...config, protocol: 'auto' as any}), {code: 'CONFIG_INVALID'});
+  } finally {await e.close();}
+});
+
 for (const provider of ['openai', 'xai'] as const) test('Responses ' + provider + ' performs exactly one request through Native and the real worker', async () => {
   let calls = 0, body: Record<string, any> | undefined, auth: string | undefined;
   const d = draft(); d.observations = [observation('orderId', '000123')];

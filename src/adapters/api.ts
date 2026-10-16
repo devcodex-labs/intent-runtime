@@ -4,6 +4,7 @@ import { plain, cloneJson } from '../internal/json.js';
 
 export type ApiExecutorConfig = {
   provider: 'openai' | 'xai'; model: string; apiKey: string; baseURL?: string;
+  protocol?: 'responses' | 'chat-completions';
   maxOutputTokens?: number; maxResponseBytes?: number; format?: 'json_schema' | 'text';
 };
 
@@ -12,7 +13,7 @@ export type ApiExecutorConfig = {
 export function createApiExecutor(config: ApiExecutorConfig): ModelExecutor {
   const invalid = (): never => {throw new IntentError('CONFIG_INVALID');};
   if (!plain(config)) invalid();
-  const allowed = new Set(['provider', 'model', 'apiKey', 'baseURL', 'maxOutputTokens', 'maxResponseBytes', 'format']);
+  const allowed = new Set(['provider', 'model', 'apiKey', 'baseURL', 'protocol', 'maxOutputTokens', 'maxResponseBytes', 'format']);
   const data: Record<string, unknown> = Object.create(null);
   for (const key of Reflect.ownKeys(config)) {
     const d = Object.getOwnPropertyDescriptor(config, key);
@@ -22,13 +23,15 @@ export function createApiExecutor(config: ApiExecutorConfig): ModelExecutor {
   if (typeof data.provider !== 'string' || !['openai', 'xai'].includes(data.provider) || typeof data.model !== 'string' || !data.model.trim() || typeof data.apiKey !== 'string' || !data.apiKey.trim() || data.baseURL !== undefined && typeof data.baseURL !== 'string') invalid();
   const provider = data.provider as ApiExecutorConfig['provider'], model = data.model as string, apiKey = data.apiKey as string;
   const maxOutputTokens = data.maxOutputTokens ?? 8192, maxResponseBytes = data.maxResponseBytes ?? 8388608, format = data.format ?? 'json_schema';
+  const protocol = data.protocol ?? 'responses';
+  if (protocol !== 'responses' && protocol !== 'chat-completions') invalid();
   if (!Number.isSafeInteger(maxOutputTokens) || (maxOutputTokens as number) <= 0 || !Number.isSafeInteger(maxResponseBytes) || (maxResponseBytes as number) <= 0 || typeof format !== 'string' || !['json_schema', 'text'].includes(format)) invalid();
   let base: URL;
   try {base = new URL(data.baseURL === undefined ? provider === 'openai' ? 'https://api.openai.com/v1' : 'https://api.x.ai/v1' : data.baseURL as string);} catch {return invalid();}
   if (!['http:', 'https:'].includes(base.protocol) || base.username || base.password || base.search || base.hash) invalid();
   if (base.protocol === 'http:' && !localAddress(base.hostname)) invalid();
-  const url = base.href.replace(/\/$/, '') + '/responses';
-  return Object.freeze({id: provider + ':responses', async generate(request: ModelRequest): Promise<ModelReply> {
+  const url = base.href.replace(/\/$/, '') + (protocol === 'responses' ? '/responses' : '/chat/completions');
+  return Object.freeze({id: provider + ':' + protocol, async generate(request: ModelRequest): Promise<ModelReply> {
     const owner = new AbortController();
     const cancel = () => owner.abort(request.signal.reason);
     request.signal.addEventListener('abort', cancel, {once: true});
@@ -37,7 +40,11 @@ export function createApiExecutor(config: ApiExecutorConfig): ModelExecutor {
       if (request.signal.aborted) throw new IntentError('REQUEST_ABORTED');
       const response = await fetch(url, {method: 'POST', redirect: 'error', signal: owner.signal,
         headers: {'content-type': 'application/json', authorization: 'Bearer ' + apiKey},
-        body: JSON.stringify({model, instructions: request.instructions, input: [{role: 'user', content: [{type: 'input_text', text: JSON.stringify(request.input)}]}],
+        body: JSON.stringify(protocol === 'chat-completions' ? {
+          model, messages: [{role: 'system', content: request.instructions}, {role: 'user', content: JSON.stringify(request.input)}],
+          store: false, stream: false, max_completion_tokens: maxOutputTokens,
+          ...(format === 'json_schema' ? {response_format: {type: 'json_schema', json_schema: {name: 'intent_candidate', strict: false, schema: cloneJson(request.outputSchema)}}} : {}),
+        } : {model, instructions: request.instructions, input: [{role: 'user', content: [{type: 'input_text', text: JSON.stringify(request.input)}]}],
           tools: [], store: false, stream: false, max_output_tokens: maxOutputTokens,
           ...(format === 'json_schema' ? {text: {format: {type: 'json_schema', name: 'intent_candidate', strict: false, schema: cloneJson(request.outputSchema)}}} : {text: {format: {type: 'text'}}})})});
       // Status is retained even for no-body authentication responses. All
@@ -72,7 +79,7 @@ export function createApiExecutor(config: ApiExecutorConfig): ModelExecutor {
       if (slab) body.set(slab.subarray(0, offset), at);
       let envelope: unknown;
       try {envelope = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(body));} catch {throw new IntentError('MODEL_REQUEST_FAILED');}
-      return responseReply(envelope);
+      return protocol === 'responses' ? responseReply(envelope) : chatReply(envelope);
     } catch (cause) {
       if (cause instanceof IntentError) throw cause;
       if (request.signal.aborted) throw new IntentError('REQUEST_ABORTED');
@@ -110,4 +117,19 @@ function responseReply(value: unknown): ModelReply {
   if (refusal) return {outcome: 'refusal'};
   if (texts.length !== 1) return failed();
   return {outcome: 'complete', text: texts[0]!};
+}
+
+function chatReply(value: unknown): ModelReply {
+  const failed = (): never => {throw new IntentError('MODEL_REQUEST_FAILED');};
+  if (!plain(value) || !Array.isArray(value.choices) || value.choices.length !== 1) return failed();
+  const choice: unknown = value.choices[0];
+  if (!plain(choice) || !plain(choice.message) || choice.message.role !== 'assistant') return failed();
+  const message = choice.message;
+  if (message.tool_calls !== undefined && (!Array.isArray(message.tool_calls) || message.tool_calls.length > 0) || message.function_call != null) return failed();
+  if (choice.finish_reason === 'content_filter') return {outcome: 'refusal'};
+  if (choice.finish_reason === 'length') return {outcome: 'incomplete'};
+  if (choice.finish_reason !== 'stop') return failed();
+  if (typeof message.refusal === 'string' && message.refusal.length > 0) return {outcome: 'refusal'};
+  if (message.refusal != null && typeof message.refusal !== 'string' || typeof message.content !== 'string') return failed();
+  return {outcome: 'complete', text: message.content};
 }

@@ -268,9 +268,12 @@ export interface ModelExecutor {
 
 ## Responses 适配器
 
+同一个适配器也可显式选择 Chat Completions；省略 protocol 时保持 Responses。
+
 ```ts
 export type ApiExecutorConfig = {
   provider: 'openai' | 'xai'; model: string; apiKey: string; baseURL?: string;
+  protocol?: 'responses' | 'chat-completions';
   maxOutputTokens?: number; maxResponseBytes?: number; format?: 'json_schema' | 'text';
 };
 export declare function createApiExecutor(config: ApiExecutorConfig): ModelExecutor;

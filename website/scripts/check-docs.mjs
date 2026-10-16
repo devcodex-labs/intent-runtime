@@ -104,7 +104,7 @@ for (const name of ['language','executor','schema','extensionSchema','semantics'
   if (!configuration.split('\n').some(line => line.startsWith('| ' + name + ' |'))) fail('Missing configuration: ' + name);
 }
 const api = await readFile(path.join(repo, 'src/adapters/api.ts'), 'utf8'), apiDoc = pages.get('/integrations/api').text;
-for (const name of ['provider','model','apiKey','baseURL','maxOutputTokens','maxResponseBytes','format']) if (!apiDoc.split('\n').some(line => line.startsWith('| ' + name + ' |'))) fail('Missing API config: ' + name);
+for (const name of ['provider','protocol','model','apiKey','baseURL','maxOutputTokens','maxResponseBytes','format']) if (!apiDoc.split('\n').some(line => line.startsWith('| ' + name + ' |'))) fail('Missing API config: ' + name);
 for (const name of ['maxOutputTokens','maxResponseBytes']) {
   const value = new RegExp(name + ' = data\\.' + name + ' \\?\\? (\\d+)').exec(api)?.[1];
   if (!value || !apiDoc.split('\n').some(line => line.startsWith('| ' + name + ' |') && line.includes('| ' + value + ' |'))) fail('Incorrect API default: ' + name);

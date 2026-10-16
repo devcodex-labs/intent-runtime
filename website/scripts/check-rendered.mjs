@@ -26,6 +26,7 @@ export function inspectHtml(html) {
 export function assertPage(html, {home = false, response = false} = {}) {
   const result = inspectHtml(html);
   assert(!leakedSyntax.test(result.visibleText), 'Visible raw import/JSX expression');
+  assert(!/\bimport\s*\{[^}]+\}\s*from\s*['"][^'"]+['"]/.test(result.visibleText), 'Visible raw import statement; interactive pages must use MDX');
   if (home) assert.equal(result.h1, 1, 'Homepage must contain exactly one H1');
   if (response) for (const href of downloads) {
     // Rspress 2.0.23 intercepts same-window links even with download. A separate

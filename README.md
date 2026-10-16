@@ -1,80 +1,164 @@
 # Intent Runtime
 
-将用户意图结构化，供 Node.js 应用与 MCP tools 使用。输入用户原文、相关上下文和可选字段定义，得到目标、约束、本轮变化、业务参数与需要澄清的问题。
+Turn natural-language requests into structured goals, constraints, changes, and schema-defined fields for Node.js applications and MCP clients.
 
-应用负责业务工具、授权和执行；Intent Runtime只理解你提供的材料，不自动搜索项目、历史或外部系统。
+For example, “Look up order 000123. Do not cancel the order” contains both a goal and a prohibition. Intent Runtime preserves both. Your application remains responsible for authorization, tools, and execution; the library only interprets the material you provide.
 
-## 选择接入方式
+## Choose an integration
 
-| 你的使用方式 | 入口 |
+| Your application | Start here |
 |---|---|
-| Node.js 应用 | Intent.parse，配合API或自定义模型执行器 |
-| Codex当前模型 | 全局安装后显式setup，使用prepare/accept/cancel |
-| 独立MCP服务 | intent-runtime-mcp --config <绝对路径.mjs> |
-| 已有MCP tools | /mcp的createIntentMcpAdapter，SDK继续管理传输与原路由 |
+| Node.js application | `Intent.parse` with a model API or your own model executor |
+| Standalone MCP service | An ESM configuration file; connect through stdio or HTTP |
+| Existing MCP server | `createIntentMcpAdapter` from `@devcodex/intent-runtime/mcp`; keep your existing transport and tools |
+| Codex using its current model | Explicit `setup` registration and the prepare/accept/cancel tools |
 
-先按你的任务选入口，无需先了解 host/executor。Node.js 与 executor MCP 使用你配置的模型；Codex host 复用当前模型。远程 HTTP 由你的已有 MCP 服务承载 Adapter，独立命令提供 stdio。
+Start with the application example below. To reuse a client's current model, choose MCP `host` mode. To call a model configured on your server, choose `executor` mode. Either mode works over stdio or Streamable HTTP.
 
-本文档适用于 **Intent Runtime V2**，需要 Node.js ≥20 和 ESM。在应用目录安装：
+## Install
+
+**Intent Runtime V2** requires Node.js 20 or later and ESM. In your application directory, run:
 
 ```bash
 npm install @devcodex/intent-runtime
 ```
 
-npm 会自动安装所需依赖。全局命令安装与环境说明见[安装与版本](https://devcodex-labs.github.io/intent-runtime/guide/installation.html)。
+npm installs the required dependencies, including the required `schema-dsl` peer with normal npm peer resolution. No separate installation is needed for this quick start.
 
-## 在应用中调用
+JavaScript and TypeScript use the same API, and the package includes type declarations. For `.js` files, set `"type": "module"` in your project's `package.json`; a standalone `.mjs` file needs no module-type setting. Compile TypeScript to ESM before running it. See the [JavaScript/TypeScript quick start](https://devcodex-labs.github.io/intent-runtime/guide/quick-start.html) for both versions.
 
-先按[快速开始](https://devcodex-labs.github.io/intent-runtime/guide/quick-start.html#2-配置模型)设置 INTENT_API_KEY 与 INTENT_MODEL，在安装依赖的项目保存 basic.mjs。这里先识别目标与约束，不配置业务 Schema：
+## Make your first call
 
-<!-- example: examples/api/basic.mjs -->
+Set your model credentials. These names are read by the example, not automatically by the library.
+
+```bash
+# Bash / zsh
+export INTENT_API_KEY='your-api-key'
+export INTENT_MODEL='your-model-name'
+```
+
+```powershell
+# PowerShell
+$env:INTENT_API_KEY = 'your-api-key'
+$env:INTENT_MODEL = 'your-model-name'
+```
+
+Save the following as `basic.mjs` inside the project where you installed the package. It uses the OpenAI Responses API and identifies goals and constraints without a business schema:
+
+<!-- example: examples/api/basic-en.mjs -->
 ```js
 import {Intent, IntentError} from '@devcodex/intent-runtime';
 import {createApiExecutor} from '@devcodex/intent-runtime/adapters/api';
 
-const apiKey = process.env.INTENT_API_KEY, model = process.env.INTENT_MODEL;
+const apiKey = process.env.INTENT_API_KEY;
+const model = process.env.INTENT_MODEL;
 if (!apiKey || !model) throw new Error('Set INTENT_API_KEY and INTENT_MODEL in your environment.');
-const intent = new Intent({language: 'zh-CN', executor: createApiExecutor({provider: 'openai', apiKey, model})});
+const intent = new Intent({
+  language: 'en',
+  executor: createApiExecutor({provider: 'openai', apiKey, model}),
+});
 try {
-  const result = await intent.parse({input: '查询订单000123，不取消订单'});
+  const result = await intent.parse({input: 'Look up order 000123. Do not cancel the order.'});
   console.log(JSON.stringify(result, null, 2));
   // Read goals and constraints from effective; no order query is executed.
-  console.log('目标：', result.effective.intents.map(node => node.goal));
-  console.log('需要澄清：', result.issues.map(issue => issue.message));
+  console.log('Goals:', result.effective.intents.map(node => node.goal));
+  console.log('Issues:', result.issues.map(issue => issue.message));
 } catch (error) {
   if (!(error instanceof IntentError)) throw error;
   console.error(JSON.stringify(error.toJSON()));
   process.exitCode = 1;
-} finally {await intent.dispose();}
+} finally {
+  await intent.dispose();
+}
 ```
 
 ```bash
 node basic.mjs
 ```
 
-fields默认[]，仍识别意图；操作参数归所属inputs，无操作的所选事实归turn.facts。读取所属fieldResults与issues后再使用值，complete不表示业务已经执行。多轮显式传context或baseline，事实、候选和问题按需另放context，实例没有隐式会话记忆。
+The output contains the query goal and the prohibition against cancellation; it does not query or cancel an order. Read goals and constraints from `effective.intents`, and missing or ambiguous information from `issues`. Exact wording depends on your model.
 
-## 接入 Codex
+### Read and extend the result
 
-在[安装页](https://devcodex-labs.github.io/intent-runtime/guide/installation.html)完成全局安装后，按[完整配置说明](https://devcodex-labs.github.io/intent-runtime/integrations/codex.html)保存可信intent.host.config.mjs。全局配置使用无包导入的JSON Schema，可放在没有本地node_modules的目录。替换真实绝对路径后：
+- `effective` is the current intent tree, including goals, constraints, and inputs.
+- `fields` defaults to `[]`: intent recognition still runs, but no schema fields are selected. Add a schema and select fields when you need [order IDs or other business data](https://devcodex-labs.github.io/intent-runtime/guide/fields.html).
+- Check each field's `fieldResults` and related `issues` before using its value. A root `complete` status does not guarantee that every field is valid or that any business action has run.
+- Pass `context` or a previous `effective` value as `baseline` explicitly for [multi-turn requests](https://devcodex-labs.github.io/intent-runtime/guide/multi-turn.html). Instances do not retain implicit conversation history.
+
+See [reading results](https://devcodex-labs.github.io/intent-runtime/guide/results.html) for field ownership, facts without a matching operation, positive requirements in `constraints`, and deliverables in `expectedOutput`.
+
+## Connect a model or gateway
+
+| Your model service | Configuration |
+|---|---|
+| OpenAI or xAI Responses | `createApiExecutor({provider, apiKey, model})`; Responses is the default |
+| Responses-compatible gateway | Add the API root as `baseURL` |
+| Chat Completions-compatible gateway | Add `protocol: 'chat-completions'` and `baseURL` |
+| Another protocol, existing SDK, or custom authentication headers | Implement `ModelExecutor.generate` around your existing model call |
+
+For a gateway endpoint such as `https://gateway.example.com/v1/chat/completions`, use `baseURL: 'https://gateway.example.com/v1'`. The adapter appends the protocol endpoint. `format: 'text'` is available when your service does not support JSON Schema output; the returned candidate JSON is still validated.
+
+A custom executor receives instructions, input, an output schema, and a cancellation signal. It returns model-generated candidate text; Intent Runtime validates it and assembles the final result. You do not need to build a new gateway service. See [model APIs and custom executors](https://devcodex-labs.github.io/intent-runtime/integrations/api.html) for complete configuration and examples.
+
+## Run a standalone MCP service
+
+Save this trusted configuration as `intent.host.config.mjs`. Use `.js` instead if it belongs to an ESM project. This configuration reuses the MCP client's model and requires no separate model API key:
+
+```js
+export default {
+  mode: 'host',
+  instances: {main: {language: 'en'}},
+};
+```
+
+For a local installation, run the command from your application directory with an absolute configuration path:
 
 ```bash
+npx --no-install intent-runtime-mcp --config /absolute/path/intent.host.config.mjs
+```
+
+The command uses stdio by default; your MCP client starts and manages that process. Configure the client with the installed executable's absolute path, or use `npx --no-install` from the application directory. For Streamable HTTP, start it in a terminal:
+
+```bash
+npx --no-install intent-runtime-mcp --config /absolute/path/intent.host.config.mjs --transport http --port 3001
+```
+
+Connect the client to `http://127.0.0.1:3001/mcp`. Change the listener with `--host`, `--port`, and `--path`. HTTP supports the stateful MCP 2025-06-18 and 2025-11-25 protocols; stdio also supports 2026-07-28. Authentication and HTTPS for remote deployment belong to your deployment layer.
+
+Ask your client to use the intent tools to identify the goal and prohibition in the example request. It should use `intent_prepare`, produce a candidate with its current model, and submit it through `intent_accept` in the same session. The tools do not automatically process every chat message. See [MCP client configuration and usage](https://devcodex-labs.github.io/intent-runtime/integrations/mcp.html).
+
+For an existing MCP server, start with the [four integration changes](https://devcodex-labs.github.io/intent-runtime/integrations/mcp-sdk.html); keep your existing transport, resources, prompts, and tool handlers.
+
+## Use the current Codex model
+
+Install the commands globally for use outside a particular project:
+
+```bash
+npm install -g @devcodex/intent-runtime
 intent-runtime setup --host codex --config /absolute/path/intent.host.config.mjs
 ```
 
-重载客户端，明确要求只识别给定input。host复用当前模型，不需要额外API Key。普通安装不修改宿主；Skill不自动接管每条消息。
+Use the trusted configuration above or follow the [Codex integration guide](https://devcodex-labs.github.io/intent-runtime/integrations/codex.html) to add business fields. Reload the client after setup. Ordinary installation does not modify Codex configuration; registration is explicit. The supplied Skill guides tool use when invoked and does not take over every message.
 
-登记的检查、修复和移除见[Codex 安装维护](https://devcodex-labs.github.io/intent-runtime/operations/codex.html)。缺少工具先检查登记，正常结果中的缺字段或歧义按[错误与恢复](https://devcodex-labs.github.io/intent-runtime/api/errors.html)补充材料；两者不是同一种失败。
+## Troubleshooting
 
-需要[提取订单号等业务字段](https://devcodex-labs.github.io/intent-runtime/guide/fields.html)时再配置 Schema；首次调用见[快速开始](https://devcodex-labs.github.io/intent-runtime/guide/quick-start.html)，读取目标、约束与字段见[结果指南](https://devcodex-labs.github.io/intent-runtime/guide/results.html)。
+| Symptom | What to check |
+|---|---|
+| Missing model credentials | Set both variables in the terminal that runs the application; verify the model name and endpoint with your provider |
+| `MODEL_AUTH_FAILED` / `MODEL_RATE_LIMITED` | Check the API key, provider access, and quota; use the [error guide](https://devcodex-labs.github.io/intent-runtime/api/errors.html) for recovery |
+| A `.js` configuration does not load | Check the absolute path and ESM project setting; use `.mjs` for a standalone file |
+| MCP command not found | Use the installed executable's absolute path, or install globally; on Windows use a supported `.cmd` launcher or `node` with `dist/cli/mcp.js` |
+| HTTP connection fails | Check the running process, host, port, path, and supported protocol; keep the negotiated session ID |
+| Codex does not list the tools | Run `intent-runtime doctor --host codex`; see [registration maintenance](https://devcodex-labs.github.io/intent-runtime/operations/codex.html) |
+| The result has missing or ambiguous data | Inspect `issues` and `fieldResults`, then supply the missing material explicitly |
 
-响应中的正向要求在 constraints，交付物在 expectedOutput；没有独立 requirements 副本。根级 complete 仍可能伴随无效字段，使用参数前检查对应 fieldResults 与 issues。固定的完整输入、Schema、多轮材料和结果可在[响应场景目录](https://devcodex-labs.github.io/intent-runtime/api/response.html#完整场景与多轮材料)下载。
+## Documentation
 
-## 使用文档
+The full documentation is currently in Chinese:
 
-- [快速开始](https://devcodex-labs.github.io/intent-runtime/guide/quick-start.html)与[配置参考](https://devcodex-labs.github.io/intent-runtime/guide/configuration.html)
-- [完整响应](https://devcodex-labs.github.io/intent-runtime/api/response.html)与[多轮对话](https://devcodex-labs.github.io/intent-runtime/guide/multi-turn.html)
-- [MCP tools集成](https://devcodex-labs.github.io/intent-runtime/integrations/mcp.html)、[Codex](https://devcodex-labs.github.io/intent-runtime/integrations/codex.html)、[模型API/自定义执行器](https://devcodex-labs.github.io/intent-runtime/integrations/api.html)
-- [场景示例](https://devcodex-labs.github.io/intent-runtime/examples/index.html)、[兼容与支持](https://devcodex-labs.github.io/intent-runtime/testing/validation.html)、[示例文件](examples/README.md)
+- [Quick start](https://devcodex-labs.github.io/intent-runtime/guide/quick-start.html) and [configuration](https://devcodex-labs.github.io/intent-runtime/guide/configuration.html)
+- [Complete response reference](https://devcodex-labs.github.io/intent-runtime/api/response.html) and [multi-turn requests](https://devcodex-labs.github.io/intent-runtime/guide/multi-turn.html)
+- [MCP](https://devcodex-labs.github.io/intent-runtime/integrations/mcp.html), [Codex](https://devcodex-labs.github.io/intent-runtime/integrations/codex.html), and [model APIs](https://devcodex-labs.github.io/intent-runtime/integrations/api.html)
+- [Scenarios](https://devcodex-labs.github.io/intent-runtime/examples/index.html), [validation scope](https://devcodex-labs.github.io/intent-runtime/testing/validation.html), and [source examples](https://github.com/devcodex-labs/intent-runtime/tree/main/examples)
 
-真实客户端/供应商与工程测试的验证范围分别列示，不将固定测试通过数当成模型准确率。历史版本变更见[CHANGELOG](CHANGELOG.md)。MIT，见[LICENSE](LICENSE)。
+Engineering tests and real-provider/client verification have separate scopes; fixture pass counts are not model accuracy measurements. See [CHANGELOG](CHANGELOG.md) for version history. Released under the [MIT License](LICENSE).

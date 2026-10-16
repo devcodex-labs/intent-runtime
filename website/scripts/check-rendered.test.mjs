@@ -11,6 +11,11 @@ test('accept actual anchors, one semantic heading and ordinary code examples', (
 test('reject the original visible import defect', () => {
   assert.throws(() => assertPage('<p>import {withBase} from "@rspress/core/runtime";</p>'), /raw import/);
 });
+
+test('reject a visible component import on a Markdown page but allow it in code', () => {
+  assert.throws(() => assertPage("<p>import {Tabs, Tab} from '@theme';</p>"), /raw import/);
+  assertPage("<pre><code>import {Tabs, Tab} from '@theme';</code></pre>");
+});
 test('reject escaped JSX in visible prose', () => {
   assert.throws(() => assertPage('<p>&lt;a href={withBase(\'/examples/order-result.json\')}&gt;下载&lt;/a&gt;</p>'), /raw import/);
 });

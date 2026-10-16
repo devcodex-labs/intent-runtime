@@ -30,6 +30,17 @@ test('Dry-run does not execute a trusted module or create the registration/state
   for (const file of [marker, f.codex, f.registry, f.skill]) await assert.rejects(access(file));
 });
 
+test('Setup and doctor load an ESM .js configuration from its own project', async () => {
+  const f = await fixture(), config = path.join(f.root, 'host.js');
+  await writeFile(path.join(f.root, 'package.json'), JSON.stringify({type: 'module'}));
+  await writeFile(config, "export default {mode:'host',instances:{main:{}}};\n");
+  const options = {...f.options, config};
+  try {
+    assert.equal((await maintain(options)).exitCode, 0);
+    assert.equal((await maintain({...options, command: 'doctor', config: undefined} as any)).exitCode, 0);
+  } finally {await maintain({...options, command: 'clean', config: undefined} as any);}
+});
+
 test('User edits to the owned table and Skill are protected for setup, repair and clean', async () => {
   const f = await fixture(); assert.equal((await maintain(f.options)).exitCode, 0);
   const initial = await readFile(f.codex, 'utf8'); const edited = initial.replace('command = ', '# user changed\ncommand = '); await writeFile(f.codex, edited);

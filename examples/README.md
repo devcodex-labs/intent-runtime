@@ -4,7 +4,8 @@
 
 | 文件 | 用途 | 前置条件 |
 |---|---|---|
-| api/basic.mjs | 无Schema的基础目标与约束识别 | 项目安装运行库，环境INTENT_API_KEY/INTENT_MODEL |
+| api/basic.mjs / api/basic.ts | JavaScript / TypeScript，无Schema的基础目标与约束识别 | 项目安装运行库，环境INTENT_API_KEY/INTENT_MODEL |
+| api/basic-en.mjs | 英文README的完整调用与错误处理示例 | 与basic.mjs相同，输出语言为英文 |
 | api/native-response.mjs | 默认完整 Native 响应，与响应参考使用同一调用 | 项目安装运行库，环境INTENT_API_KEY/INTENT_MODEL |
 | api/multi-turn.mjs | 完整VIP Schema与三轮失效/修正 | 项目安装运行库，环境INTENT_API_KEY/INTENT_MODEL |
 | api/parse.mjs | API识别与所属字段消费 | 项目安装运行库，环境INTENT_API_KEY/INTENT_MODEL |
@@ -15,6 +16,6 @@
 
 全局安装后显式 `intent-runtime setup --host codex --config <现有绝对路径.mjs>`。普通安装不改宿主。使用Builder或API适配器导入的配置要位于可解析本地依赖的项目；全局npm目录不会成为任意配置文件的ESM依赖目录。
 
-独立服务：`intent-runtime-mcp --config <绝对路径.mjs>`。已有SDK示例：同目录保存attach.mjs和server.mjs后运行 `node server.mjs`。stdout只传MCP，日志写stderr。
+JavaScript 示例可在ESM项目中保存为.js，也可独立使用.mjs；CLI配置支持两者。TypeScript先编译为ESM .js。独立服务：`intent-runtime-mcp --config <绝对路径.js或.mjs>`；HTTP追加`--transport http --port 3001`，客户端URL为`http://127.0.0.1:3001/mcp`。已有SDK完整示例：同目录保存attach.mjs和server.mjs后运行 `node server.mjs`。stdio的stdout只传协议，日志写stderr。
 
 TypeScript例子在有type=module的项目编译，INTENT_GATEWAY_URL/INTENT_MODEL/INTENT_API_KEY通过环境提供。类型检查只证明接口使用，不证明你的网关已经接受候选Schema或具有语义准确性。

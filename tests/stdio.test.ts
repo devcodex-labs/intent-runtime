@@ -73,7 +73,8 @@ for (const version of ['2025-06-18', '2025-11-25', '2026-07-28'] as const) test(
 });
 
 for (const version of ['2025-06-18', '2025-11-25', '2026-07-28'] as const) test('Actual SDK stdio host -> candidate -> real worker -> result: ' + version, async () => {
-  const dir = await mkdtemp(path.join(process.env.INTENT_TEST_DIR!, 'stdio-')), config = path.join(dir, 'host.mjs');
+  const dir = await mkdtemp(path.join(process.env.INTENT_TEST_DIR!, 'stdio-')), config = path.join(dir, version === '2025-06-18' ? 'host.js' : 'host.mjs');
+  await writeFile(path.join(dir, 'package.json'), JSON.stringify({type: 'module'}));
   await writeFile(config, "export default {mode:'host',instances:{orders:{schema:{type:'object',properties:{orderId:{type:'string'}}}}}};\n");
   const transport = new StdioClientTransport({command: process.execPath, args: [path.join(process.env.INTENT_PACKAGE_TEST_ROOT!, 'dist/cli/mcp.js'), '--config', config], stderr: 'pipe'});
   let stderr = ''; transport.stderr?.on('data', c => {stderr += c;});

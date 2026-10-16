@@ -6,9 +6,9 @@
 |---|---|---|
 | 在Node.js应用中调用 | [快速开始](/guide/quick-start) | 显式配置模型API或自定义执行器 |
 | 在Codex中使用当前模型 | [Codex接入](/integrations/codex) | 当前宿主生成候选，无需额外模型API Key |
-| 启动一个独立MCP服务 | [stdio服务](/integrations/mcp#独立-stdio-服务) | host用当前模型；executor用服务端所配API |
+| 启动一个独立MCP服务 | [stdio / HTTP服务](/integrations/mcp) | host用当前模型；executor用服务端所配API |
 | 添加到已有MCP的tools | [完整挂载示例](/integrations/mcp-sdk) | 保留原服务的连接和工具，按需选host/executor |
-| 接入自有模型网关 | [自定义执行器](/integrations/api#自定义-modelexecutor) | 应用将网关协议转换成ModelReply |
+| 接入自有模型网关 | [模型与协议选择](/integrations/api#连接自有网关) | Responses / Chat Completions兼容网关直接配置地址；其他协议再自定义 |
 
 | 路径 | 是否需要独立模型 Key | 连接与状态由谁管理 |
 |---|---|---|
@@ -20,12 +20,12 @@
 
 | 任务 | 配置放哪里 | 如何启动 | 首次成功判断 |
 |---|---|---|---|
-| Node.js 项目调用 | 应用项目中的 .mjs/TypeScript，凭据来自你的环境 | 运行应用文件 | parse 返回 IntentResult，可找到目标与约束 |
-| Codex 当前模型 | 可访问的可信 .mjs，setup 使用其绝对路径 | 登记后重载客户端或开启新 CLI 会话 | 三个 host 工具可见，accept 返回最终结果 |
+| Node.js 项目调用 | 应用项目中的 JavaScript / TypeScript，凭据来自你的环境 | 运行应用文件 | parse 返回 IntentResult，可找到目标与约束 |
+| Codex 当前模型 | 可访问的可信 .js/.mjs，setup 使用其绝对路径 | 登记后重载客户端或开启新 CLI 会话 | 三个 host 工具可见，accept 返回最终结果 |
 | 已有 MCP 添加工具 | 现有服务代码和本地依赖 | 原 SDK 启动方式 | 原工具与新增工具均可调用 |
-| 独立 MCP | 可信 .mjs；executor 还需可用模型与凭据 | intent-runtime-mcp --config 绝对路径 | 客户端完成 stdio 连接并列出对应模式工具 |
+| 独立 MCP | 可信 .js/.mjs；executor 还需模型与凭据 | 默认stdio；HTTP加--transport http及端口 | 客户端连接后能列出并调用对应模式工具 |
 
-全局安装不让任意配置文件自动解析全局依赖；配置需要导入包时，放在装有依赖的项目内。远程 HTTP 用已有 HTTP MCP 服务承载 Adapter，独立命令不提供 HTTP 监听。完整步骤见各入口，不必先阅读全部类型。
+全局安装不让任意配置文件自动解析全局依赖；配置需要导入包时，放在装有依赖的项目内。HTTP 可直接启动独立服务，也可嵌入已有服务。完整步骤见各入口，不必先阅读全部类型。
 
 先按[安装与版本](/guide/installation)完成本地或全局安装，再进入所选路径。Native、独立MCP和已有MCP共用同一识别核心，成功结果均为[IntentResult](/guide/results)。
 

@@ -19,8 +19,9 @@
 | MCP协议 | 2025-06-18、2025-11-25、2026-07-28分别有SDK协议验证 |
 | Codex CLI当前模型 | host模式复用当前模型；Linux、CLI0.162.1、gpt-6.1-sol配置有真实接入记录，实际协商2025-06-18 |
 | Codex Desktop | 接入配置已提供；尚未独立验证真实客户端 |
-| OpenAI / xAI Responses | 适配器已实现；错误/格式映射有自动化验证，真实供应商环境仍需单独验证 |
-| Streamable HTTP | 通过已有服务嵌入adapter；认证/监听/逻辑session由应用管理，本文stdio示例不证明任意HTTP部署兼容 |
+| 模型API | OpenAI / xAI Responses与显式Chat Completions；协议请求、回复与错误有自动化验证，真实供应商配置另验 |
+| JS / TS | 应用支持ESM JavaScript与TypeScript；CLI加载.js/.mjs，TS配置先编译 |
+| Streamable HTTP | 独立CLI可配监听地址、端口与路径；有状态2025-06-18/2025-11-25有SDK调用和会话隔离测试。已有服务可嵌入adapter；不代表任意远程认证或代理部署已验证 |
 | 其他宿主 | 核心可组合；没有专用安装适配或客户端兼容保证 |
 
 客户端支持目标与实测版本分别看待。更换模型/客户端版本、SDK或部署环境后，应验证自己的实际配置。结构检查不能保证所有自然语言正确，特定语料通过率不作为产品总体准确率承诺。

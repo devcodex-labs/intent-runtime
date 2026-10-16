@@ -1,6 +1,6 @@
 # MCP 工具与协议参考
 
-本页供接入后查询 adapter、工具参数、宿主交接、错误信封和协议边界。第一次连接看[独立stdio教程](/integrations/mcp)；已有服务挂载看[完整SDK示例](/integrations/mcp-sdk)。
+本页供接入后查询 adapter、工具参数、宿主交接、错误信封和协议边界。第一次连接看[stdio / HTTP教程](/integrations/mcp)；已有服务挂载看[最小接入与完整示例](/integrations/mcp-sdk)。
 
 独立服务配置的instances是IntentConfig；adapter配置的instances是调用方创建的Intent，两者不能互换。所有入口共用相同识别核心和IntentResult。
 
@@ -80,7 +80,9 @@ host的三个工具请求/回复见[宿主交接](#宿主交接)，完整类型�
 
 支持目标为2025-06-18、2025-11-25、2026-07-28；前两版成功信封为content/structuredContent/isError，2026工具回复额外含resultType=complete。协商、discover和请求信封由匹配的SDK处理，不靠改工具参数选择协议。
 
-远程使用时，将相同listTools/callTool转接挂到你已有的Streamable HTTP SDK处理器。认证、监听和断线恢复属于服务；逻辑session仍存续时，短暂HTTP断流不等于close。独立bin没有--port或HTTP监听选项。链接的完整可运行示例是stdio，不将它的验证结果当成任意HTTP部署已经兼容。
+独立命令支持 `--transport http --host 127.0.0.1 --port 3001 --path /mcp`，使用有状态 Streamable HTTP 的2025-06-18 / 2025-11-25协议；stdio支持上面三个版本。HTTP启动选项、客户端URL和会话限额见[教程](/integrations/mcp#使用-http-与指定端口)。
+
+已有服务也可将相同工具列表/调用转接挂到原HTTP SDK处理器。认证、监听和断线恢复属于该服务；逻辑session存续时，短暂HTTP断流不等于close。不要给每次HTTP请求创建新的host session，否则prepare/accept无法衔接。HTTP部署仍需验证实际客户端、代理与认证配置。
 
 ## 完整 executor 回复
 

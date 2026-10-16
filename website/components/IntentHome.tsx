@@ -34,6 +34,8 @@ function MarkedInput({text}: {text: string}) {
 
 export default function IntentHome() {
   const [sceneIndex, setScene] = useState(0), [step, setStep] = useState(0), [copyState, setCopyState] = useState('');
+  const [codeLanguage, setCodeLanguage] = useState<'js' | 'ts'>('js');
+  const [installState, setInstallState] = useState('');
   const tabs = useRef<Array<HTMLButtonElement | null>>([]);
   const scene = scenes[sceneIndex], example = examples.get(scene.steps[step])!, result = example.result;
   const choose = (index: number) => {setScene(index); setStep(0); setCopyState('');};
@@ -45,25 +47,18 @@ export default function IntentHome() {
   return <main className="ir-home">
     <section className="ir-intro" aria-labelledby="ir-title">
       <div className="ir-intro-copy">
-        <p className="ir-eyebrow"><span aria-hidden="true">//</span> INTENT RUNTIME</p>
-        <h1 id="ir-title">一句请求，<br /><span>不止一个意思。</span></h1>
-        <p className="ir-lead">将用户请求转成目标、约束和业务参数。保留“查询订单”的目标，也保留“不取消”的限制；理解之后，由你的应用决定下一步。</p>
-        <div className="ir-actions"><a className="ir-button ir-button-primary" href={withBase('/guide/quick-start')}>快速开始 <span aria-hidden="true">↗</span></a><a className="ir-button" href={withBase('/guide/results')}>看懂结果 <span aria-hidden="true">→</span></a></div>
-        <p className="ir-stack">Node.js ≥20 · TypeScript · 标准 MCP</p>
-        <nav className="ir-paths" aria-label="选择接入方式"><a href={withBase('/guide/quick-start')}>Node.js 应用 →</a><a href={withBase('/integrations/codex')}>Codex →</a><a href={withBase('/integrations/mcp')}>MCP →</a></nav>
+        <p className="ir-eyebrow"><span aria-hidden="true">↳</span> INTENT RUNTIME · {version}</p>
+        <h1 id="ir-title">读懂请求里的<br /><span>目标、约束<br />与每一次改变。</span></h1>
+        <p className="ir-lead">为 Node.js 应用与 MCP 客户端提供结构化理解。保留“要做什么”，也保留“不要做什么”；条件改变时，让旧参数明确失效。</p>
+        <div className="ir-actions"><a className="ir-button ir-button-primary" href={withBase('/guide/quick-start')}>开始接入 <span aria-hidden="true">↗</span></a><a className="ir-text-link" href={withBase('/guide/results')}>如何读取结果 →</a></div>
+        <div className="ir-install"><code>npm install @devcodex/intent-runtime</code><button type="button" aria-label="复制安装命令" onClick={() => {void navigator.clipboard.writeText('npm install @devcodex/intent-runtime').then(() => setInstallState('安装命令已复制'), () => setInstallState('请选取安装命令复制'));}}>复制</button></div>
+        <span className="ir-install-state" role="status">{installState}</span>
+        <p className="ir-stack">Node.js ≥20 · JavaScript / TypeScript · MCP</p>
       </div>
-      <div className="ir-annotation" aria-hidden="true"><span>原文</span><i /><span>意图</span><i /><span>结构</span><div>保留意义<br />清楚表达</div></div>
     </section>
 
-    <section className="ir-entries" aria-labelledby="ir-entry-title"><div><p className="ir-eyebrow">从你的使用场景开始</p><h2 id="ir-entry-title">让理解，接入你的应用。</h2><p>先选调用方式，再选模型来源。所有入口共用同一识别核心。</p><a href={withBase('/guide/installation')}>查看当前版本与安装方式 →</a></div><ol>{[
-      ['在 Node.js 项目中调用', '配置模型，调用 parse，读取结构化结果。', '/guide/quick-start'],
-      ['在 Codex 中使用当前模型', '登记 MCP，由当前宿主完成识别交接。', '/integrations/codex'],
-      ['给已有 MCP 添加工具', '保留你的 SDK、连接与原工具，合并识别能力。', '/integrations/mcp-sdk'],
-      ['启动独立 MCP 服务', '提供可信配置，通过 stdio 暴露工具。', '/integrations/mcp#独立-stdio-服务'],
-    ].map(([title, description, url], index) => <li key={url}><a href={withBase(url)}><span className="ir-entry-number">0{index + 1}</span><div><h3>{title}</h3><p>{description}</p></div><span aria-hidden="true">↗</span></a></li>)}</ol></section>
-
     <section className="ir-workbench" aria-label="固定意图结构化演示">
-      <div className="ir-workbench-top"><span><span className="ir-signal" aria-hidden="true" /> 观察一次理解</span><span>固定示例 · 可查看完整材料</span></div>
+      <div className="ir-workbench-top"><span><span className="ir-signal" aria-hidden="true" /> 从一句话，看见理解</span><span>固定示例 · 不调用模型</span></div>
       <div className="ir-tabs" role="tablist" aria-label="选择演示场景">{scenes.map((item, index) => <button key={item.label} ref={el => {tabs.current[index] = el;}} type="button" role="tab" id={'ir-tab-' + index} aria-selected={sceneIndex === index} aria-controls="ir-scene-panel" tabIndex={sceneIndex === index ? 0 : -1} onClick={() => choose(index)} onKeyDown={event => {
         let next: number | undefined;
         if (event.key === 'ArrowRight') next = (index + 1) % scenes.length;
@@ -92,6 +87,30 @@ export default function IntentHome() {
       </div>
       <div className="ir-workbench-bottom"><details key={example.slug}><summary>查看完整 JSON</summary><pre tabIndex={0}><code>{JSON.stringify(example, null, 2)}</code></pre></details><div className="ir-export"><button type="button" onClick={() => {void copy();}}>复制完整示例</button><a href={withBase('/examples/' + example.slug + '-example.json')} download target="_blank" rel="noopener noreferrer">下载 JSON <span aria-hidden="true">↓</span></a></div><span className="ir-copy-state" role="status">{copyState}</span></div>
     </section>
+
+    <section className="ir-start" aria-labelledby="ir-start-title">
+      <div><p className="ir-eyebrow">从一次调用开始</p><h2 id="ir-start-title">把理解交给它，<br />把下一步留给你的应用。</h2><p>接入你的模型，调用 parse，再读取目标与约束。需要业务参数时，再添加 Schema。</p><a className="ir-text-link" href={withBase('/guide/quick-start')}>完整安装与运行步骤 →</a></div>
+      <div className="ir-code-card"><div className="ir-code-tabs" role="group" aria-label="示例语言">{(['js', 'ts'] as const).map(language => <button type="button" key={language} aria-pressed={codeLanguage === language} onClick={() => setCodeLanguage(language)}>{language === 'js' ? 'JavaScript' : 'TypeScript'}</button>)}</div><pre tabIndex={0}><code>{`import {Intent${codeLanguage === 'ts' ? ', type IntentParseRequest' : ''}} from '@devcodex/intent-runtime';
+import {createApiExecutor} from '@devcodex/intent-runtime/adapters/api';
+
+const intent = new Intent({executor: createApiExecutor({
+  provider: 'openai',
+  apiKey: process.env.INTENT_API_KEY${codeLanguage === 'ts' ? '!' : ''},
+  model: process.env.INTENT_MODEL${codeLanguage === 'ts' ? '!' : ''},
+})});
+const request${codeLanguage === 'ts' ? ': IntentParseRequest' : ''} = {input: '查询订单000123，不取消订单'};
+try {
+  const result = await intent.parse(request);
+  console.log(result.effective);
+} finally {await intent.dispose();}`}</code></pre><p>先设置模型名称和 API Key；TS 使用 ESM 编译环境。模型与网关也可自定义。</p></div>
+    </section>
+
+    <section className="ir-entries" aria-labelledby="ir-entry-title"><div><p className="ir-eyebrow">沿用你的工作方式</p><h2 id="ir-entry-title">接到你已有的应用里。</h2><p>应用调用、当前宿主模型、独立服务或已有 MCP Server，选择与你的工程对应的一条路径。</p></div><ol>{[
+      ['Node.js 应用', 'JavaScript / TypeScript，连接模型与自有网关。', '/guide/quick-start'],
+      ['Codex 当前模型', '保存配置并登记，无需额外模型 API Key。', '/integrations/codex'],
+      ['独立 MCP 服务', '通过 stdio 或 HTTP 连接，按需指定端口。', '/integrations/mcp'],
+      ['已有 MCP Server', '在原有服务中增加工具，保留原有连接。', '/integrations/mcp-sdk'],
+    ].map(([title, description, url], index) => <li key={url}><a href={withBase(url)}><span className="ir-entry-number">0{index + 1}</span><div><h3>{title}</h3><p>{description}</p></div><span aria-hidden="true">↗</span></a></li>)}</ol></section>
 
     <section className="ir-handoff"><span className="ir-section-label">从理解到使用</span><h2>理解之后，由你的应用接手。</h2><p>Intent Runtime 只理解你提供的材料。消息与历史由你提供，工具、授权和业务执行由应用管理。</p><div><a href={withBase('/guide/results')}>如何消费结果 →</a><a href={withBase('/guide/multi-turn')}>接续下一轮 →</a><a href={withBase('/api/errors')}>处理问题与失败 →</a></div></section>
     <footer className="ir-footer">{version} 文档 · MIT License · devcodex-labs</footer>

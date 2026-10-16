@@ -1,6 +1,7 @@
 import {readFile, writeFile, rename, unlink, mkdir, rmdir, lstat} from 'node:fs/promises';
 import path from 'node:path';
 import {homedir} from 'node:os';
+import {isConfigurationPath} from './configuration.js';
 import {randomUUID, createHash} from 'node:crypto';
 import {ProtectionConflict, tableRange, replaceTable} from './toml.js';
 import type {IntentMcpMode} from '../mcp/index.js';
@@ -98,11 +99,11 @@ export async function maintain(options: MaintenanceOptions, onApplied?: (index: 
     const changes: Change[] = [];
     let nextRecord = record;
     if (options.command === 'setup') {
-      if (!options.config || !path.isAbsolute(options.config) || !options.config.endsWith('.mjs')) return {report: {...report, status: 'failed'}, exitCode: 2};
+      if (!isConfigurationPath(options.config)) return {report: {...report, status: 'failed'}, exitCode: 2};
       await safePath(options.config);
       let configExists = false;
       try {configExists = (await lstat(options.config)).isFile();} catch (error) {if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;}
-      if (!configExists) {check('configuration', 'fail', 'Select an existing trusted .mjs file.'); return {report: {...report, status: 'failed'}, exitCode: 2};}
+      if (!configExists) {check('configuration', 'fail', 'Select an existing trusted ESM .js or .mjs file.'); return {report: {...report, status: 'failed'}, exitCode: 2};}
       const command = process.execPath, args = [path.join(options.packageRoot, 'dist', 'cli', 'mcp.js'), '--config', options.config];
       let mode = record?.mode;
       if (options.dryRun) check('startup', 'skipped', 'Dry run does not import configuration or start a process.');

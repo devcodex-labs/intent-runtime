@@ -4,7 +4,7 @@
 
 ## 安装与登记的区别
 
-包安装只提供命令；`setup` 才登记用户级 MCP，并在 host 模式安装识别 Skill。执行前先按[安装](/guide/installation)完成全局安装。配置文件必须是现有、可信的绝对 `.mjs` 路径；它是 Node.js 代码，实际启动会执行初始化。
+包安装只提供命令；`setup` 才登记用户级 MCP，并在 host 模式安装识别 Skill。执行前先按[安装](/guide/installation)完成全局安装。配置文件必须是现有、可信的绝对 `.js` / `.mjs` 路径；它是 Node.js 代码，实际启动会执行初始化。`.js` 使用 ESM 项目配置，TS先编译为ESM `.js`。
 
 ```bash
 intent-runtime setup --host codex --config /absolute/path/intent.host.config.mjs --dry-run
@@ -24,7 +24,7 @@ intent-runtime clean --host codex
 | 参数 | 规则 |
 |---|---|
 | `--host` | 必填，只支持 `codex` |
-| `--config` | setup 必填的现有绝对 `.mjs` 路径；其他维护命令禁止 |
+| `--config` | setup 必填的现有绝对 `.js` / `.mjs` 路径；其他维护命令禁止 |
 | `--name` | 默认 intent-runtime；1～64 字符 `[A-Za-z0-9_.-]`，不得使用 `__proto__`、`prototype`、`constructor` |
 | `--dry-run` | setup/clean/doctor --repair 可用；不写文件、不导入配置、不启动进程 |
 | `--json` | 输出一个 MaintenanceReport JSON 对象 |

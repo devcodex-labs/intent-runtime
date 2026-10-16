@@ -22,6 +22,9 @@ test('marked examples and contracts are checked in both newline forms; malformed
   for (const newline of ['\n', '\r\n']) {
     const example = ['<!-- example: examples/api/basic.mjs -->', '```js', 'console.log(1);', '```'].join(newline);
     assert.equal(documentationBlocks(example, 'example').length, 1);
+    const mdx = example.replace('<!-- example: examples/api/basic.mjs -->', '{/* example: examples/api/basic.mjs */}');
+    assert.equal(documentationBlocks(mdx, 'example').length, 1);
+    assert.throws(() => documentationBlocks(mdx.replace('```js', '```python'), 'example'), /Unmatched/);
     assert.throws(() => documentationBlocks(example.replace('```js', '```python'), 'example'), /Unmatched/);
     for (const kind of ['result', 'json']) {
       const block = ['<!-- ' + kind + ': native -->', '```json', '{}', '```'].join(newline);

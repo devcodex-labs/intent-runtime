@@ -1,26 +1,69 @@
 import {Intent, IntentError} from '@devcodex/intent-runtime';
 import type {ModelExecutor, ModelReply} from '@devcodex/intent-runtime';
 
-// The caller's gateway must accept this JSON request and return ModelReply.
+// Example: adapt a real Chat Completions endpoint with an application header.
+// For the standard protocol without custom headers, prefer createApiExecutor.
 export function createGatewayExecutor(url: string, model: string, apiKey: string): ModelExecutor {
   return {
-    id: 'application-gateway',
+    id: 'application-chat-gateway',
     async generate(request): Promise<ModelReply> {
       const response = await fetch(url, {
-        method: 'POST', signal: request.signal,
-        headers: {'content-type': 'application/json', authorization: 'Bearer ' + apiKey},
-        body: JSON.stringify({model, instructions: request.instructions, input: request.input, outputSchema: request.outputSchema}),
+        method: 'POST', redirect: 'error', signal: request.signal,
+        headers: {
+          'content-type': 'application/json',
+          authorization: 'Bearer ' + apiKey,
+          'x-application': 'orders',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {role: 'system', content: request.instructions},
+            {role: 'user', content: JSON.stringify(request.input)},
+          ],
+          response_format: {type: 'json_schema', json_schema: {
+            name: 'intent_candidate', strict: false, schema: request.outputSchema,
+          }},
+          max_completion_tokens: 8192,
+          stream: false,
+          store: false,
+        }),
       });
-      if (response.status === 401 || response.status === 403) throw new IntentError('MODEL_AUTH_FAILED');
-      if (response.status === 429) throw new IntentError('MODEL_RATE_LIMITED');
-      if (!response.ok) throw new IntentError('MODEL_REQUEST_FAILED');
-      const reply: unknown = await response.json();
-      if (!reply || typeof reply !== 'object' || !('outcome' in reply)) throw new IntentError('MODEL_REQUEST_FAILED');
-      if (reply.outcome === 'complete' && 'text' in reply && typeof reply.text === 'string') return {outcome: 'complete', text: reply.text};
-      if (reply.outcome === 'refusal' || reply.outcome === 'incomplete') return {outcome: reply.outcome};
-      throw new IntentError('MODEL_REQUEST_FAILED');
+      const reply = await readReply(response);
+      if (!reply || typeof reply !== 'object' || !('choices' in reply) || !Array.isArray(reply.choices) || reply.choices.length !== 1) throw new IntentError('MODEL_REQUEST_FAILED');
+      const choice = reply.choices[0];
+      if (!choice || typeof choice !== 'object' || !choice.message || choice.message.role !== 'assistant') throw new IntentError('MODEL_REQUEST_FAILED');
+      if (choice.message.tool_calls?.length || choice.message.function_call) throw new IntentError('MODEL_REQUEST_FAILED');
+      if (choice.finish_reason === 'length') return {outcome: 'incomplete'};
+      if (choice.finish_reason === 'content_filter' || choice.message.refusal) return {outcome: 'refusal'};
+      if (choice.finish_reason !== 'stop' || typeof choice.message.content !== 'string') throw new IntentError('MODEL_REQUEST_FAILED');
+      return {outcome: 'complete', text: choice.message.content};
     },
   };
+}
+
+// Bound the visible response bytes, including error responses.
+async function readReply(response: Response): Promise<unknown> {
+  const reader = response.body?.getReader();
+  const chunks: Uint8Array[] = [];
+  let bytes = 0;
+  try {
+    if (reader) for (;;) {
+      const part = await reader.read();
+      if (part.done) break;
+      bytes += part.value.byteLength;
+      if (bytes > 8388608) throw new IntentError('RESOURCE_LIMIT', {stage: 'model'});
+      chunks.push(part.value);
+    }
+  } finally {
+    if (reader) {await reader.cancel().catch(() => {}); reader.releaseLock();}
+  }
+  if (response.status === 401 || response.status === 403) throw new IntentError('MODEL_AUTH_FAILED');
+  if (response.status === 429) throw new IntentError('MODEL_RATE_LIMITED');
+  if (!response.ok) throw new IntentError('MODEL_REQUEST_FAILED');
+  const body = new Uint8Array(bytes);
+  let offset = 0;
+  for (const chunk of chunks) {body.set(chunk, offset); offset += chunk.byteLength;}
+  return JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(body));
 }
 
 export async function main(): Promise<void> {

@@ -89,6 +89,6 @@
 
 - [模型API](/integrations/api)：ApiExecutorConfig、地址、格式、响应体字节限制。
 - [MCP](/integrations/mcp)：IntentMcpAdapterConfig、独立服务配置、实例选择、前缀和协议。
-- [Codex](/integrations/codex)与[维护命令](/guide/installation)：可信文件、环境路径、CLI参数及退出码。
+- [Codex](/integrations/codex)与[维护命令](/operations/codex)：可信文件、环境路径、CLI参数及退出码。
 
 完整类型见[类型参考](/api/types)。

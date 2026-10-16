@@ -1,3 +1,5 @@
+import {Tabs, Tab} from '@theme';
+
 # 快速开始
 
 本页完成一次 Node.js 调用：识别“查询订单000123，不取消订单”，找到目标与禁止事项。无需先配置业务字段。其他接入方式可直接选择：
@@ -21,7 +23,7 @@
 npm install @devcodex/intent-runtime
 ```
 
-所需依赖由 npm 自动安装。将示例保存为 `.mjs` 即可使用 ESM；其他安装方式见[安装与版本](/guide/installation)。
+所需依赖由 npm 自动安装。现有 JavaScript / TypeScript 项目可以直接接入。下面使用 ESM：项目的 package.json 设置 `"type": "module"`；独立 JavaScript 文件也可保存为 `.mjs`。其他安装方式见[安装与版本](/guide/installation)。
 
 本文先识别目标与约束，不配置业务Schema。需要订单编号等结构化参数时，再运行[订单字段示例](/examples/index#订单字段提取)。
 
@@ -47,16 +49,23 @@ export INTENT_MODEL="你的模型名称"
 
 ## 3. 保存并运行
 
-将下例保存为安装依赖的项目中的 `basic.mjs`。包导入从文件位置解析。
+选择与你的项目一致的语言。JavaScript 保存为 `basic.js`，TypeScript 保存为 `basic.ts`；包导入从文件位置解析。
 
-<!-- example: examples/api/basic.mjs -->
+<Tabs groupId="example-language">
+<Tab label="JavaScript">
+
+{/* example: examples/api/basic.mjs */}
 ```js
 import {Intent, IntentError} from '@devcodex/intent-runtime';
 import {createApiExecutor} from '@devcodex/intent-runtime/adapters/api';
 
-const apiKey = process.env.INTENT_API_KEY, model = process.env.INTENT_MODEL;
+const apiKey = process.env.INTENT_API_KEY;
+const model = process.env.INTENT_MODEL;
 if (!apiKey || !model) throw new Error('Set INTENT_API_KEY and INTENT_MODEL in your environment.');
-const intent = new Intent({language: 'zh-CN', executor: createApiExecutor({provider: 'openai', apiKey, model})});
+const intent = new Intent({
+  language: 'zh-CN',
+  executor: createApiExecutor({provider: 'openai', apiKey, model}),
+});
 try {
   const result = await intent.parse({input: '查询订单000123，不取消订单'});
   console.log(JSON.stringify(result, null, 2));
@@ -67,12 +76,58 @@ try {
   if (!(error instanceof IntentError)) throw error;
   console.error(JSON.stringify(error.toJSON()));
   process.exitCode = 1;
-} finally {await intent.dispose();}
+} finally {
+  await intent.dispose();
+}
 ```
 
 ```bash
-node basic.mjs
+node basic.js
 ```
+
+</Tab>
+<Tab label="TypeScript">
+
+{/* example: examples/api/basic.ts */}
+```ts
+import {Intent, IntentError, type IntentParseRequest} from '@devcodex/intent-runtime';
+import {createApiExecutor} from '@devcodex/intent-runtime/adapters/api';
+
+const apiKey = process.env.INTENT_API_KEY;
+const model = process.env.INTENT_MODEL;
+if (!apiKey || !model) throw new Error('Set INTENT_API_KEY and INTENT_MODEL.');
+
+const intent = new Intent({
+  language: 'zh-CN',
+  executor: createApiExecutor({provider: 'openai', apiKey, model}),
+});
+const request: IntentParseRequest = {input: '查询订单000123，不取消订单'};
+try {
+  const result = await intent.parse(request);
+  console.log(JSON.stringify(result, null, 2));
+  console.log('目标：', result.effective.intents.map(node => node.goal));
+  console.log('需要澄清：', result.issues.map(issue => issue.message));
+} catch (error) {
+  if (!(error instanceof IntentError)) throw error;
+  console.error(JSON.stringify(error.toJSON()));
+  process.exitCode = 1;
+} finally {
+  await intent.dispose();
+}
+```
+
+沿用现有 TypeScript 编译流程即可。没有配置过 TypeScript 时，在 ESM 项目中执行：
+
+```bash
+npm install -D typescript @types/node
+npx tsc basic.ts --outDir out --target ES2022 --module NodeNext --moduleResolution NodeNext --strict --skipLibCheck
+node out/basic.js
+```
+
+这是 TypeScript 编译工具，JavaScript 使用者无需安装。运行前仍需设置上一节的模型名称与 API Key。
+
+</Tab>
+</Tabs>
 
 ## 4. 读取结果
 

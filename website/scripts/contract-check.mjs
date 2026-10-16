@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 const repo = fileURLToPath(new URL('../../', import.meta.url));
 export const normalizeText = text => text.replace(/\r\n?/g, '\n');
 export function documentationBlocks(text, kind) {
-  const value = normalizeText(text);
+  const value = normalizeText(text).replace(/\{\/\*\s*((?:example|typecheck|result|json)\b[^\n]*?)\s*\*\/\}/g, '<!-- $1 -->');
   const patterns = {
     example: /<!-- example: ([\w/.-]+) -->\s*```(?:js|ts)\n([\s\S]*?)\n```/g,
     typecheck: /<!-- typecheck -->\s*```ts\n([\s\S]*?)\n```/g,

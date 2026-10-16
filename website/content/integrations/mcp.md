@@ -2,17 +2,24 @@
 
 <a id="接入-mcp-与已有-tools"></a>
 
-| 用法 | 你提供什么 | 谁管理连接 |
-|---|---|---|
-| 独立stdio | 可信.mjs配置 | intent-runtime-mcp |
-| 已有MCP服务 | Intent实例、adapter、SDK处理器 | 你的SDK服务 |
-| 远程Streamable HTTP | 将同一adapter挂到已有HTTP MCP | 你的服务管理监听、认证和逻辑session |
+先决定两件独立的事：**谁调用模型**，以及**客户端怎样连接服务**。
 
-模型来源另行选择：executor模式暴露intent_parse；host模式暴露prepare/accept/cancel，由当前宿主生成候选。工具注册不会自动获取模型或拦截所有消息。
+| 模型来源 | 适用情况 | 提供的工具 |
+|---|---|---|
+| host：当前客户端模型 | 希望复用宿主模型，不配置另一套 Key | intent_prepare / intent_accept / intent_cancel |
+| executor：服务所配模型 | 服务端已有模型 API / 网关 | intent_parse |
+
+| 连接方式 | 你提供什么 | 谁管理连接 |
+|---|---|---|
+| 独立 stdio | 可信 .js / .mjs 配置 | 客户端启动 intent-runtime-mcp 子进程 |
+| 独立 HTTP | 同一配置，监听地址和端口 | 启动服务后，客户端连接 /mcp URL |
+| 已有MCP服务 | Intent实例、adapter、SDK处理器 | 你的SDK服务 |
+
+host / executor 都可以通过 stdio 或 HTTP 使用。先按下面的 host 配置接通，再按需改成所配 API；工具注册不会自动拦截所有聊天消息。
 
 ## 独立 stdio 服务
 
-先按[安装与版本](/guide/installation)完成全局安装。此路径直接启动 stdio，无需先接入 Codex。将下面 host 配置保存为 intent.host.config.mjs，记录真实绝对路径：
+先按[安装与版本](/guide/installation)完成安装。此路径无需先接入 Codex。在已有 ESM 项目中保存为 `intent.host.config.js`；独立文件可保存为 `.mjs`，两种内容相同。记录真实绝对路径：
 
 <!-- example: examples/codex/intent.host.config.mjs -->
 ```js
@@ -28,10 +35,23 @@ export default {
 配置是可信 Node.js 模块；无包导入，可以独立保存。由你的 MCP 客户端启动以下命令：
 
 ```bash
-intent-runtime-mcp --config /absolute/path/intent.host.config.mjs
+intent-runtime-mcp --config /absolute/path/intent.host.config.js
 ```
 
-这是独立服务，不需要运行setup登记Codex。客户端配置选STDIO，command为intent-runtime-mcp的实际可执行路径，args为["--config", "配置文件绝对路径"]。Windows按客户端支持使用.cmd入口或绝对命令路径；路径含空格时作为单个参数传入。stdout仅传协议，请用客户端查看工具和stderr诊断。
+在 MCP 客户端中选择 STDIO。支持 mcpServers 格式的客户端可参考：
+
+```json
+{
+  "mcpServers": {
+    "intent-runtime": {
+      "command": "intent-runtime-mcp",
+      "args": ["--config", "/absolute/path/intent.host.config.js"]
+    }
+  }
+}
+```
+
+替换为真实配置绝对路径；客户端 PATH 找不到命令时填可执行文件的绝对路径。Windows按客户端支持使用.cmd入口；不支持时使用 node 加安装目录中 dist/cli/mcp.js 的绝对路径启动。Codex 用户可直接用[setup登记](/integrations/codex)。stdout 只传协议，日志在客户端 stderr 中查看。
 
 | 独立配置 | 类型 / 默认 | 规则 |
 |---|---|---|
@@ -40,6 +60,40 @@ intent-runtime-mcp --config /absolute/path/intent.host.config.mjs
 | toolPrefix | string / 空 | 加在所有工具名前；最终名称≤128字符 |
 
 executor实例要配置[模型执行器](/integrations/api)，host无需executor。支持--help/--version；无效参数退出2，加载/启动失败退出1，正常EOF或SIGINT/SIGTERM退出0。stdout仅传MCP，日志用stderr。
+
+## 使用 HTTP 与指定端口
+
+复用上面的配置，在终端中启动：
+
+```bash
+intent-runtime-mcp --config /absolute/path/intent.host.config.js --transport http --host 127.0.0.1 --port 3001 --path /mcp
+```
+
+终端应显示 `Intent MCP listening at http://127.0.0.1:3001/mcp`。保持进程运行，在客户端新增 Streamable HTTP 连接：
+
+```json
+{
+  "mcpServers": {
+    "intent-runtime": {
+      "url": "http://127.0.0.1:3001/mcp"
+    }
+  }
+}
+```
+
+客户端不支持该 JSON 格式时，在其 MCP 配置表单填写相同 URL。连接后应出现三个 host 工具；端口被占用时换一个端口，并同步客户端 URL。结束后 Ctrl+C 停止服务。
+
+| 命令选项 | 默认值 | 用途 |
+|---|---|---|
+| --config | 必填 | 可信 .js / .mjs 的绝对路径 |
+| --transport | stdio | stdio 或 http |
+| --host | 127.0.0.1 | HTTP 监听地址 |
+| --port | 3001 | HTTP 端口，1—65535 |
+| --path | /mcp | HTTP 路径，例如 /mcp；不含 query |
+
+host、port、path 属于启动选项，不写进 Intent 配置。stdio 不接受这些 HTTP 选项。HTTP 使用 MCP SDK 的有状态 Streamable HTTP，支持 2025-06-18 / 2025-11-25 协议；stdio 另支持 2026-07-28。客户端需支持相应协议。
+
+同一个客户端要保留协商得到的 `Mcp-Session-Id`，prepare 与 accept 使用同一逻辑会话。HTTP 会话最多128个，30分钟无新请求会回收；请求体上限4 MiB。它不是业务对话持久化。默认只监听本机；部署到其他机器时显式配置监听地址，并由部署层配置认证、HTTPS及访问地址；本命令不提供 OAuth 或代理管理。
 
 ### 使用所配 API 的完整配置
 
@@ -56,37 +110,40 @@ export default {mode: 'executor', instances: {main: {language: 'zh-CN', executor
 
 ## 完成第一次识别
 
-host模式应列出intent_prepare、intent_accept、intent_cancel：先用instance=orders、fields=["orderId"]和原始input“查询订单000123，不取消订单”prepare，由当前宿主模型按返回的instructions/input/outputSchema生成候选，再accept。只有accept的IntentResult是最终结果；无法完成时cancel。
+连接支持工具调用的 AI 客户端后，提出：“请使用 intent-runtime 识别‘查询订单000123，不取消订单’，提取订单号，展示查询目标和禁止事项，不执行订单操作。”
+
+host 模式应列出 intent_prepare、intent_accept、intent_cancel。它需要客户端模型完成交接；只支持列工具的客户端不会自动完成识别。工具参数与调用顺序见[宿主交接](/api/mcp#宿主交接)。Codex 的 setup 会安装对应 Skill。
+
+executor 模式可直接调用：
+
+```json
+{
+  "name": "intent_parse",
+  "arguments": {"input": "查询订单000123，不取消订单"}
+}
+```
 
 executor模式应列出intent_parse：传入input“查询订单000123，不取消订单”，无Schema时不选字段。structuredContent中的结果应保留查询目标和禁止事项，随后按[读取结果](/guide/results)消费。host不额外调用API，executor使用服务所配模型。
 
 | 现象 | 下一步 |
 |---|---|
-| 启动失败/没有工具 | 核对绝对.mjs路径、配置导入依赖、可选SDK是否安装及客户端stderr |
+| 启动失败/没有工具 | 核对绝对.js/.mjs路径、ESM项目配置、导入依赖及客户端stderr |
+| HTTP无法连接 | 核对监听地址、端口和/mcp路径；确认进程仍在运行 |
+| HTTP 403 | Host/Origin与服务地址是否匹配；通过代理时同步其转发地址 |
 | 列出的工具与预期不符 | 核对mode并重启客户端连接 |
 | 有prepare但没有最终结果 | 完成同一session的accept，候选格式按outputSchema；不能把HostTask当结果 |
 | 返回isError=true | 读取error摘要并按[错误恢复](/api/errors)处理 |
 
 ## 添加到已有 MCP tools
 
-保留原SDK、transport、tools/resources/prompts，在已有服务中挂载adapter。直接使用[完整SDK Server示例](/integrations/mcp-sdk)，不要为每次host工具调用新建session。远程HTTP由你的已有服务管理认证与逻辑连接。
+保留原 SDK、transport 和工具，从[最小修改步骤](/integrations/mcp-sdk)开始。已有 HTTP MCP 服务也使用同一 adapter；监听端口、认证和客户端逻辑连接继续由原服务管理，不要为每个 HTTP 请求重建 host session。
 
-## Adapter API
+<a id="adapter-api"></a>
+<a id="intent_parse"></a>
+<a id="成功与错误信封"></a>
+<a id="协议与远程调用"></a>
+<a id="完整-executor-回复"></a>
 
-方法、参数和资源所有权见[Adapter参考](/api/mcp#adapter-api)。
+## 参数与协议参考
 
-## intent_parse
-
-完整工具请求与返回见[intent_parse参考](/api/mcp#intent_parse)。
-
-## 成功与错误信封
-
-成功结果与技术失败的不同外层结构见[信封参考](/api/mcp#成功与错误信封)。
-
-## 协议与远程调用
-
-版本、协商、会话与远程边界见[协议参考](/api/mcp#协议与远程调用)。独立命令仅提供stdio，不提供HTTP监听。
-
-## 完整 executor 回复
-
-完整JSON与下载保留在[工具回复](/api/mcp#完整-executor-回复)。
+查阅[Adapter API](/api/mcp#adapter-api)、[工具请求](/api/mcp#intent_parse)、[成功与错误信封](/api/mcp#成功与错误信封)、[协议与会话](/api/mcp#协议与远程调用)和[完整回复下载](/api/mcp#完整-executor-回复)。
