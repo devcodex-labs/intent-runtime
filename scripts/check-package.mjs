@@ -3,6 +3,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
+import {verifyInstalledEntries} from './release-registry.mjs';
 
 const repo = path.resolve(fileURLToPath(new URL('../', import.meta.url)));
 const base = path.resolve(process.env.INTENT_PACKAGE_CHECK_DIR ?? path.join(repo, '../intent-runtime.codex-temp/package-check'));
@@ -64,6 +65,7 @@ createIntentMcpAdapter({mode:'host',instances:{main:i}});
 `);
   run(process.execPath, ['node_modules/typescript/bin/tsc','--noEmit','--strict','--module','NodeNext','--moduleResolution','NodeNext','--target','ES2022','--skipLibCheck','consumer.ts'], consumer);
   const installed = path.join(consumer, 'node_modules', ...metadata.name.split('/'));
+  await verifyInstalledEntries(consumer,metadata.version);
   for (const entry of ['dist/index.js','dist/schema/worker.mjs','integrations/codex/SKILL.md']) assertSame(await readFile(path.join(stage, entry)), await readFile(path.join(installed, entry)));
   for (const cli of ['index.js','mcp.js']) run(process.execPath, [path.join(installed, 'dist/cli', cli), '--help'], consumer);
   if (!omit) run(process.execPath, [path.join(repo, 'scripts/check-doc-examples.mjs'), consumer, tarball], consumer);

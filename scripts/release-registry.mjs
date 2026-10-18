@@ -24,16 +24,29 @@ export async function registryVersion(name, version, fetcher = fetch) {
 
 /** Allow bounded registry propagation without hiding lookup or integrity errors. */
 export async function waitForRegistry(expected, {lookup = registryVersion, wait = () => new Promise(resolve => setTimeout(resolve,5000))} = {}) {
-  for (let attempt = 0; attempt < 12; attempt++) {
+  for (let attempt = 0; attempt < 61; attempt++) {
     const published = await lookup(expected.name,expected.version);
     if (published !== undefined) {
       publicationAction(published,expected);
       const latest = await lookup(expected.name,'latest');
       if (latest?.version === expected.version) {publicationAction(latest,expected); return {published,latest};}
     }
-    if (attempt < 11) await wait();
+    if (attempt < 60) await wait();
   }
   throw new Error('Published version and matching default npm install did not become visible in the registry.');
+}
+
+/** Exercise the same installed entries before publication and from the registry. */
+export async function verifyInstalledEntries(consumer, version) {
+  const installed = path.join(consumer,'node_modules','@devcodex','intent-runtime');
+  await access(path.join(installed,'dist/schema/worker.mjs'));
+  const run = args => {
+    const result = spawnSync(process.execPath,args,{cwd:consumer,encoding:'utf8',timeout:30000});
+    if (result.status !== 0) throw new Error('Installed entry verification failed: ' + (result.error?.message ?? result.stderr));
+    return result.stdout.trim();
+  };
+  run(['--input-type=module','-e',"import {Intent} from '@devcodex/intent-runtime'; import {createApiExecutor} from '@devcodex/intent-runtime/adapters/api'; import {createIntentMcpAdapter} from '@devcodex/intent-runtime/mcp'; if (typeof createApiExecutor !== 'function' || typeof createIntentMcpAdapter !== 'function') throw new Error('Missing entry'); const intent = new Intent({}); await intent.dispose();"]);
+  for (const cli of ['index.js','mcp.js']) if (run([path.join(installed,'dist/cli',cli),'--version']) !== version) throw new Error('Installed CLI version differs.');
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -60,10 +73,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       const lock = JSON.parse(await readFile(path.join(consumer,'package-lock.json'),'utf8'));
       const entry = lock.packages['node_modules/' + expected.name];
       if (entry?.integrity !== expected.integrity || entry.version !== expected.version) throw new Error('Installed registry version or integrity differs.');
-      const installed = path.join(consumer,'node_modules',...expected.name.split('/'));
-      await access(path.join(installed,'dist/schema/worker.mjs'));
-      run(['--input-type=module','-e',"import {Intent} from '@devcodex/intent-runtime'; import {createApiExecutor} from '@devcodex/intent-runtime/adapters/api'; import {createIntentMcpAdapter} from '@devcodex/intent-runtime/mcp'; if (typeof createApiExecutor !== 'function' || typeof createIntentMcpAdapter !== 'function') throw new Error('Missing entry'); const intent = new Intent(); await intent.dispose();"]);
-      for (const cli of ['index.js','mcp.js']) if (run([path.join(installed,'dist/cli',cli),'--version']) !== expected.version) throw new Error('Installed CLI version differs.');
+      await verifyInstalledEntries(consumer,expected.version);
       consumers.push({specifier,consumer});
     }
     await writeFile(path.join(base,'registry-verification.json'),JSON.stringify({...expected,consumers,latest:latest.version,entries:true,cliVersions:true,worker:true},null,2)+'\n');

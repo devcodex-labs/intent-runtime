@@ -33,7 +33,17 @@ test('post-publish verification waits for both version and default-tag propagati
 test('post-publish verification has a bounded wait and never moves the default tag', async () => {
   let reads = 0, waits = 0;
   await assert.rejects(waitForRegistry(expected,{lookup:async()=>{reads++;return undefined;},wait:async()=>{waits++;}}),/did not become visible/);
-  assert.equal(reads,12); assert.equal(waits,11);
+  assert.equal(reads,61); assert.equal(waits,60);
+});
+
+test('npm processing longer than one minute can finish without another publication', async () => {
+  const current = {...expected,dist:{integrity:expected.integrity}};
+  let versionReads = 0, waits = 0;
+  const result = await waitForRegistry(expected,{wait:async()=>{waits++;},lookup:async(name,version)=>{
+    if (version === expected.version && ++versionReads < 35) return undefined;
+    return current;
+  }});
+  assert.equal(result.published,current); assert.equal(versionReads,35); assert.equal(waits,34);
 });
 
 test('integrity and registry lookup errors fail immediately during propagation', async () => {
