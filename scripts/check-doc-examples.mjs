@@ -32,9 +32,9 @@ const {INTENT_RESULT_SCHEMA} = await import(pathToFileURL(path.join(consumer, 'n
 const {Validator} = await import(pathToFileURL(path.join(consumer, 'node_modules/schema-dsl/dist/pure.cjs')).href);
 const validator = new Validator({logger: false, strict: false, useDefaults: false, coerceTypes: false, removeAdditional: false, allErrors: true});
 let resultExamples = 0;
-for (const stem of ['order', 'clarification']) {
-  const input = JSON.parse(await readFile(path.join(repo, 'website/content/public/examples/' + stem + '-request.json'), 'utf8'));
-  const result = JSON.parse(await readFile(path.join(repo, 'website/content/public/examples/' + stem + '-result.json'), 'utf8'));
+for (const locale of ['', 'en/']) for (const stem of ['order', 'clarification']) {
+  const input = JSON.parse(await readFile(path.join(repo, 'website/content/public/examples/' + locale + stem + '-request.json'), 'utf8'));
+  const result = JSON.parse(await readFile(path.join(repo, 'website/content/public/examples/' + locale + stem + '-result.json'), 'utf8'));
   assert(validator.validate(INTENT_RESULT_SCHEMA, result, {smartCoerce: false, coerce: false, format: false}).valid);
   assert.equal(result.input, input.request.input);
   const names = Object.keys(input.config.instances);
@@ -51,14 +51,17 @@ const protocolRecords = [];
 // Reuse the language-only skeleton, including the interpretation required by
 // this example's natural-language field description. The real core still
 // validates the value and builds the Result; no complete Result is supplied.
-const candidate = JSON.parse(await readFile(path.join(consumer, 'candidate.json'), 'utf8'));
-candidate.normalizedInput = '查询订单000123';
-Object.assign(candidate.nodes[0], {domain: '订单', action: '查询', target: '订单000123', goal: '查询订单000123'});
-candidate.changes[0].description = '新增查询订单000123的请求';
-candidate.observations[0].semantic = {status: 'valid', explanation: '输入明确给出订单编号000123，字符串保留前导零', sources: [{root: 'input', pointer: '', quote: '000123'}, {root: 'schema', pointer: '/properties/orderId/description'}], dependencies: []};
+const candidateSeed = JSON.parse(await readFile(path.join(consumer, 'candidate.json'), 'utf8'));
+for (const locale of ['zh', 'en']) {
+const en = locale === 'en', input = en ? 'Look up order 000123' : '查询订单000123';
+const candidate = structuredClone(candidateSeed);
+candidate.normalizedInput = input;
+Object.assign(candidate.nodes[0], {domain: en ? 'orders' : '订单', action: en ? 'LOOK_UP' : '查询', target: en ? 'order 000123' : '订单000123', goal: input});
+candidate.changes[0].description = en ? 'Add the explicit order lookup request' : '新增查询订单000123的请求';
+candidate.observations[0].semantic = {status: 'valid', explanation: en ? 'The user explicitly supplied order ID 000123; preserve its leading zeros.' : '输入明确给出订单编号000123，字符串保留前导零', sources: [{root: 'input', pointer: '', quote: '000123'}, {root: 'schema', pointer: '/properties/orderId/description'}], dependencies: []};
 const candidateText = JSON.stringify(candidate);
 for (const version of ['2025-06-18', '2025-11-25', '2026-07-28']) {
-  const transport = new StdioClientTransport({command: process.execPath, args: [path.join(examples, 'mcp/server.mjs')], stderr: 'pipe'});
+  const transport = new StdioClientTransport({command: process.execPath, args: [path.join(examples, 'mcp', en ? 'server-en.mjs' : 'server.mjs')], stderr: 'pipe'});
   let errors = ''; transport.stderr?.on('data', chunk => {errors += chunk;});
   const client = new Client({name: 'documentation-example-check', version: '1.0.0'}, {supportedProtocolVersions: [version], versionNegotiation: {mode: version === '2026-07-28' ? {pin: version} : 'legacy'}});
   try {
@@ -71,19 +74,21 @@ for (const version of ['2025-06-18', '2025-11-25', '2026-07-28']) {
     assert.equal((await client.readResource({uri: 'note://welcome'})).contents[0].text, 'Existing resource');
     assert.equal((await client.listPrompts()).prompts[0].name, 'welcome');
     assert.equal((await client.getPrompt({name: 'welcome'})).messages[0].content.text, 'Hello');
-    const prepared = await client.callTool({name: 'ir_intent_prepare', arguments: {input: '查询订单000123', instance: 'orders', fields: ['orderId'], output: {diagnostics: true}}});
+    const prepared = await client.callTool({name: 'ir_intent_prepare', arguments: {input, instance: 'orders', fields: ['orderId'], output: {diagnostics: true}}});
     assert.equal(prepared.isError, false);
     const accepted = await client.callTool({name: 'ir_intent_accept', arguments: {requestId: prepared.structuredContent.requestId, submissionToken: prepared.structuredContent.submissionToken, candidateText}});
     assert.equal(accepted.isError, false);
     assert.equal(accepted.structuredContent.effective.intents[0].inputs.orderId, '000123');
+    assert.equal(accepted.structuredContent.effective.intents[0].goal, input);
     assert.equal(accepted.structuredContent.diagnostics.modelCallCount, 0);
     assert.deepEqual(JSON.parse(accepted.content[0].text), accepted.structuredContent);
-    const next = await client.callTool({name: 'ir_intent_prepare', arguments: {input: '停止这次识别', instance: 'orders'}});
+    const next = await client.callTool({name: 'ir_intent_prepare', arguments: {input: en ? 'Stop this recognition' : '停止这次识别', instance: 'orders'}});
     const cancelled = await client.callTool({name: 'ir_intent_cancel', arguments: {requestId: next.structuredContent.requestId}});
     assert.equal(cancelled.structuredContent.status, 'cancelled');
-    protocolRecords.push({version, originalToolResourcePromptPreserved: true, prepareAcceptRealFieldValidation: true, prepareCancel: true});
+    protocolRecords.push({locale, version, originalToolResourcePromptPreserved: true, prepareAcceptRealFieldValidation: true, prepareCancel: true});
     assert.equal(errors, '');
   } finally {await client.close();}
+}
 }
 
 let globalMaintenance = 'not requested';
@@ -120,7 +125,8 @@ globalThis.fetch=async function(url,options){
  const body=JSON.parse(options.body), materials=JSON.parse(body.input[0].content[0].text), request=materials.request;
  const selected=request.fields==='all'?Object.keys(materials.schema.properties):request.fields;
  const c=structuredClone(seed), src={root:'input',pointer:''}; c.normalizedInput=request.input;
- Object.assign(c.nodes[0],{domain:'订单',action:'查询',target:'订单000123',goal:'查询订单000123'});
+ const en=/^(Look up|Set VIP|Change)/.test(request.input);
+ Object.assign(c.nodes[0],{domain:en?'orders':'订单',action:en?'LOOK_UP':'查询',target:en?'order 000123':'订单000123',goal:en?'Look up order 000123':'查询订单000123'});
  c.observations=[];
  const observation=(field,value)=>({ownerKey:'order',container:'inputs',field,presence:'known',withdrawn:false,valueJson:JSON.stringify(value),rawText:null,sources:[src],semantic:null});
  if(/不(?:要)?取消订单|Do not cancel the order/.test(request.input)){
@@ -136,21 +142,21 @@ globalThis.fetch=async function(url,options){
   Object.assign(c.nodes[0],{action:'设置',goal:'设置订单000123的VIP状态和优惠'});
   if(request.baseline){c.kind='amendment';c.usedHistory=true;c.nodes[0].priorRef={root:'baseline',pointer:'/intents/0'};c.changes[0].operation='modify';}
   if(request.input.includes('VIP=true'))c.observations.push(observation('isVip',true),observation('discount',15));
-  else if(request.input.includes('非VIP'))c.observations.push(observation('isVip',false));
+  else if(request.input.includes('非VIP')||request.input.includes('non-VIP'))c.observations.push(observation('isVip',false));
   else c.observations.push(observation('discount',5));
  }
  return new Response(JSON.stringify({status:'completed',output:[{type:'message',role:'assistant',content:[{type:'output_text',text:JSON.stringify(c)}]}]}),{status:200,headers:{'content-type':'application/json'}});
 };
 `);
 const runnableExamples = [];
-for (const name of ['basic', 'basic-en', 'parse', 'multi-turn', 'native-response']) {
+for (const name of ['basic', 'basic-en', 'parse', 'parse-en', 'multi-turn', 'multi-turn-en', 'native-response', 'native-response-en']) {
   const trace = path.join(work, name + '-results.json');
   const env = {INTENT_API_KEY: 'controlled-test-only', INTENT_MODEL: 'controlled-language-reply', INTENT_DOC_TRACE: trace, INTENT_DOC_FAILURE: ''};
   run(process.execPath, ['--import', pathToFileURL(preload).href, path.join(examples, 'api', name + '.mjs')], env);
   const results = JSON.parse(await readFile(trace, 'utf8')).map(record => record.result);
   if (name === 'basic' || name === 'basic-en') {assert.equal(results.length, 1); assert.equal(results[0].fieldResults.length, 0); assert.equal(results[0].effective.intents[0].constraints[0].kind, 'prohibition');}
-  if (name === 'parse' || name === 'native-response') assert.equal(results[0].effective.intents[0].inputs.orderId, '000123');
-  if (name === 'multi-turn') {
+  if (/^(parse|native-response)(-en)?$/.test(name)) assert.equal(results[0].effective.intents[0].inputs.orderId, '000123');
+  if (/^multi-turn(-en)?$/.test(name)) {
     assert.equal(results.length, 3);
     const [first, second, third] = results;
     assert.deepEqual(first.effective.intents[0].inputs, {orderId: '000123', isVip: true, discount: 15});
@@ -166,4 +172,4 @@ for (const name of ['basic', 'basic-en', 'parse', 'multi-turn', 'native-response
   runnableExamples.push({name, actualCoreResults: results.length, authenticationFailureHandled: true});
 }
 await writeFile(path.join(work, 'verification.json'), JSON.stringify({node: process.version, syntaxFiles, customExecutorStrictTypes: true, resultExamples, protocolRecords, globalMaintenance, runnableExamples, realProviderCalls: 0, scope: 'User documentation installation/configuration/SDK examples and static result fixtures; not model semantic acceptance.'}, null, 2) + '\n');
-console.log('User examples verified: ' + syntaxFiles + ' ESM files, strict custom executor, ' + resultExamples + ' full responses, 3 actual SDK protocols, ' + runnableExamples.length + ' runnable API examples and auth failure branches, ' + (tarball ? 'isolated global setup/doctor/clean' : 'no new global install') + '.');
+console.log('User examples verified: ' + syntaxFiles + ' ESM files, strict custom executor, ' + resultExamples + ' full responses, ' + protocolRecords.length + ' SDK cases (2 locales x 3 protocols), ' + runnableExamples.length + ' runnable API examples and auth failure branches, ' + (tarball ? 'isolated global setup/doctor/clean' : 'no new global install') + '.');

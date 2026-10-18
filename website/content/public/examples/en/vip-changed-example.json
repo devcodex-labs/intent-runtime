@@ -1,0 +1,186 @@
+{
+  "slug": "vip-changed",
+  "title": "VIP discount: Change this order to non-VIP; keep everything else",
+  "config": {
+    "language": "en",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        },
+        "isVip": {
+          "type": "boolean"
+        },
+        "discount": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "if": {
+        "properties": {
+          "isVip": {
+            "const": true
+          }
+        },
+        "required": [
+          "isVip"
+        ]
+      },
+      "then": {
+        "properties": {
+          "discount": {
+            "maximum": 20
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "discount": {
+            "maximum": 10
+          }
+        }
+      }
+    }
+  },
+  "request": {
+    "input": "Change this order to non-VIP; keep everything else",
+    "fields": [
+      "isVip"
+    ],
+    "baseline": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-8",
+          "domain": null,
+          "action": "Set",
+          "target": "the VIP status and discount for order 000123",
+          "goal": "Set the VIP status and discount for order 000123",
+          "understanding": "clear",
+          "constraints": [],
+          "inputs": {
+            "orderId": "000123",
+            "isVip": true,
+            "discount": 15
+          },
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    }
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "Change this order to non-VIP; keep everything else",
+    "status": "complete",
+    "turn": {
+      "kind": "amendment",
+      "normalizedInput": "Change this order to non-VIP; keep everything else",
+      "intentIds": [
+        "intent-8"
+      ],
+      "changes": [
+        {
+          "operation": "modify",
+          "target": {
+            "kind": "intent",
+            "id": "intent-8"
+          },
+          "description": "Modify only what this turn specifies",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "provided_materials",
+      "intents": [
+        {
+          "id": "intent-8",
+          "domain": null,
+          "action": "Set",
+          "target": "the VIP status and discount for order 000123",
+          "goal": "Set the VIP status and discount for order 000123",
+          "understanding": "clear",
+          "constraints": [],
+          "inputs": {
+            "orderId": "000123",
+            "isVip": false
+          },
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [
+      {
+        "container": "inputs",
+        "intentId": "intent-8",
+        "field": "isVip",
+        "path": "/isVip",
+        "status": "present",
+        "trigger": "selection",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      },
+      {
+        "container": "inputs",
+        "intentId": "intent-8",
+        "field": "discount",
+        "path": "/discount",
+        "status": "invalidated",
+        "trigger": "invalidation",
+        "explanation": "The supplied value violates the declared rules.",
+        "sourceRefs": [
+          {
+            "root": "baseline",
+            "pointer": "/intents/0/inputs/discount"
+          }
+        ]
+      }
+    ],
+    "issues": [
+      {
+        "id": "field-0",
+        "code": "FIELD_INVALIDATED",
+        "category": "data",
+        "message": "The supplied value violates the declared rules.",
+        "container": "inputs",
+        "field": "discount",
+        "path": "/discount",
+        "sourceRefs": [
+          {
+            "root": "baseline",
+            "pointer": "/intents/0/inputs/discount"
+          }
+        ],
+        "intentId": "intent-8"
+      }
+    ],
+    "inferences": []
+  }
+}

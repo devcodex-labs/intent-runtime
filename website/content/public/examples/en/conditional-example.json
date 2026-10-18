@@ -1,0 +1,147 @@
+{
+  "slug": "conditional",
+  "title": "Do not withdraw before a condition is established",
+  "config": {
+    "language": "en",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        }
+      }
+    }
+  },
+  "request": {
+    "input": "Withdraw the lookup only if the check fails. The check has not run yet; keep everything else.",
+    "baseline": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-2",
+          "domain": null,
+          "action": "Look up",
+          "target": "order 000123",
+          "goal": "Look up order 000123",
+          "understanding": "clear",
+          "constraints": [
+            {
+              "id": "constraint-2",
+              "kind": "prohibition",
+              "text": "Do not cancel the order",
+              "scope": {
+                "type": "intent",
+                "intentId": "intent-2"
+              }
+            }
+          ],
+          "inputs": {
+            "orderId": "000123"
+          },
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    }
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "Withdraw the lookup only if the check fails. The check has not run yet; keep everything else.",
+    "status": "complete",
+    "turn": {
+      "kind": "amendment",
+      "normalizedInput": "Withdraw the lookup only if the check fails. The check has not run yet; keep everything else.",
+      "intentIds": [
+        "intent-2"
+      ],
+      "changes": [
+        {
+          "operation": "add",
+          "target": {
+            "kind": "constraint",
+            "id": "constraint-3"
+          },
+          "description": "Add the explicit request from this turn",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        },
+        {
+          "operation": "withdraw",
+          "target": {
+            "kind": "intent",
+            "id": "intent-2"
+          },
+          "description": "Withdraw the specified goal",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "conditional",
+          "conditionId": "constraint-3"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "provided_materials",
+      "intents": [
+        {
+          "id": "intent-2",
+          "domain": null,
+          "action": "Look up",
+          "target": "order 000123",
+          "goal": "Look up order 000123",
+          "understanding": "clear",
+          "constraints": [
+            {
+              "id": "constraint-2",
+              "kind": "prohibition",
+              "text": "Do not cancel the order",
+              "scope": {
+                "type": "intent",
+                "intentId": "intent-2"
+              }
+            },
+            {
+              "id": "constraint-3",
+              "kind": "precondition",
+              "text": "Withdraw the lookup only if the check fails; the check has not run yet",
+              "scope": {
+                "type": "intent",
+                "intentId": "intent-2"
+              }
+            }
+          ],
+          "inputs": {
+            "orderId": "000123"
+          },
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [],
+    "issues": [],
+    "inferences": []
+  }
+}

@@ -1,0 +1,160 @@
+import {Tabs, Tab} from '@theme';
+
+<span id="快速开始" aria-hidden="true"></span>
+
+# Quick start
+
+Make one Node.js call to recognize “Look up order 000123. Do not cancel the order.” Find the goal and the prohibition without configuring business fields first.
+
+<div className="intent-entry-matrix">
+
+| Your task | Start here | Model source |
+|---|---|---|
+| Recognize intent in Node.js | This example | Your API or executor |
+| Call it from Codex | [Connect Codex](/integrations/codex) | Current model or configured API |
+| Run standalone MCP | [Standalone service](/integrations/mcp#standalone-stdio) | Service configuration |
+| Extend an MCP server | [Existing server](/integrations/mcp-sdk) | Client model or configured API |
+
+</div>
+
+<span id="1-安装到项目" aria-hidden="true"></span>
+
+## 1. Install
+
+Use Node.js ≥20 and ESM. Run in your application directory:
+
+```bash
+npm install @devcodex/intent-runtime
+```
+
+npm installs required dependencies automatically. JavaScript and TypeScript projects use the same API. Set `"type": "module"` in package.json for .js, or save standalone JavaScript as .mjs. See [Installation](/guide/installation).
+
+This example recognizes goals and constraints without a business Schema. Add structured parameters later using the [order field example](/examples/index#extract-an-order-id).
+
+This path uses your model API credentials. To reuse the current Codex model without an additional key, follow [Connect Codex](/integrations/codex).
+
+<span id="2-配置模型" aria-hidden="true"></span>
+
+## 2. Configure the model
+
+The example uses the OpenAI Responses API. Set INTENT_API_KEY and INTENT_MODEL to your credentials and an available model name. These are variables read by the application example; the library does not automatically read fixed environment variable names. For xAI or your gateway, see [Model APIs](/integrations/api).
+
+PowerShell:
+
+```powershell
+$env:INTENT_API_KEY = "your API key"
+$env:INTENT_MODEL = "your model name"
+```
+
+Bash:
+
+```bash
+export INTENT_API_KEY="your API key"
+export INTENT_MODEL="your model name"
+```
+
+<span id="3-保存并运行" aria-hidden="true"></span>
+
+## 3. Save and run
+
+Choose your project's language. Save JavaScript as basic.js or TypeScript as basic.ts. Package imports resolve from the file's location.
+
+<Tabs groupId="example-language">
+<Tab label="JavaScript">
+
+{/* example: examples/api/basic-en.mjs */}
+```js
+import {Intent, IntentError} from '@devcodex/intent-runtime';
+import {createApiExecutor} from '@devcodex/intent-runtime/adapters/api';
+
+const apiKey = process.env.INTENT_API_KEY;
+const model = process.env.INTENT_MODEL;
+if (!apiKey || !model) throw new Error('Set INTENT_API_KEY and INTENT_MODEL in your environment.');
+const intent = new Intent({
+  language: 'en',
+  executor: createApiExecutor({provider: 'openai', apiKey, model}),
+});
+try {
+  const result = await intent.parse({input: 'Look up order 000123. Do not cancel the order.'});
+  console.log(JSON.stringify(result, null, 2));
+  // Read goals and constraints from effective; no order query is executed.
+  console.log('Goals:', result.effective.intents.map(node => node.goal));
+  console.log('Issues:', result.issues.map(issue => issue.message));
+} catch (error) {
+  if (!(error instanceof IntentError)) throw error;
+  console.error(JSON.stringify(error.toJSON()));
+  process.exitCode = 1;
+} finally {
+  await intent.dispose();
+}
+```
+
+```bash
+node basic.js
+```
+
+</Tab>
+<Tab label="TypeScript">
+
+{/* example: examples/api/basic-en.ts */}
+```ts
+import {Intent, IntentError, type IntentParseRequest} from '@devcodex/intent-runtime';
+import {createApiExecutor} from '@devcodex/intent-runtime/adapters/api';
+
+const apiKey = process.env.INTENT_API_KEY;
+const model = process.env.INTENT_MODEL;
+if (!apiKey || !model) throw new Error('Set INTENT_API_KEY and INTENT_MODEL.');
+
+const intent = new Intent({
+  language: 'en',
+  executor: createApiExecutor({provider: 'openai', apiKey, model}),
+});
+const request: IntentParseRequest = {input: 'Look up order 000123. Do not cancel the order.'};
+try {
+  const result = await intent.parse(request);
+  console.log(JSON.stringify(result, null, 2));
+  console.log('Goals:', result.effective.intents.map(node => node.goal));
+  console.log('Issues:', result.issues.map(issue => issue.message));
+} catch (error) {
+  if (!(error instanceof IntentError)) throw error;
+  console.error(JSON.stringify(error.toJSON()));
+  process.exitCode = 1;
+} finally {
+  await intent.dispose();
+}
+```
+
+Use your existing TypeScript build. For an ESM project without TypeScript tooling:
+
+```bash
+npm install -D typescript @types/node
+npx tsc basic.ts --outDir out --target ES2022 --module NodeNext --moduleResolution NodeNext --strict --skipLibCheck
+node out/basic.js
+```
+
+These are TypeScript development tools; JavaScript users do not need them. Set the model name and API key before running.
+
+</Tab>
+</Tabs>
+
+<span id="4-读取结果" aria-hidden="true"></span>
+
+## 4. Read the result
+
+The result should preserve the lookup goal and the prohibition on cancellation. The order ID appears in the natural-language goal. Extracting it into inputs requires a Schema and selecting orderId. Wording and generated IDs can vary.
+
+| Check | Expected meaning |
+|---|---|
+| Goal | Look up order 000123 |
+| Constraint | prohibition: do not cancel the order |
+| Parameters | No new inputs.orderId because this example selects no fields |
+| Issues | Use actual issues to determine missing information; printing JSON alone does not prove correct understanding |
+
+Download the <a href="/intent-runtime/examples/en/basic-example.json" download target="_blank" rel="noopener noreferrer">complete no-Schema example</a> or read the [Native response with an order field](/api/response#default-native-call-and-result).
+
+- effective.intents is the goal tree; read global and per-goal constraints.
+- issues describes ambiguity, missing information, and conflicts. Ask for information rather than choosing a candidate yourself.
+- fields defaults to []; omitting it still recognizes intent without new business field extraction.
+- complete does not mean all fields are valid, permission is granted, or business work is done. This program does not query or cancel orders.
+
+Continue with [Read the result](/guide/results), or run the [field and multi-turn examples](/examples/index). See [Model APIs](/integrations/api) for other providers and [Errors](/api/errors) when a call fails.

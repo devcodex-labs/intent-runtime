@@ -1,0 +1,91 @@
+{
+  "slug": "basic",
+  "title": "Recognize goals and constraints without a business Schema",
+  "config": {
+    "language": "en"
+  },
+  "request": {
+    "input": "Look up order 000123. Do not cancel the order."
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "Look up order 000123. Do not cancel the order.",
+    "status": "complete",
+    "turn": {
+      "kind": "request",
+      "normalizedInput": "Look up order 000123. Do not cancel the order.",
+      "intentIds": [
+        "intent-1"
+      ],
+      "changes": [
+        {
+          "operation": "add",
+          "target": {
+            "kind": "intent",
+            "id": "intent-1"
+          },
+          "description": "Add the explicit request from this turn",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        },
+        {
+          "operation": "add",
+          "target": {
+            "kind": "constraint",
+            "id": "constraint-1"
+          },
+          "description": "Add the explicit request from this turn",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-1",
+          "domain": null,
+          "action": "Look up",
+          "target": "order 000123",
+          "goal": "Look up order 000123",
+          "understanding": "clear",
+          "constraints": [
+            {
+              "id": "constraint-1",
+              "kind": "prohibition",
+              "text": "Do not cancel the order",
+              "scope": {
+                "type": "intent",
+                "intentId": "intent-1"
+              }
+            }
+          ],
+          "inputs": {},
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [],
+    "issues": [],
+    "inferences": []
+  }
+}

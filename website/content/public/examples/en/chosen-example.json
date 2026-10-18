@@ -1,0 +1,157 @@
+{
+  "slug": "chosen",
+  "title": "The second option requires the corresponding material",
+  "config": {
+    "language": "en"
+  },
+  "request": {
+    "input": "Choose the second option and keep the other requirements",
+    "baseline": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "partial",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-11",
+          "domain": null,
+          "action": "Implement",
+          "target": "sign-in",
+          "goal": "Implement sign-in",
+          "understanding": "ambiguous",
+          "constraints": [],
+          "inputs": {},
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [
+        {
+          "id": "constraint-10",
+          "kind": "prohibition",
+          "text": "Do not modify code yet",
+          "scope": {
+            "type": "global"
+          }
+        }
+      ],
+      "relations": [],
+      "unresolved": [
+        "There are two unconfirmed sign-in methods."
+      ]
+    },
+    "context": {
+      "previousIssues": [
+        {
+          "id": "issue-method",
+          "code": "AMBIGUOUS_REFERENCE",
+          "category": "ambiguity",
+          "message": "There are two unconfirmed sign-in methods.",
+          "intentId": "intent-11",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "candidates": [
+            {
+              "id": "sms",
+              "description": "SMS verification code",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ]
+            },
+            {
+              "id": "email",
+              "description": "email verification code",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ]
+            }
+          ],
+          "questions": [
+            {
+              "question": "Which sign-in method should be used?",
+              "optionIds": [
+                "sms",
+                "email"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "Choose the second option and keep the other requirements",
+    "status": "complete",
+    "turn": {
+      "kind": "answer",
+      "normalizedInput": "Choose the second option and keep the other requirements",
+      "intentIds": [
+        "intent-11"
+      ],
+      "changes": [
+        {
+          "operation": "modify",
+          "target": {
+            "kind": "intent",
+            "id": "intent-11"
+          },
+          "description": "Modify only what this turn specifies",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "provided_materials",
+      "intents": [
+        {
+          "id": "intent-11",
+          "domain": null,
+          "action": "Implement",
+          "target": "email verification sign-in",
+          "goal": "Implement email verification sign-in",
+          "understanding": "clear",
+          "constraints": [],
+          "inputs": {},
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [
+        {
+          "id": "constraint-10",
+          "kind": "prohibition",
+          "text": "Do not modify code yet",
+          "scope": {
+            "type": "global"
+          }
+        }
+      ],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [],
+    "issues": [],
+    "inferences": []
+  }
+}

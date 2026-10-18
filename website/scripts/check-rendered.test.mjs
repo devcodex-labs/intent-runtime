@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {assertPage, assertSearchIndex, downloads} from './check-rendered.mjs';
+import {assertPage, assertSearchIndex, assertLocaleMetadata, downloads} from './check-rendered.mjs';
 
 const valid = '<h1>完整响应</h1>' + downloads.map(href => `<a href="${href}" download target="_blank">下载</a>`).join('');
 test('accept actual anchors, one semantic heading and ordinary code examples', () => {
@@ -35,4 +35,38 @@ test('reject missing and duplicate homepage H1', () => {
 });
 test('reject leaked expressions in decoded search index strings', () => {
   assert.throws(() => assertSearchIndex(JSON.stringify([{content: "<a href={withBase('/examples/order-result.json')}>"}])), /search index/);
+});
+
+const origin = 'https://devcodex-labs.github.io/intent-runtime/';
+function metadata(locale = 'en', page = 'guide/quick-start.html') {
+  return [
+    {rel: 'canonical', href: origin + (locale === 'zh' ? 'zh/' : '') + page},
+    ...['en', 'zh', 'x-default'].map(lang => ({rel: 'alternate', hreflang: lang, href: origin + (lang === 'zh' ? 'zh/' : '') + page})),
+  ];
+}
+test('accept complete absolute locale pairs and framework homepage aliases', () => {
+  for (const locale of ['en', 'zh']) assertLocaleMetadata(metadata(locale), (locale === 'zh' ? 'zh/' : '') + 'guide/quick-start.html', locale);
+  const home = metadata('en', '');
+  home[1].href += 'index.html'; home[2].href += 'index.html';
+  assertLocaleMetadata(home, 'index.html', 'en');
+});
+for (const href of ['/intent-runtime/guide/quick-start.html', '//devcodex-labs.github.io/intent-runtime/guide/quick-start.html', 'mailto:docs@example.com']) test('reject nonabsolute HTTP locale URL: ' + href, () => {
+  const links = metadata(); links[1].href = href;
+  assert.throws(() => assertLocaleMetadata(links, 'guide/quick-start.html', 'en'), /fully qualified/);
+});
+test('reject a duplicated locale even when one declaration is correct', () => {
+  const links = metadata(); links.push({...links[1], href: origin});
+  assert.throws(() => assertLocaleMetadata(links, 'guide/quick-start.html', 'en'), /exactly one locale alternate/);
+});
+test('reject an absolute alternate pointing to the wrong language page', () => {
+  const links = metadata(); links[2].href = links[1].href;
+  assert.throws(() => assertLocaleMetadata(links, 'guide/quick-start.html', 'en'), /Incorrect locale alternate/);
+});
+test('reject a missing language alternate', () => {
+  const links = metadata(); links.splice(2, 1);
+  assert.throws(() => assertLocaleMetadata(links, 'guide/quick-start.html', 'en'), /exactly one locale alternate/);
+});
+test('reject duplicate canonical declarations', () => {
+  const links = metadata(); links.push({...links[0]});
+  assert.throws(() => assertLocaleMetadata(links, 'guide/quick-start.html', 'en'), /exactly one canonical/);
 });

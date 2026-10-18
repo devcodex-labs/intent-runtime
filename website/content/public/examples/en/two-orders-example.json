@@ -1,0 +1,140 @@
+{
+  "slug": "two-orders",
+  "title": "Keep each order ID with its owning goal",
+  "config": {
+    "language": "en",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        }
+      }
+    }
+  },
+  "request": {
+    "input": "Look up orders 000123 and 000456",
+    "fields": [
+      "orderId"
+    ]
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "Look up orders 000123 and 000456",
+    "status": "complete",
+    "turn": {
+      "kind": "request",
+      "normalizedInput": "Look up orders 000123 and 000456",
+      "intentIds": [
+        "intent-3",
+        "intent-4"
+      ],
+      "changes": [
+        {
+          "operation": "add",
+          "target": {
+            "kind": "intent",
+            "id": "intent-3"
+          },
+          "description": "Add the explicit request from this turn",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        },
+        {
+          "operation": "add",
+          "target": {
+            "kind": "intent",
+            "id": "intent-4"
+          },
+          "description": "Add the explicit request from this turn",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-3",
+          "domain": null,
+          "action": "Look up",
+          "target": "order 000123",
+          "goal": "Look up order 000123",
+          "understanding": "clear",
+          "constraints": [],
+          "inputs": {
+            "orderId": "000123"
+          },
+          "references": [],
+          "children": [],
+          "extensions": {}
+        },
+        {
+          "id": "intent-4",
+          "domain": null,
+          "action": "Look up",
+          "target": "order 000456",
+          "goal": "Look uporder 000456",
+          "understanding": "clear",
+          "constraints": [],
+          "inputs": {
+            "orderId": "000456"
+          },
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [
+      {
+        "container": "inputs",
+        "intentId": "intent-3",
+        "field": "orderId",
+        "path": "/orderId",
+        "status": "present",
+        "trigger": "selection",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      },
+      {
+        "container": "inputs",
+        "intentId": "intent-4",
+        "field": "orderId",
+        "path": "/orderId",
+        "status": "present",
+        "trigger": "selection",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      }
+    ],
+    "issues": [],
+    "inferences": []
+  }
+}

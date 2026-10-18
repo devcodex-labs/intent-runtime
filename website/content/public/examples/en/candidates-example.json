@@ -1,0 +1,137 @@
+{
+  "slug": "candidates",
+  "title": "Multiple candidates from caller-supplied material",
+  "config": {
+    "language": "en"
+  },
+  "request": {
+    "input": "Implement sign-in using SMS or email verification; the method is not decided yet. Do not modify code yet."
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "Implement sign-in using SMS or email verification; the method is not decided yet. Do not modify code yet.",
+    "status": "partial",
+    "turn": {
+      "kind": "request",
+      "normalizedInput": "Implement sign-in using SMS or email verification; the method is not decided yet. Do not modify code yet.",
+      "intentIds": [
+        "intent-11"
+      ],
+      "changes": [
+        {
+          "operation": "add",
+          "target": {
+            "kind": "intent",
+            "id": "intent-11"
+          },
+          "description": "Add the explicit request from this turn",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        },
+        {
+          "operation": "add",
+          "target": {
+            "kind": "constraint",
+            "id": "constraint-10"
+          },
+          "description": "Add the explicit request from this turn",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "partial",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-11",
+          "domain": null,
+          "action": "Implement",
+          "target": "sign-in",
+          "goal": "Implement sign-in",
+          "understanding": "ambiguous",
+          "constraints": [],
+          "inputs": {},
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [
+        {
+          "id": "constraint-10",
+          "kind": "prohibition",
+          "text": "Do not modify code yet",
+          "scope": {
+            "type": "global"
+          }
+        }
+      ],
+      "relations": [],
+      "unresolved": [
+        "There are two unconfirmed sign-in methods."
+      ]
+    },
+    "fieldResults": [],
+    "issues": [
+      {
+        "id": "issue-method",
+        "code": "AMBIGUOUS_REFERENCE",
+        "category": "ambiguity",
+        "message": "There are two unconfirmed sign-in methods.",
+        "intentId": "intent-11",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ],
+        "candidates": [
+          {
+            "id": "sms",
+            "description": "SMS verification code",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          },
+          {
+            "id": "email",
+            "description": "email verification code",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          }
+        ],
+        "questions": [
+          {
+            "question": "Which sign-in method should be used?",
+            "optionIds": [
+              "sms",
+              "email"
+            ]
+          }
+        ]
+      }
+    ],
+    "inferences": []
+  }
+}

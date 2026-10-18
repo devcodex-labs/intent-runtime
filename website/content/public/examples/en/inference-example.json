@@ -1,0 +1,91 @@
+{
+  "slug": "inference",
+  "title": "Keep an inference separate from confirmed facts",
+  "config": {
+    "language": "en"
+  },
+  "request": {
+    "input": "Analyze this service. It may be the order service, but I have not confirmed that.",
+    "output": {
+      "evidence": false
+    }
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "Analyze this service. It may be the order service, but I have not confirmed that.",
+    "status": "partial",
+    "turn": {
+      "kind": "request",
+      "normalizedInput": "Analyze this service. It may be the order service, but I have not confirmed that.",
+      "intentIds": [
+        "intent-12"
+      ],
+      "changes": [
+        {
+          "operation": "add",
+          "target": {
+            "kind": "intent",
+            "id": "intent-12"
+          },
+          "description": "Add the explicit request from this turn",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "partial",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-12",
+          "domain": null,
+          "action": "Analyze",
+          "target": null,
+          "goal": "Analyze the referenced service",
+          "understanding": "ambiguous",
+          "constraints": [],
+          "inputs": {},
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": [
+        "The current material is insufficient; clarification is required."
+      ]
+    },
+    "fieldResults": [],
+    "issues": [
+      {
+        "id": "understanding-intent-12",
+        "code": "AMBIGUOUS_REFERENCE",
+        "category": "ambiguity",
+        "message": "The current material is insufficient; clarification is required.",
+        "intentId": "intent-12"
+      }
+    ],
+    "inferences": [
+      {
+        "target": "/effective/intents/0/target",
+        "explanation": "The user suggested the order service but has not confirmed it.",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ],
+        "candidate": "order service"
+      }
+    ]
+  }
+}

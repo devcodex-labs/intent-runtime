@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {readableIds} from './result-check.mjs';
+import {english} from './english.mjs';
 
 const src = {root: 'input', pointer: ''};
 const change = (key, operation = 'add', targetKind = 'intent') => ({operation, effect: 'applied', targetKind, targetKey: key, conditionKey: null, description: operation === 'add' ? '新增本轮明确请求' : operation === 'withdraw' ? '撤回所指目标' : '只修改本轮指定内容', sources: [src], deltaHints: []});
@@ -20,13 +21,15 @@ const constraint = (key, ownerKey, kind, text) => ({key, priorRef: null, ownerKe
 const orderSchema = {type: 'object', properties: {orderId: {type: 'string', pattern: '^[0-9]+$'}}};
 export const vipSchema = {type: 'object', properties: {...orderSchema.properties, isVip: {type: 'boolean'}, discount: {type: 'number', minimum: 0}}, if: {properties: {isVip: {const: true}}, required: ['isVip']}, then: {properties: {discount: {maximum: 20}}}, else: {properties: {discount: {maximum: 10}}}};
 
-export async function buildScenarios({Intent}) {
+export async function buildScenarios({Intent}, locale = 'zh') {
   const cases = [];
   async function run(slug, title, config, request, candidate, check) {
-    const intent = new Intent({...config, language: 'zh-CN', executor: {id: 'documentation-language-fixture', async generate() {return {outcome: 'complete', text: JSON.stringify({...candidate, normalizedInput: request.input})};}}});
+    if (locale === 'en') {title = english(title); config = english(config); request = english(request); candidate = english(candidate);}
+    const language = locale === 'en' ? 'en' : 'zh-CN';
+    const intent = new Intent({...config, language, executor: {id: 'documentation-language-fixture', async generate() {return {outcome: 'complete', text: JSON.stringify({...candidate, normalizedInput: request.input})};}}});
     try {
       const result = await intent.parse(request); check?.(result);
-      cases.push({slug, title, config: {language: 'zh-CN', ...config}, request, result});
+      cases.push({slug, title, config: {language, ...config}, request, result});
       return result;
     } catch (error) {throw new Error('Documentation scenario failed: ' + slug, {cause: error});}
     finally {await intent.dispose();}
@@ -98,7 +101,7 @@ export async function buildScenarios({Intent}) {
   choices.issues = [{key: 'method', ownerKey: 'login', fieldTarget: null, code: 'AMBIGUOUS_REFERENCE', category: 'ambiguity', message: '登录方式有两个未确认选项。', sources: [src], candidates: [{key: 'sms', description: '短信验证码', intentKey: null, sources: [src]}, {key: 'email', description: '邮箱验证码', intentKey: null, sources: [src]}], questions: [{question: '选择哪种登录方式？', optionKeys: ['sms', 'email']}]}];
   const choiceResult = await run('candidates', '调用方材料中的多个候选', {}, {input: '实现登录，短信验证码或邮箱验证码，方式还没确定；先不修改代码'}, choices, r => assert.equal(r.issues[0].candidates.length, 2));
   const chosen = draft([node('login', '实现', '邮箱验证码登录')]); chosen.kind = 'answer'; chosen.usedHistory = true; chosen.nodes[0].priorRef = {root: 'baseline', pointer: '/intents/0'}; chosen.constraints = structuredClone(choices.constraints); chosen.constraints[0].priorRef = {root: 'baseline', pointer: '/constraints/0'}; chosen.changes = [change('login', 'modify')];
-  await run('chosen', '第二个选项必须有对应材料', {}, {input: '选第二个，其他要求不变', baseline: choiceResult.effective, context: {previousIssues: choiceResult.issues}}, chosen, r => {assert.equal(r.issues.length, 0); assert.equal(r.effective.constraints[0].text, '先不修改代码');});
+  await run('chosen', '第二个选项必须有对应材料', {}, {input: '选第二个，其他要求不变', baseline: choiceResult.effective, context: {previousIssues: choiceResult.issues}}, chosen, r => {assert.equal(r.issues.length, 0); assert.equal(r.effective.constraints[0].text, locale === 'en' ? english('先不修改代码') : '先不修改代码');});
   const inferred = draft([node('service', '分析', '所指服务')]); inferred.nodes[0].target = null; inferred.nodes[0].understanding = 'ambiguous';
   inferred.inferences = [{target: {kind: 'intent', key: 'service', path: '/target'}, candidateJson: '"订单服务"', explanation: '用户表示可能是订单服务，但尚未确认。', sources: [src]}];
   await run('inference', '推断不当作已确认事实', {}, {input: '分析这个服务，可能是订单服务，但我还没确认', output: {evidence: false}}, inferred, r => {assert.equal(r.inferences.length, 1); assert.equal(r.effective.intents[0].target, null); assert(!('evidence' in r));});

@@ -1,0 +1,11 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "intent_parse",
+    "arguments": {
+      "input": "Look up order 000123. Do not cancel the order."
+    }
+  }
+}

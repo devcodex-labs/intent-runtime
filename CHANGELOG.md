@@ -2,15 +2,15 @@
 
 ## 2.0.0
 
-- 完全重写识别核心；完整意图只保存在 effective，本轮使用 turn.intentIds 和 changes 关联，结果与 baseline 使用 2.0-draft.6。
-- 使用真实 schema-dsl 3.0.4 进行所选字段、声明依赖与多轮失效校验；区分存在性和值域，保护前导零与字段归属。
-- Native、Responses / Chat Completions API、标准 MCP executor/host 共用单识别核心；支持兼容网关与自定义 ModelExecutor，没有隐式模型重试、模型降级或业务执行。
-- 应用支持 ESM JavaScript / TypeScript；CLI 配置支持 `.js` / `.mjs`，TypeScript 配置先编译为 ESM。npm 正常安装会解析所需 schema-dsl peer，无需另行安装。
-- 独立 MCP 新增 Streamable HTTP 的监听地址、端口、路径及 `--public-origin` 配置。HTTP 使用有状态 2025-06-18 / 2025-11-25 协议；stdio 另支持 2026-07-28。明确区分绑定地址与公开 Host / HTTPS Origin，保留会话隔离及严格校验；TLS 与认证由部署层提供。
-- 新增显式 setup、doctor、clean，保留用户编辑与其他 MCP；普通安装不修改宿主配置。
-- 替换旧版接入、示例、文档与工程脚本。本版本不保留旧版 API 兼容层。
-- 重新设计英文 README 与中文站点使用路径，补齐模型执行器、已有 MCP 服务最小接入、结果读取及错误恢复。已有自动登记需先备份并按维护指南迁移；不强行接管未知登记或用户修改。
-- 推送匹配版本的 tag 自动执行完整 CI、候选包检查、npm 发布及 registry 隔离安装验收，再以本节内容创建 GitHub Release 并同步该提交的站点。相同版本仅在包完整性一致时允许跳过重复发布；发布中断的恢复步骤见维护者发布指南。
+- Rewrite the recognition core. The complete intent tree lives in `effective`; `turn.intentIds` and `changes` associate the current turn with that tree. Results and baselines use format version `2.0-draft.6`.
+- Validate selected fields, declared dependencies, and multi-turn invalidation through schema-dsl 3.0.4. Distinguish existence from value validity, preserve leading zeros, and retain field ownership.
+- Share one recognition core across Native, Responses / Chat Completions APIs, and MCP executor/host modes. Support compatible gateways and custom `ModelExecutor` implementations without implicit retries, model fallback, or business execution.
+- Support ESM JavaScript and TypeScript applications. CLI configuration accepts `.js` / `.mjs`; compile TypeScript configuration to ESM first. A normal npm installation resolves the required schema-dsl peer automatically.
+- Add standalone Streamable HTTP with configurable bind address, port, path, and `--public-origin`. HTTP uses stateful protocols 2025-06-18 / 2025-11-25; stdio also supports 2026-07-28. Preserve session isolation and validate public Host / HTTPS Origin independently of the bind address. The deployment layer supplies TLS and authentication.
+- Add explicit `setup`, `doctor`, and `clean` commands while preserving user edits and other MCP registrations. Ordinary installation does not modify client configuration.
+- Replace the previous integration paths, examples, documentation, and engineering scripts. This release does not retain the previous API compatibility layer.
+- Provide complete English documentation at the existing root URLs and Simplified Chinese under `/zh/`, with localized navigation, search, and scenario downloads. Update the English README, model executor guide, existing-server integration, result consumption, and error recovery. Back up and migrate old automatic registrations using the maintenance guide; setup does not take ownership of unknown registrations or user edits.
+- Automatically run full CI, package checks, npm publication, and isolated registry-install verification when a matching version tag is pushed. Create the GitHub Release from this section and deploy documentation from the same commit. Resume an existing package version only when its integrity matches; see the release guide for interrupted-release recovery.
 
 ## V1 归档变更 — 未发布
 

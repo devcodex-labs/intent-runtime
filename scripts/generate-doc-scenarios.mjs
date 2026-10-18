@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
-import {readFile, writeFile} from 'node:fs/promises';
+import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {isDeepStrictEqual} from 'node:util';
 import {buildScenarios, simpleCandidate} from './documentation/scenarios.mjs';
+import {english} from './documentation/english.mjs';
 import {checkResultLinks, readableIds} from './documentation/result-check.mjs';
 
 const repo = fileURLToPath(new URL('../', import.meta.url));
@@ -12,7 +13,8 @@ if (!consumer || !path.isAbsolute(consumer) || ![undefined, '--write'].includes(
 const runtime = await import(pathToFileURL(path.join(consumer, 'node_modules/@devcodex/intent-runtime/dist/index.js')).href);
 const {Validator} = await import(pathToFileURL(path.join(consumer, 'node_modules/schema-dsl/dist/pure.cjs')).href);
 const validator = new Validator({logger: false, strict: false, useDefaults: false, coerceTypes: false, removeAdditional: false, allErrors: true});
-const cases = await buildScenarios(runtime);
+for (const locale of ['zh', 'en']) {
+const cases = await buildScenarios(runtime, locale);
 let calls = 0;
 const optionsIntent = new runtime.Intent({defaultOutput: {evidence: true, suggestions: true, diagnostics: true}, executor: {id: 'documentation-options', async generate() {calls++; return {outcome: 'complete', text: JSON.stringify(simpleCandidate())};}}});
 try {
@@ -37,11 +39,11 @@ try {
 } finally {validator.clearCache();}
 const outputs = new Map([['scenarios.json', {method: 'Fixed language candidates processed by the installed core; real schema-dsl business validation where configured. Opaque IDs renamed consistently. Not a real-model accuracy benchmark.', cases}]]);
 const {createIntentMcpAdapter} = await import(pathToFileURL(path.join(consumer, 'node_modules/@devcodex/intent-runtime/dist/mcp/index.js')).href);
-const instance = new runtime.Intent({language: 'zh-CN', executor: {id: 'documentation-mcp-language', async generate() {return {outcome: 'complete', text: JSON.stringify(simpleCandidate(true))};}}});
+const instance = new runtime.Intent({language: locale === 'en' ? 'en' : 'zh-CN', executor: {id: 'documentation-mcp-language', async generate() {return {outcome: 'complete', text: JSON.stringify(locale === 'en' ? english(simpleCandidate(true)) : simpleCandidate(true))};}}});
 const adapter = createIntentMcpAdapter({mode: 'executor', instances: {main: instance}});
 try {
   const session = adapter.connect({protocolVersion: '2025-06-18'});
-  const params = {name: 'intent_parse', arguments: {input: '查询订单000123，不要取消订单'}};
+  const params = {name: 'intent_parse', arguments: {input: locale === 'en' ? english('查询订单000123，不要取消订单') : '查询订单000123，不要取消订单'}};
   const reply = await session.callTool(params.name, params.arguments);
   assert.equal(reply.isError, false);
   assert.deepEqual(JSON.parse(reply.content[0].text), reply.structuredContent);
@@ -54,9 +56,19 @@ for (const example of cases) outputs.set(example.slug + '-example.json', example
 const native = cases.find(c => c.slug === 'native');
 outputs.set('native-request.json', {config: native.config, request: native.request});
 outputs.set('native-result.json', native.result);
+if (locale === 'en') {
+  const clarification = cases.find(c => c.slug === 'ambiguity');
+  for (const [stem, example] of [['order', native], ['clarification', clarification]]) {
+    outputs.set(stem + '-request.json', {config: {mode: 'host', instances: {main: example.config}}, request: example.request});
+    outputs.set(stem + '-result.json', example.result);
+  }
+}
+const outputDirectory = path.join(repo, 'website/content/public/examples', locale === 'en' ? 'en' : '');
+if (mode === '--write') await mkdir(outputDirectory, {recursive: true});
 for (const [name, value] of outputs) {
-  const file = path.join(repo, 'website/content/public/examples', name);
+  const file = path.join(outputDirectory, name);
   if (mode === '--write') await writeFile(file, JSON.stringify(value, null, 2) + '\n');
   else assert(isDeepStrictEqual(JSON.parse(await readFile(file, 'utf8')), value), 'Stale documentation fixture: ' + name);
 }
-console.log(`Documentation scenarios ${mode ? 'generated' : 'verified'}: ${cases.length}; actual core and configured business validation, real model calls: 0.`);
+console.log(`Documentation scenarios ${locale} ${mode ? 'generated' : 'verified'}: ${cases.length}; actual core and configured business validation, real model calls: 0.`);
+}

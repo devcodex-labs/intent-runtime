@@ -1,0 +1,120 @@
+{
+  "slug": "output-options",
+  "title": "Extension labels and output options",
+  "config": {
+    "language": "en",
+    "extensionSchema": {
+      "type": "object",
+      "properties": {
+        "audience": {
+          "type": "string",
+          "enum": [
+            "internal",
+            "external"
+          ]
+        }
+      }
+    }
+  },
+  "request": {
+    "input": "Generate an internal report",
+    "output": {
+      "extensions": true,
+      "suggestions": true,
+      "evidence": true
+    }
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "Generate an internal report",
+    "status": "complete",
+    "turn": {
+      "kind": "request",
+      "normalizedInput": "Generate an internal report",
+      "intentIds": [
+        "intent-14"
+      ],
+      "changes": [
+        {
+          "operation": "add",
+          "target": {
+            "kind": "intent",
+            "id": "intent-14"
+          },
+          "description": "Add the explicit request from this turn",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-14",
+          "domain": null,
+          "action": "Generate",
+          "target": "an internal report",
+          "goal": "Generate an internal report",
+          "understanding": "clear",
+          "constraints": [],
+          "inputs": {},
+          "references": [],
+          "children": [],
+          "extensions": {
+            "audience": "internal"
+          }
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [
+      {
+        "container": "extensions",
+        "intentId": "intent-14",
+        "field": "audience",
+        "path": "/audience",
+        "status": "present",
+        "trigger": "selection",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      }
+    ],
+    "issues": [],
+    "inferences": [],
+    "evidence": [
+      {
+        "target": "/effective/intents/0/goal",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      }
+    ],
+    "suggestions": [
+      {
+        "kind": "clarification",
+        "text": "Provide the desired length if you need a length limit.",
+        "relatesTo": [
+          "intent-14"
+        ]
+      }
+    ]
+  }
+}

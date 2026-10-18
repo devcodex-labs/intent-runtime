@@ -1,0 +1,191 @@
+{
+  "slug": "field-states",
+  "title": "Complete understanding can still contain field issues",
+  "config": {
+    "language": "en",
+    "schema": {
+      "type": "object",
+      "required": [
+        "orderId"
+      ],
+      "properties": {
+        "orderId": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number",
+          "minimum": 0
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "address": {
+          "type": "string"
+        },
+        "pickup": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "request": {
+    "input": "Set the order parameters: amount=-5 and note is explicitly null. The ID is not provided, the address is still unknown, and pickup information does not apply.",
+    "fields": "all"
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "Set the order parameters: amount=-5 and note is explicitly null. The ID is not provided, the address is still unknown, and pickup information does not apply.",
+    "status": "complete",
+    "turn": {
+      "kind": "request",
+      "normalizedInput": "Set the order parameters: amount=-5 and note is explicitly null. The ID is not provided, the address is still unknown, and pickup information does not apply.",
+      "intentIds": [
+        "intent-13"
+      ],
+      "changes": [
+        {
+          "operation": "add",
+          "target": {
+            "kind": "intent",
+            "id": "intent-13"
+          },
+          "description": "Add the explicit request from this turn",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-13",
+          "domain": null,
+          "action": "Set",
+          "target": "the order parameters",
+          "goal": "Set the order parameters",
+          "understanding": "clear",
+          "constraints": [],
+          "inputs": {
+            "note": null
+          },
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [
+      {
+        "container": "inputs",
+        "intentId": "intent-13",
+        "field": "orderId",
+        "path": "/orderId",
+        "status": "not_provided",
+        "trigger": "selection",
+        "explanation": "No definite value was provided."
+      },
+      {
+        "container": "inputs",
+        "intentId": "intent-13",
+        "field": "amount",
+        "path": "/amount",
+        "status": "invalid",
+        "trigger": "selection",
+        "explanation": "The supplied value violates the declared rules.",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      },
+      {
+        "container": "inputs",
+        "intentId": "intent-13",
+        "field": "note",
+        "path": "/note",
+        "status": "explicit_null",
+        "trigger": "selection",
+        "explanation": "The user explicitly supplied null and the declaration allows it.",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      },
+      {
+        "container": "inputs",
+        "intentId": "intent-13",
+        "field": "address",
+        "path": "/address",
+        "status": "unknown",
+        "trigger": "selection",
+        "explanation": "No definite value was provided."
+      },
+      {
+        "container": "inputs",
+        "intentId": "intent-13",
+        "field": "pickup",
+        "path": "/pickup",
+        "status": "not_applicable",
+        "trigger": "selection",
+        "explanation": "The field does not apply to this goal."
+      }
+    ],
+    "issues": [
+      {
+        "id": "field-0",
+        "code": "FIELD_REQUIRED_MISSING",
+        "category": "data",
+        "message": "No definite value was provided.",
+        "container": "inputs",
+        "field": "orderId",
+        "path": "/orderId",
+        "intentId": "intent-13"
+      },
+      {
+        "id": "field-1",
+        "code": "FIELD_VALUE_INVALID",
+        "category": "data",
+        "message": "The supplied value violates the declared rules.",
+        "container": "inputs",
+        "field": "amount",
+        "path": "/amount",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ],
+        "intentId": "intent-13"
+      },
+      {
+        "id": "field-2",
+        "code": "FIELD_APPLICABILITY_UNKNOWN",
+        "category": "data",
+        "message": "No definite value was provided.",
+        "container": "inputs",
+        "field": "address",
+        "path": "/address",
+        "intentId": "intent-13"
+      }
+    ],
+    "inferences": []
+  }
+}

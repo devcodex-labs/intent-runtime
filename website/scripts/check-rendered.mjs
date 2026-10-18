@@ -6,29 +6,47 @@ import {parse} from 'parse5';
 
 export const base = '/intent-runtime/';
 const scenarios = JSON.parse(await readFile(new URL('../content/public/examples/scenarios.json', import.meta.url), 'utf8'));
-export const downloads = ['order-request', 'order-result', 'clarification-request', 'clarification-result', 'native-request', 'native-result', 'executor-request', 'executor-result', 'scenarios', ...scenarios.cases.map(c => c.slug + '-example')].map(name => base + 'examples/' + name + '.json');
+const names = ['order-request', 'order-result', 'clarification-request', 'clarification-result', 'native-request', 'native-result', 'executor-request', 'executor-result', 'scenarios', ...scenarios.cases.map(c => c.slug + '-example')].map(name => name + '.json');
+export const downloadsByLocale = Object.fromEntries(['en', 'zh'].map(locale => [locale, names.map(name => base + 'examples/' + (locale === 'en' ? 'en/' : '') + name)]));
+export const downloads = downloadsByLocale.en;
 const leakedSyntax = /import\s*\{\s*withBase\s*\}|href\s*=\s*\{\s*withBase\s*\(/u;
 export function inspectHtml(html) {
-  const links = [], ids = new Set(), text = [];
-  let h1 = 0;
+  const links = [], headLinks = [], ids = new Set(), text = [];
+  let h1 = 0, lang;
   function visit(node, excluded = false) {
     const attrs = Object.fromEntries((node.attrs ?? []).map(a => [a.name, a.value]));
+    if (node.tagName === 'html') lang = attrs.lang;
     if (node.tagName === 'h1') h1++;
     if (attrs.id) ids.add(attrs.id);
     if (node.tagName === 'a' && attrs.href !== undefined) links.push(attrs);
+    if (node.tagName === 'link' && attrs.href !== undefined) headLinks.push(attrs);
     const hidden = excluded || ['script', 'style', 'pre', 'code'].includes(node.tagName);
     if (node.nodeName === '#text' && !hidden) text.push(node.value);
     for (const child of node.childNodes ?? []) visit(child, hidden);
   }
   visit(parse(html));
-  return {links, ids, h1, visibleText: text.join('')};
+  return {links, headLinks, ids, h1, lang, visibleText: text.join('')};
 }
-export function assertPage(html, {home = false, response = false} = {}) {
+/** Validate raw SEO declarations before resolving paths; relative URLs are not hreflang URLs. */
+export function assertLocaleMetadata(headLinks, name, locale) {
+  const pure = name.replace(/^zh\//, '').replace(/^index\.html$/, '');
+  const url = lang => 'https://devcodex-labs.github.io/intent-runtime/' + (lang === 'zh' ? 'zh/' : '') + pure;
+  const canonical = headLinks.filter(link => link.rel === 'canonical');
+  assert.equal(canonical.length, 1, 'Expected exactly one canonical URL: ' + name);
+  assert.equal(canonical[0].href, url(locale), 'Incorrect locale canonical URL: ' + name);
+  for (const lang of ['en', 'zh', 'x-default']) {
+    const links = headLinks.filter(link => link.rel === 'alternate' && link.hreflang === lang);
+    assert.equal(links.length, 1, 'Expected exactly one locale alternate: ' + name + ':' + lang);
+    assert(/^https?:\/\//.test(links[0].href), 'Locale alternate must be fully qualified: ' + name + ':' + lang);
+    assert.equal(new URL(links[0].href).href.replace(/\/index\.html$/, '/'), url(lang).replace(/\/index\.html$/, '/'), 'Incorrect locale alternate URL: ' + name + ':' + lang);
+  }
+}
+export function assertPage(html, {home = false, response = false, locale = 'en'} = {}) {
   const result = inspectHtml(html);
   assert(!leakedSyntax.test(result.visibleText), 'Visible raw import/JSX expression');
   assert(!/\bimport\s*\{[^}]+\}\s*from\s*['"][^'"]+['"]/.test(result.visibleText), 'Visible raw import statement; interactive pages must use MDX');
   if (home) assert.equal(result.h1, 1, 'Homepage must contain exactly one H1');
-  if (response) for (const href of downloads) {
+  if (response) for (const href of downloadsByLocale[locale]) {
     // Rspress 2.0.23 intercepts same-window links even with download. A separate
     // target bypasses its SPA navigation; the browser honors download first.
     assert(result.links.some(a => a.href === href && Object.hasOwn(a, 'download') && a.target === '_blank'), 'Missing real download anchor with native handling: ' + href);
@@ -51,10 +69,20 @@ export async function checkRendered(root) {
   const available = new Set(files.map(relative)), pages = new Map();
   for (const file of files.filter(file => file.endsWith('.html'))) {
     const name = relative(file);
-    pages.set(name, assertPage(await readFile(file, 'utf8'), {home: name === 'index.html', response: name === 'api/response.html'}));
+    const locale = name.startsWith('zh/') ? 'zh' : 'en';
+    pages.set(name, assertPage(await readFile(file, 'utf8'), {home: /^(?:zh\/)?index\.html$/.test(name), response: /^(?:zh\/)?api\/response\.html$/.test(name), locale}));
+    if (name !== '404.html') {
+      assert.equal(pages.get(name).lang, locale, 'Incorrect page language: ' + name);
+      assertLocaleMetadata(pages.get(name).headLinks, name, locale);
+      if (locale === 'en') assert(!/[\u3400-\u9fff]/u.test(pages.get(name).visibleText.replaceAll('简体中文', '')), 'Untranslated English UI/prose: ' + name);
+    }
     if (name !== '404.html') assert.equal(pages.get(name).h1, 1, 'Documentation page must have one H1: ' + name);
   }
-  assert(pages.has('index.html') && pages.has('api/response.html'), 'Missing required rendered page');
+  for (const prefix of ['', 'zh/']) {
+    assert(pages.has(prefix + 'index.html') && pages.has(prefix + 'api/response.html'), 'Missing required locale page: ' + prefix);
+    const home = pages.get(prefix + 'index.html');
+    for (const route of ['guide/quick-start', 'integrations/index', 'api/intent', 'examples/index', 'testing/validation']) assert(home.links.some(anchor => anchor.href.replace(/\.html$/, '') === base + prefix + route), 'Missing locale navigation: ' + prefix + route);
+  }
   let links = 0;
   for (const [name, page] of pages) for (const anchor of page.links) {
     const url = new URL(anchor.href, 'https://site.invalid' + base + name);
@@ -68,15 +96,15 @@ export async function checkRendered(root) {
     links++;
   }
   const indices = files.filter(file => /(?:^|\/)search_index\.[^/]+\.json$/.test(relative(file)));
-  assert(indices.length > 0, 'Search index was not generated');
+  assert(indices.length >= 2, 'Separate locale search indices were not generated');
   for (const file of indices) assertSearchIndex(await readFile(file, 'utf8'));
   const publicRoot = fileURLToPath(new URL('../content/public/', import.meta.url));
-  for (const href of downloads) {
+  for (const href of Object.values(downloadsByLocale).flat()) {
     const name = href.slice(base.length);
     assert(available.has(name), 'Download asset missing: ' + name);
     assert.deepEqual(JSON.parse(await readFile(path.join(root, name), 'utf8')), JSON.parse(await readFile(path.join(publicRoot, name), 'utf8')), 'Download differs from documented fixture');
   }
-  return {pages: pages.size, internalLinksAndAnchors: links, downloadAnchors: downloads.length, searchIndices: indices.length, homeH1: 1};
+  return {pages: pages.size, internalLinksAndAnchors: links, downloadAnchors: Object.values(downloadsByLocale).flat().length, searchIndices: indices.length, homeH1: 1};
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const root = path.resolve(process.env.INTENT_DOCS_DIR ?? 'dist');

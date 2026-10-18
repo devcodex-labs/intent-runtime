@@ -1,23 +1,24 @@
-# 接入示例
+# Integration examples
 
-按[安装与版本](https://devcodex-labs.github.io/intent-runtime/guide/installation.html)获取V2包，使用Node.js≥20.0.0与ESM。页面提供可复制的完整文件；这些仓库示例不随npm包一同安装。
+Use [Installation](https://devcodex-labs.github.io/intent-runtime/guide/installation.html) for V2, Node.js >=20, and ESM. The site provides complete copyable files. Repository examples are not included in the npm package.
 
-| 文件 | 用途 | 前置条件 |
+| File | Purpose | Prerequisites |
 |---|---|---|
-| api/basic.mjs / api/basic.ts | JavaScript / TypeScript，无Schema的基础目标与约束识别 | 项目安装运行库，环境INTENT_API_KEY/INTENT_MODEL |
-| api/basic-en.mjs | 英文README的完整调用与错误处理示例 | 与basic.mjs相同，输出语言为英文 |
-| api/native-response.mjs | 默认完整 Native 响应，与响应参考使用同一调用 | 项目安装运行库，环境INTENT_API_KEY/INTENT_MODEL |
-| api/multi-turn.mjs | 完整VIP Schema与三轮失效/修正 | 项目安装运行库，环境INTENT_API_KEY/INTENT_MODEL |
-| api/parse.mjs | API识别与所属字段消费 | 项目安装运行库，环境INTENT_API_KEY/INTENT_MODEL |
-| custom-executor.ts | 自有模型网关适配 | ESM TypeScript项目，网关符合示例请求/回复协议 |
-| codex/intent.host.config.mjs | Codex全局host配置 | 无包导入，任意可信可访问目录；当前宿主生成候选 |
-| mcp/intent.executor.config.mjs | 独立API执行器MCP配置 | 配置文件所在项目可解析运行库，环境凭据与模型 |
-| mcp/attach.mjs + mcp/server.mjs | 在真实SDK中合并原工具、资源、Prompt与意图工具 | 项目安装@modelcontextprotocol/server@2.3.1；host无额外API Key |
+| api/basic-en.mjs / api/basic-en.ts | English JavaScript / TypeScript goal and constraint recognition, no business Schema | Local runtime; INTENT_API_KEY/INTENT_MODEL |
+| api/native-response-en.mjs | Default complete Native response used by the reference | Local runtime; INTENT_API_KEY/INTENT_MODEL |
+| api/multi-turn-en.mjs | Complete VIP Schema and three-turn invalidation/correction | Local runtime; INTENT_API_KEY/INTENT_MODEL |
+| api/parse-en.mjs | API recognition and ownership-aware field reading | Local runtime; INTENT_API_KEY/INTENT_MODEL |
+| custom-executor-en.ts | Adapt your gateway with custom headers and reply mapping | ESM TypeScript; matching gateway request/reply protocol |
+| codex/intent.host.config-en.mjs | Global Codex host configuration without package imports | Any trusted accessible directory; current client generates candidates |
+| mcp/intent.executor.config-en.mjs | Standalone API-backed MCP configuration | Runtime resolvable from the configuration project; model credentials |
+| mcp/attach.mjs + mcp/server-en.mjs | Preserve original tools, resources, prompts using the actual SDK | Existing compatible @modelcontextprotocol/server 2.3.1; host needs no extra API key |
 
-全局安装后显式 `intent-runtime setup --host codex --config <现有绝对路径.mjs>`。普通安装不改宿主。使用Builder或API适配器导入的配置要位于可解析本地依赖的项目；全局npm目录不会成为任意配置文件的ESM依赖目录。
+Files without the -en suffix provide corresponding Chinese examples. Both languages share the same runtime API and contracts. Choose the complete program linked from your language's documentation.
 
-JavaScript 示例可在ESM项目中保存为.js，也可独立使用.mjs；CLI配置支持两者。TypeScript先编译为ESM .js。独立服务：`intent-runtime-mcp --config <绝对路径.js或.mjs>`；HTTP追加`--transport http --port 3001`，客户端URL为`http://127.0.0.1:3001/mcp`。已有SDK完整示例：同目录保存attach.mjs和server.mjs后运行 `node server.mjs`。stdio的stdout只传协议，日志写stderr。
+After global installation, explicitly run `intent-runtime setup --host codex --config <existing-absolute-path.mjs>`. Ordinary installation does not alter client configuration. Files importing Builders or API adapters need locally resolvable dependencies; global packages are not an arbitrary ESM file's dependency directory.
 
-TypeScript例子在有type=module的项目编译，INTENT_GATEWAY_URL/INTENT_MODEL/INTENT_API_KEY通过环境提供。类型检查只证明接口使用，不证明你的网关已经接受候选Schema或具有语义准确性。
+JavaScript may use .js in an ESM project or standalone .mjs. CLI configuration supports both; compile TypeScript to ESM .js first. Start standalone MCP with `intent-runtime-mcp --config <absolute-path.js-or.mjs>`; add `--transport http --port 3001` for http://127.0.0.1:3001/mcp. Save attach.mjs and server-en.mjs in one directory and run `node server-en.mjs` for the complete SDK example. Keep stdout for MCP and application logs on stderr.
 
-远程HTTP部署通过`--public-origin https://mcp.example.com`明确公开地址；通配监听0.0.0.0/::时必填。TLS、认证及保留Host/Origin的代理示例见[HTTP部署教程](https://devcodex-labs.github.io/intent-runtime/integrations/mcp.html#远程地址与-https-代理)。
+TypeScript examples compile in a project with type=module. Supply INTENT_GATEWAY_URL/INTENT_MODEL/INTENT_API_KEY through your application environment. Type checking does not prove a gateway accepts the candidate Schema or understands your inputs correctly.
+
+For remote HTTP, declare `--public-origin https://mcp.example.com`; wildcard binds 0.0.0.0/:: require it. See [HTTP deployment](https://devcodex-labs.github.io/intent-runtime/integrations/mcp.html#remote-addresses-and-https-proxies) for TLS, authentication, and Host/Origin-preserving proxies.

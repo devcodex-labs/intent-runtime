@@ -1,0 +1,13 @@
+{
+  "config": {
+    "mode": "host",
+    "instances": {
+      "main": {
+        "language": "en"
+      }
+    }
+  },
+  "request": {
+    "input": "Adopt the third proposal, but the proposal list is not supplied. Do not modify code yet."
+  }
+}

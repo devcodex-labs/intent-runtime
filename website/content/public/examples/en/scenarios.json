@@ -1,0 +1,2836 @@
+{
+  "method": "Fixed language candidates processed by the installed core; real schema-dsl business validation where configured. Opaque IDs renamed consistently. Not a real-model accuracy benchmark.",
+  "cases": [
+    {
+      "slug": "basic",
+      "title": "Recognize goals and constraints without a business Schema",
+      "config": {
+        "language": "en"
+      },
+      "request": {
+        "input": "Look up order 000123. Do not cancel the order."
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "Look up order 000123. Do not cancel the order.",
+        "status": "complete",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "Look up order 000123. Do not cancel the order.",
+          "intentIds": [
+            "intent-1"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-1"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "constraint",
+                "id": "constraint-1"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-1",
+              "domain": null,
+              "action": "Look up",
+              "target": "order 000123",
+              "goal": "Look up order 000123",
+              "understanding": "clear",
+              "constraints": [
+                {
+                  "id": "constraint-1",
+                  "kind": "prohibition",
+                  "text": "Do not cancel the order",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-1"
+                  }
+                }
+              ],
+              "inputs": {},
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "native",
+      "title": "Preserve the order ID as a string",
+      "config": {
+        "language": "en",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "Look up order 000123. Do not cancel the order.",
+        "fields": [
+          "orderId"
+        ]
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "Look up order 000123. Do not cancel the order.",
+        "status": "complete",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "Look up order 000123. Do not cancel the order.",
+          "intentIds": [
+            "intent-2"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-2"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "constraint",
+                "id": "constraint-2"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-2",
+              "domain": null,
+              "action": "Look up",
+              "target": "order 000123",
+              "goal": "Look up order 000123",
+              "understanding": "clear",
+              "constraints": [
+                {
+                  "id": "constraint-2",
+                  "kind": "prohibition",
+                  "text": "Do not cancel the order",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-2"
+                  }
+                }
+              ],
+              "inputs": {
+                "orderId": "000123"
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [
+          {
+            "container": "inputs",
+            "intentId": "intent-2",
+            "field": "orderId",
+            "path": "/orderId",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          }
+        ],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "conditional",
+      "title": "Do not withdraw before a condition is established",
+      "config": {
+        "language": "en",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "Withdraw the lookup only if the check fails. The check has not run yet; keep everything else.",
+        "baseline": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-2",
+              "domain": null,
+              "action": "Look up",
+              "target": "order 000123",
+              "goal": "Look up order 000123",
+              "understanding": "clear",
+              "constraints": [
+                {
+                  "id": "constraint-2",
+                  "kind": "prohibition",
+                  "text": "Do not cancel the order",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-2"
+                  }
+                }
+              ],
+              "inputs": {
+                "orderId": "000123"
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        }
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "Withdraw the lookup only if the check fails. The check has not run yet; keep everything else.",
+        "status": "complete",
+        "turn": {
+          "kind": "amendment",
+          "normalizedInput": "Withdraw the lookup only if the check fails. The check has not run yet; keep everything else.",
+          "intentIds": [
+            "intent-2"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "constraint",
+                "id": "constraint-3"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "withdraw",
+              "target": {
+                "kind": "intent",
+                "id": "intent-2"
+              },
+              "description": "Withdraw the specified goal",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "conditional",
+              "conditionId": "constraint-3"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "provided_materials",
+          "intents": [
+            {
+              "id": "intent-2",
+              "domain": null,
+              "action": "Look up",
+              "target": "order 000123",
+              "goal": "Look up order 000123",
+              "understanding": "clear",
+              "constraints": [
+                {
+                  "id": "constraint-2",
+                  "kind": "prohibition",
+                  "text": "Do not cancel the order",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-2"
+                  }
+                },
+                {
+                  "id": "constraint-3",
+                  "kind": "precondition",
+                  "text": "Withdraw the lookup only if the check fails; the check has not run yet",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-2"
+                  }
+                }
+              ],
+              "inputs": {
+                "orderId": "000123"
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "two-orders",
+      "title": "Keep each order ID with its owning goal",
+      "config": {
+        "language": "en",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "Look up orders 000123 and 000456",
+        "fields": [
+          "orderId"
+        ]
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "Look up orders 000123 and 000456",
+        "status": "complete",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "Look up orders 000123 and 000456",
+          "intentIds": [
+            "intent-3",
+            "intent-4"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-3"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-4"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-3",
+              "domain": null,
+              "action": "Look up",
+              "target": "order 000123",
+              "goal": "Look up order 000123",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {
+                "orderId": "000123"
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            },
+            {
+              "id": "intent-4",
+              "domain": null,
+              "action": "Look up",
+              "target": "order 000456",
+              "goal": "Look uporder 000456",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {
+                "orderId": "000456"
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [
+          {
+            "container": "inputs",
+            "intentId": "intent-3",
+            "field": "orderId",
+            "path": "/orderId",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          },
+          {
+            "container": "inputs",
+            "intentId": "intent-4",
+            "field": "orderId",
+            "path": "/orderId",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          }
+        ],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "requirements",
+      "title": "Parent and child goals with four constraint kinds",
+      "config": {
+        "language": "en"
+      },
+      "request": {
+        "input": "Implement the user module with sign-in and registration that can be developed in parallel. Sign-in requires an email verification code and must be enabled only after approval; prefer the existing styles. Do not modify the database anywhere in the module. Deliver Chinese user instructions."
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "Implement the user module with sign-in and registration that can be developed in parallel. Sign-in requires an email verification code and must be enabled only after approval; prefer the existing styles. Do not modify the database anywhere in the module. Deliver Chinese user instructions.",
+        "status": "complete",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "Implement the user module with sign-in and registration that can be developed in parallel. Sign-in requires an email verification code and must be enabled only after approval; prefer the existing styles. Do not modify the database anywhere in the module. Deliver Chinese user instructions.",
+          "intentIds": [
+            "intent-5",
+            "intent-6",
+            "intent-7"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-5"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-6"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-7"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "constraint",
+                "id": "constraint-4"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "constraint",
+                "id": "constraint-5"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "constraint",
+                "id": "constraint-6"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "constraint",
+                "id": "constraint-7"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "relation",
+                "id": "relation-1"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-5",
+              "domain": null,
+              "action": "Implement",
+              "target": "the user module",
+              "goal": "Implement the user module",
+              "understanding": "clear",
+              "constraints": [
+                {
+                  "id": "constraint-4",
+                  "kind": "prohibition",
+                  "text": "Do not modify the database",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-5"
+                  }
+                }
+              ],
+              "inputs": {},
+              "references": [],
+              "children": [
+                {
+                  "id": "intent-6",
+                  "domain": null,
+                  "action": "Implement",
+                  "target": "sign-in",
+                  "goal": "Implement sign-in",
+                  "understanding": "clear",
+                  "constraints": [
+                    {
+                      "id": "constraint-5",
+                      "kind": "requirement",
+                      "text": "Sign-in requires an email verification code",
+                      "scope": {
+                        "type": "intent",
+                        "intentId": "intent-6"
+                      }
+                    },
+                    {
+                      "id": "constraint-6",
+                      "kind": "precondition",
+                      "text": "Enable sign-in only after approval",
+                      "scope": {
+                        "type": "intent",
+                        "intentId": "intent-6"
+                      }
+                    },
+                    {
+                      "id": "constraint-7",
+                      "kind": "preference",
+                      "text": "Prefer the existing styles",
+                      "scope": {
+                        "type": "intent",
+                        "intentId": "intent-6"
+                      }
+                    }
+                  ],
+                  "inputs": {},
+                  "references": [],
+                  "children": [],
+                  "extensions": {}
+                },
+                {
+                  "id": "intent-7",
+                  "domain": null,
+                  "action": "Implement",
+                  "target": "registration",
+                  "goal": "Implement registration",
+                  "understanding": "clear",
+                  "constraints": [],
+                  "inputs": {},
+                  "references": [],
+                  "children": [],
+                  "extensions": {}
+                }
+              ],
+              "extensions": {},
+              "expectedOutput": [
+                "Chinese user instructions"
+              ]
+            }
+          ],
+          "constraints": [],
+          "relations": [
+            {
+              "id": "relation-1",
+              "fromId": "intent-6",
+              "toId": "intent-7",
+              "kind": "parallel"
+            }
+          ],
+          "unresolved": []
+        },
+        "fieldResults": [],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "withdraw",
+      "title": "Withdraw a child goal and change the deliverable language",
+      "config": {
+        "language": "en"
+      },
+      "request": {
+        "input": "Withdraw registration and its parallel relationship. Keep sign-in, change the instructions to English, and keep everything else.",
+        "baseline": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-5",
+              "domain": null,
+              "action": "Implement",
+              "target": "the user module",
+              "goal": "Implement the user module",
+              "understanding": "clear",
+              "constraints": [
+                {
+                  "id": "constraint-4",
+                  "kind": "prohibition",
+                  "text": "Do not modify the database",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-5"
+                  }
+                }
+              ],
+              "inputs": {},
+              "references": [],
+              "children": [
+                {
+                  "id": "intent-6",
+                  "domain": null,
+                  "action": "Implement",
+                  "target": "sign-in",
+                  "goal": "Implement sign-in",
+                  "understanding": "clear",
+                  "constraints": [
+                    {
+                      "id": "constraint-5",
+                      "kind": "requirement",
+                      "text": "Sign-in requires an email verification code",
+                      "scope": {
+                        "type": "intent",
+                        "intentId": "intent-6"
+                      }
+                    },
+                    {
+                      "id": "constraint-6",
+                      "kind": "precondition",
+                      "text": "Enable sign-in only after approval",
+                      "scope": {
+                        "type": "intent",
+                        "intentId": "intent-6"
+                      }
+                    },
+                    {
+                      "id": "constraint-7",
+                      "kind": "preference",
+                      "text": "Prefer the existing styles",
+                      "scope": {
+                        "type": "intent",
+                        "intentId": "intent-6"
+                      }
+                    }
+                  ],
+                  "inputs": {},
+                  "references": [],
+                  "children": [],
+                  "extensions": {}
+                },
+                {
+                  "id": "intent-7",
+                  "domain": null,
+                  "action": "Implement",
+                  "target": "registration",
+                  "goal": "Implement registration",
+                  "understanding": "clear",
+                  "constraints": [],
+                  "inputs": {},
+                  "references": [],
+                  "children": [],
+                  "extensions": {}
+                }
+              ],
+              "extensions": {},
+              "expectedOutput": [
+                "Chinese user instructions"
+              ]
+            }
+          ],
+          "constraints": [],
+          "relations": [
+            {
+              "id": "relation-1",
+              "fromId": "intent-6",
+              "toId": "intent-7",
+              "kind": "parallel"
+            }
+          ],
+          "unresolved": []
+        }
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "Withdraw registration and its parallel relationship. Keep sign-in, change the instructions to English, and keep everything else.",
+        "status": "complete",
+        "turn": {
+          "kind": "amendment",
+          "normalizedInput": "Withdraw registration and its parallel relationship. Keep sign-in, change the instructions to English, and keep everything else.",
+          "intentIds": [
+            "intent-5",
+            "intent-6"
+          ],
+          "changes": [
+            {
+              "operation": "modify",
+              "target": {
+                "kind": "intent",
+                "id": "intent-5"
+              },
+              "description": "Modify only what this turn specifies",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied",
+              "deltas": [
+                {
+                  "path": "/expectedOutput",
+                  "operation": "set",
+                  "after": [
+                    "English user instructions"
+                  ],
+                  "before": [
+                    "Chinese user instructions"
+                  ]
+                }
+              ]
+            },
+            {
+              "operation": "withdraw",
+              "target": {
+                "kind": "intent",
+                "id": "intent-7"
+              },
+              "description": "Withdraw the specified goal",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "withdraw",
+              "target": {
+                "kind": "relation",
+                "id": "relation-1"
+              },
+              "description": "Withdraw the specified goal",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "provided_materials",
+          "intents": [
+            {
+              "id": "intent-5",
+              "domain": null,
+              "action": "Implement",
+              "target": "the user module",
+              "goal": "Implement the user module",
+              "understanding": "clear",
+              "constraints": [
+                {
+                  "id": "constraint-4",
+                  "kind": "prohibition",
+                  "text": "Do not modify the database",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-5"
+                  }
+                }
+              ],
+              "inputs": {},
+              "references": [],
+              "children": [
+                {
+                  "id": "intent-6",
+                  "domain": null,
+                  "action": "Implement",
+                  "target": "sign-in",
+                  "goal": "Implement sign-in",
+                  "understanding": "clear",
+                  "constraints": [
+                    {
+                      "id": "constraint-5",
+                      "kind": "requirement",
+                      "text": "Sign-in requires an email verification code",
+                      "scope": {
+                        "type": "intent",
+                        "intentId": "intent-6"
+                      }
+                    },
+                    {
+                      "id": "constraint-6",
+                      "kind": "precondition",
+                      "text": "Enable sign-in only after approval",
+                      "scope": {
+                        "type": "intent",
+                        "intentId": "intent-6"
+                      }
+                    },
+                    {
+                      "id": "constraint-7",
+                      "kind": "preference",
+                      "text": "Prefer the existing styles",
+                      "scope": {
+                        "type": "intent",
+                        "intentId": "intent-6"
+                      }
+                    }
+                  ],
+                  "inputs": {},
+                  "references": [],
+                  "children": [],
+                  "extensions": {}
+                }
+              ],
+              "extensions": {},
+              "expectedOutput": [
+                "English user instructions"
+              ]
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "vip",
+      "title": "VIP discount: Set VIP=true and discount=15 for order 000123",
+      "config": {
+        "language": "en",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            },
+            "isVip": {
+              "type": "boolean"
+            },
+            "discount": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "if": {
+            "properties": {
+              "isVip": {
+                "const": true
+              }
+            },
+            "required": [
+              "isVip"
+            ]
+          },
+          "then": {
+            "properties": {
+              "discount": {
+                "maximum": 20
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "discount": {
+                "maximum": 10
+              }
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "Set VIP=true and discount=15 for order 000123",
+        "fields": "all"
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "Set VIP=true and discount=15 for order 000123",
+        "status": "complete",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "Set VIP=true and discount=15 for order 000123",
+          "intentIds": [
+            "intent-8"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-8"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-8",
+              "domain": null,
+              "action": "Set",
+              "target": "the VIP status and discount for order 000123",
+              "goal": "Set the VIP status and discount for order 000123",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {
+                "orderId": "000123",
+                "isVip": true,
+                "discount": 15
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [
+          {
+            "container": "inputs",
+            "intentId": "intent-8",
+            "field": "orderId",
+            "path": "/orderId",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          },
+          {
+            "container": "inputs",
+            "intentId": "intent-8",
+            "field": "isVip",
+            "path": "/isVip",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          },
+          {
+            "container": "inputs",
+            "intentId": "intent-8",
+            "field": "discount",
+            "path": "/discount",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          }
+        ],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "vip-changed",
+      "title": "VIP discount: Change this order to non-VIP; keep everything else",
+      "config": {
+        "language": "en",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            },
+            "isVip": {
+              "type": "boolean"
+            },
+            "discount": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "if": {
+            "properties": {
+              "isVip": {
+                "const": true
+              }
+            },
+            "required": [
+              "isVip"
+            ]
+          },
+          "then": {
+            "properties": {
+              "discount": {
+                "maximum": 20
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "discount": {
+                "maximum": 10
+              }
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "Change this order to non-VIP; keep everything else",
+        "fields": [
+          "isVip"
+        ],
+        "baseline": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-8",
+              "domain": null,
+              "action": "Set",
+              "target": "the VIP status and discount for order 000123",
+              "goal": "Set the VIP status and discount for order 000123",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {
+                "orderId": "000123",
+                "isVip": true,
+                "discount": 15
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        }
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "Change this order to non-VIP; keep everything else",
+        "status": "complete",
+        "turn": {
+          "kind": "amendment",
+          "normalizedInput": "Change this order to non-VIP; keep everything else",
+          "intentIds": [
+            "intent-8"
+          ],
+          "changes": [
+            {
+              "operation": "modify",
+              "target": {
+                "kind": "intent",
+                "id": "intent-8"
+              },
+              "description": "Modify only what this turn specifies",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "provided_materials",
+          "intents": [
+            {
+              "id": "intent-8",
+              "domain": null,
+              "action": "Set",
+              "target": "the VIP status and discount for order 000123",
+              "goal": "Set the VIP status and discount for order 000123",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {
+                "orderId": "000123",
+                "isVip": false
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [
+          {
+            "container": "inputs",
+            "intentId": "intent-8",
+            "field": "isVip",
+            "path": "/isVip",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          },
+          {
+            "container": "inputs",
+            "intentId": "intent-8",
+            "field": "discount",
+            "path": "/discount",
+            "status": "invalidated",
+            "trigger": "invalidation",
+            "explanation": "The supplied value violates the declared rules.",
+            "sourceRefs": [
+              {
+                "root": "baseline",
+                "pointer": "/intents/0/inputs/discount"
+              }
+            ]
+          }
+        ],
+        "issues": [
+          {
+            "id": "field-0",
+            "code": "FIELD_INVALIDATED",
+            "category": "data",
+            "message": "The supplied value violates the declared rules.",
+            "container": "inputs",
+            "field": "discount",
+            "path": "/discount",
+            "sourceRefs": [
+              {
+                "root": "baseline",
+                "pointer": "/intents/0/inputs/discount"
+              }
+            ],
+            "intentId": "intent-8"
+          }
+        ],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "vip-fixed",
+      "title": "VIP discount: Change the discount to 5",
+      "config": {
+        "language": "en",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            },
+            "isVip": {
+              "type": "boolean"
+            },
+            "discount": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "if": {
+            "properties": {
+              "isVip": {
+                "const": true
+              }
+            },
+            "required": [
+              "isVip"
+            ]
+          },
+          "then": {
+            "properties": {
+              "discount": {
+                "maximum": 20
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "discount": {
+                "maximum": 10
+              }
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "Change the discount to 5",
+        "fields": [
+          "discount"
+        ],
+        "baseline": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "provided_materials",
+          "intents": [
+            {
+              "id": "intent-8",
+              "domain": null,
+              "action": "Set",
+              "target": "the VIP status and discount for order 000123",
+              "goal": "Set the VIP status and discount for order 000123",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {
+                "orderId": "000123",
+                "isVip": false
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "context": {
+          "previousIssues": [
+            {
+              "id": "field-0",
+              "code": "FIELD_INVALIDATED",
+              "category": "data",
+              "message": "The supplied value violates the declared rules.",
+              "container": "inputs",
+              "field": "discount",
+              "path": "/discount",
+              "sourceRefs": [
+                {
+                  "root": "baseline",
+                  "pointer": "/intents/0/inputs/discount"
+                }
+              ],
+              "intentId": "intent-8"
+            }
+          ]
+        }
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "Change the discount to 5",
+        "status": "complete",
+        "turn": {
+          "kind": "amendment",
+          "normalizedInput": "Change the discount to 5",
+          "intentIds": [
+            "intent-8"
+          ],
+          "changes": [
+            {
+              "operation": "modify",
+              "target": {
+                "kind": "intent",
+                "id": "intent-8"
+              },
+              "description": "Modify only what this turn specifies",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "provided_materials",
+          "intents": [
+            {
+              "id": "intent-8",
+              "domain": null,
+              "action": "Set",
+              "target": "the VIP status and discount for order 000123",
+              "goal": "Set the VIP status and discount for order 000123",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {
+                "orderId": "000123",
+                "isVip": false,
+                "discount": 5
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [
+          {
+            "container": "inputs",
+            "intentId": "intent-8",
+            "field": "discount",
+            "path": "/discount",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          }
+        ],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "removed",
+      "title": "Withdraw a field requirement",
+      "config": {
+        "language": "en",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            },
+            "isVip": {
+              "type": "boolean"
+            },
+            "discount": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "if": {
+            "properties": {
+              "isVip": {
+                "const": true
+              }
+            },
+            "required": [
+              "isVip"
+            ]
+          },
+          "then": {
+            "properties": {
+              "discount": {
+                "maximum": 20
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "discount": {
+                "maximum": 10
+              }
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "Withdraw the discount parameter requirement; keep VIP and the order ID unchanged",
+        "fields": [
+          "discount"
+        ],
+        "baseline": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "provided_materials",
+          "intents": [
+            {
+              "id": "intent-8",
+              "domain": null,
+              "action": "Set",
+              "target": "the VIP status and discount for order 000123",
+              "goal": "Set the VIP status and discount for order 000123",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {
+                "orderId": "000123",
+                "isVip": false,
+                "discount": 5
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        }
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "Withdraw the discount parameter requirement; keep VIP and the order ID unchanged",
+        "status": "complete",
+        "turn": {
+          "kind": "amendment",
+          "normalizedInput": "Withdraw the discount parameter requirement; keep VIP and the order ID unchanged",
+          "intentIds": [
+            "intent-8"
+          ],
+          "changes": [
+            {
+              "operation": "modify",
+              "target": {
+                "kind": "intent",
+                "id": "intent-8"
+              },
+              "description": "Modify only what this turn specifies",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "provided_materials",
+          "intents": [
+            {
+              "id": "intent-8",
+              "domain": null,
+              "action": "Set",
+              "target": "the VIP status and discount for order 000123",
+              "goal": "Set the VIP status and discount for order 000123",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {
+                "orderId": "000123",
+                "isVip": false
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [
+          {
+            "container": "inputs",
+            "intentId": "intent-8",
+            "field": "discount",
+            "path": "/discount",
+            "status": "removed",
+            "trigger": "selection",
+            "explanation": "The user changed the previous value; an unselected replacement is not extracted.",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          }
+        ],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "facts",
+      "title": "A fact without an operation",
+      "config": {
+        "language": "en",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "The order ID is 000123.",
+        "fields": [
+          "orderId"
+        ]
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "The order ID is 000123.",
+        "status": "complete",
+        "turn": {
+          "kind": "statement",
+          "normalizedInput": "The order ID is 000123.",
+          "intentIds": [],
+          "changes": [],
+          "facts": {
+            "orderId": "000123"
+          }
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [
+          {
+            "container": "facts",
+            "intentId": null,
+            "field": "orderId",
+            "path": "/orderId",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          }
+        ],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "fact-query",
+      "title": "Supply the previous fact explicitly for a lookup",
+      "config": {
+        "language": "en",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "Look up this order. Do not cancel the order.",
+        "fields": [
+          "orderId"
+        ],
+        "context": {
+          "previousFacts": {
+            "orderId": "000123"
+          }
+        }
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "Look up this order. Do not cancel the order.",
+        "status": "complete",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "Look up this order. Do not cancel the order.",
+          "intentIds": [
+            "intent-9"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-9"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "constraint",
+                "id": "constraint-8"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "provided_materials",
+          "intents": [
+            {
+              "id": "intent-9",
+              "domain": null,
+              "action": "Look up",
+              "target": "order 000123",
+              "goal": "Look up order 000123",
+              "understanding": "clear",
+              "constraints": [
+                {
+                  "id": "constraint-8",
+                  "kind": "prohibition",
+                  "text": "Do not cancel the order",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-9"
+                  }
+                }
+              ],
+              "inputs": {
+                "orderId": "000123"
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [
+          {
+            "container": "inputs",
+            "intentId": "intent-9",
+            "field": "orderId",
+            "path": "/orderId",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "context",
+                "pointer": "/previousFacts/orderId"
+              }
+            ]
+          }
+        ],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "ambiguity",
+      "title": "Clarify an unresolved reference",
+      "config": {
+        "language": "en"
+      },
+      "request": {
+        "input": "Adopt the third proposal, but the proposal list is not supplied. Do not modify code yet."
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "Adopt the third proposal, but the proposal list is not supplied. Do not modify code yet.",
+        "status": "partial",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "Adopt the third proposal, but the proposal list is not supplied. Do not modify code yet.",
+          "intentIds": [
+            "intent-10"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-10"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "constraint",
+                "id": "constraint-9"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "partial",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-10",
+              "domain": null,
+              "action": "Adopt",
+              "target": "the third proposal",
+              "goal": "Adopt the third proposal",
+              "understanding": "ambiguous",
+              "constraints": [],
+              "inputs": {},
+              "references": [
+                {
+                  "id": "reference-1",
+                  "kind": "entity",
+                  "ref": null,
+                  "resolved": false,
+                  "description": "The third proposal in a list that was not supplied",
+                  "sourceRefs": [
+                    {
+                      "root": "input",
+                      "pointer": ""
+                    }
+                  ]
+                }
+              ],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [
+            {
+              "id": "constraint-9",
+              "kind": "prohibition",
+              "text": "Do not modify code yet",
+              "scope": {
+                "type": "global"
+              }
+            }
+          ],
+          "relations": [],
+          "unresolved": [
+            "The proposal list was not supplied, so the third proposal cannot be identified."
+          ]
+        },
+        "fieldResults": [],
+        "issues": [
+          {
+            "id": "issue-proposal",
+            "code": "AMBIGUOUS_REFERENCE",
+            "category": "ambiguity",
+            "message": "The proposal list was not supplied, so the third proposal cannot be identified.",
+            "intentId": "intent-10",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ],
+            "questions": [
+              {
+                "question": "Please provide the content of the third proposal."
+              }
+            ]
+          }
+        ],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "answer",
+      "title": "Keep prohibitions when answering a clarification",
+      "config": {
+        "language": "en"
+      },
+      "request": {
+        "input": "The third proposal is email verification. Adopt it and still do not modify code.",
+        "baseline": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "partial",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-10",
+              "domain": null,
+              "action": "Adopt",
+              "target": "the third proposal",
+              "goal": "Adopt the third proposal",
+              "understanding": "ambiguous",
+              "constraints": [],
+              "inputs": {},
+              "references": [
+                {
+                  "id": "reference-1",
+                  "kind": "entity",
+                  "ref": null,
+                  "resolved": false,
+                  "description": "The third proposal in a list that was not supplied",
+                  "sourceRefs": [
+                    {
+                      "root": "input",
+                      "pointer": ""
+                    }
+                  ]
+                }
+              ],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [
+            {
+              "id": "constraint-9",
+              "kind": "prohibition",
+              "text": "Do not modify code yet",
+              "scope": {
+                "type": "global"
+              }
+            }
+          ],
+          "relations": [],
+          "unresolved": [
+            "The proposal list was not supplied, so the third proposal cannot be identified."
+          ]
+        },
+        "context": {
+          "previousIssues": [
+            {
+              "id": "issue-proposal",
+              "code": "AMBIGUOUS_REFERENCE",
+              "category": "ambiguity",
+              "message": "The proposal list was not supplied, so the third proposal cannot be identified.",
+              "intentId": "intent-10",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "questions": [
+                {
+                  "question": "Please provide the content of the third proposal."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "The third proposal is email verification. Adopt it and still do not modify code.",
+        "status": "complete",
+        "turn": {
+          "kind": "answer",
+          "normalizedInput": "The third proposal is email verification. Adopt it and still do not modify code.",
+          "intentIds": [
+            "intent-10"
+          ],
+          "changes": [
+            {
+              "operation": "modify",
+              "target": {
+                "kind": "intent",
+                "id": "intent-10"
+              },
+              "description": "Modify only what this turn specifies",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "provided_materials",
+          "intents": [
+            {
+              "id": "intent-10",
+              "domain": null,
+              "action": "Adopt",
+              "target": "the email verification proposal",
+              "goal": "Adopt the email verification proposal",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {},
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [
+            {
+              "id": "constraint-9",
+              "kind": "prohibition",
+              "text": "Do not modify code yet",
+              "scope": {
+                "type": "global"
+              }
+            }
+          ],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "candidates",
+      "title": "Multiple candidates from caller-supplied material",
+      "config": {
+        "language": "en"
+      },
+      "request": {
+        "input": "Implement sign-in using SMS or email verification; the method is not decided yet. Do not modify code yet."
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "Implement sign-in using SMS or email verification; the method is not decided yet. Do not modify code yet.",
+        "status": "partial",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "Implement sign-in using SMS or email verification; the method is not decided yet. Do not modify code yet.",
+          "intentIds": [
+            "intent-11"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-11"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            },
+            {
+              "operation": "add",
+              "target": {
+                "kind": "constraint",
+                "id": "constraint-10"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "partial",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-11",
+              "domain": null,
+              "action": "Implement",
+              "target": "sign-in",
+              "goal": "Implement sign-in",
+              "understanding": "ambiguous",
+              "constraints": [],
+              "inputs": {},
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [
+            {
+              "id": "constraint-10",
+              "kind": "prohibition",
+              "text": "Do not modify code yet",
+              "scope": {
+                "type": "global"
+              }
+            }
+          ],
+          "relations": [],
+          "unresolved": [
+            "There are two unconfirmed sign-in methods."
+          ]
+        },
+        "fieldResults": [],
+        "issues": [
+          {
+            "id": "issue-method",
+            "code": "AMBIGUOUS_REFERENCE",
+            "category": "ambiguity",
+            "message": "There are two unconfirmed sign-in methods.",
+            "intentId": "intent-11",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ],
+            "candidates": [
+              {
+                "id": "sms",
+                "description": "SMS verification code",
+                "sourceRefs": [
+                  {
+                    "root": "input",
+                    "pointer": ""
+                  }
+                ]
+              },
+              {
+                "id": "email",
+                "description": "email verification code",
+                "sourceRefs": [
+                  {
+                    "root": "input",
+                    "pointer": ""
+                  }
+                ]
+              }
+            ],
+            "questions": [
+              {
+                "question": "Which sign-in method should be used?",
+                "optionIds": [
+                  "sms",
+                  "email"
+                ]
+              }
+            ]
+          }
+        ],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "chosen",
+      "title": "The second option requires the corresponding material",
+      "config": {
+        "language": "en"
+      },
+      "request": {
+        "input": "Choose the second option and keep the other requirements",
+        "baseline": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "partial",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-11",
+              "domain": null,
+              "action": "Implement",
+              "target": "sign-in",
+              "goal": "Implement sign-in",
+              "understanding": "ambiguous",
+              "constraints": [],
+              "inputs": {},
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [
+            {
+              "id": "constraint-10",
+              "kind": "prohibition",
+              "text": "Do not modify code yet",
+              "scope": {
+                "type": "global"
+              }
+            }
+          ],
+          "relations": [],
+          "unresolved": [
+            "There are two unconfirmed sign-in methods."
+          ]
+        },
+        "context": {
+          "previousIssues": [
+            {
+              "id": "issue-method",
+              "code": "AMBIGUOUS_REFERENCE",
+              "category": "ambiguity",
+              "message": "There are two unconfirmed sign-in methods.",
+              "intentId": "intent-11",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "candidates": [
+                {
+                  "id": "sms",
+                  "description": "SMS verification code",
+                  "sourceRefs": [
+                    {
+                      "root": "input",
+                      "pointer": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "email",
+                  "description": "email verification code",
+                  "sourceRefs": [
+                    {
+                      "root": "input",
+                      "pointer": ""
+                    }
+                  ]
+                }
+              ],
+              "questions": [
+                {
+                  "question": "Which sign-in method should be used?",
+                  "optionIds": [
+                    "sms",
+                    "email"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "Choose the second option and keep the other requirements",
+        "status": "complete",
+        "turn": {
+          "kind": "answer",
+          "normalizedInput": "Choose the second option and keep the other requirements",
+          "intentIds": [
+            "intent-11"
+          ],
+          "changes": [
+            {
+              "operation": "modify",
+              "target": {
+                "kind": "intent",
+                "id": "intent-11"
+              },
+              "description": "Modify only what this turn specifies",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "provided_materials",
+          "intents": [
+            {
+              "id": "intent-11",
+              "domain": null,
+              "action": "Implement",
+              "target": "email verification sign-in",
+              "goal": "Implement email verification sign-in",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {},
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [
+            {
+              "id": "constraint-10",
+              "kind": "prohibition",
+              "text": "Do not modify code yet",
+              "scope": {
+                "type": "global"
+              }
+            }
+          ],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [],
+        "issues": [],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "inference",
+      "title": "Keep an inference separate from confirmed facts",
+      "config": {
+        "language": "en"
+      },
+      "request": {
+        "input": "Analyze this service. It may be the order service, but I have not confirmed that.",
+        "output": {
+          "evidence": false
+        }
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "Analyze this service. It may be the order service, but I have not confirmed that.",
+        "status": "partial",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "Analyze this service. It may be the order service, but I have not confirmed that.",
+          "intentIds": [
+            "intent-12"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-12"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "partial",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-12",
+              "domain": null,
+              "action": "Analyze",
+              "target": null,
+              "goal": "Analyze the referenced service",
+              "understanding": "ambiguous",
+              "constraints": [],
+              "inputs": {},
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": [
+            "The current material is insufficient; clarification is required."
+          ]
+        },
+        "fieldResults": [],
+        "issues": [
+          {
+            "id": "understanding-intent-12",
+            "code": "AMBIGUOUS_REFERENCE",
+            "category": "ambiguity",
+            "message": "The current material is insufficient; clarification is required.",
+            "intentId": "intent-12"
+          }
+        ],
+        "inferences": [
+          {
+            "target": "/effective/intents/0/target",
+            "explanation": "The user suggested the order service but has not confirmed it.",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ],
+            "candidate": "order service"
+          }
+        ]
+      }
+    },
+    {
+      "slug": "field-states",
+      "title": "Complete understanding can still contain field issues",
+      "config": {
+        "language": "en",
+        "schema": {
+          "type": "object",
+          "required": [
+            "orderId"
+          ],
+          "properties": {
+            "orderId": {
+              "type": "string"
+            },
+            "amount": {
+              "type": "number",
+              "minimum": 0
+            },
+            "note": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "address": {
+              "type": "string"
+            },
+            "pickup": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "Set the order parameters: amount=-5 and note is explicitly null. The ID is not provided, the address is still unknown, and pickup information does not apply.",
+        "fields": "all"
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "Set the order parameters: amount=-5 and note is explicitly null. The ID is not provided, the address is still unknown, and pickup information does not apply.",
+        "status": "complete",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "Set the order parameters: amount=-5 and note is explicitly null. The ID is not provided, the address is still unknown, and pickup information does not apply.",
+          "intentIds": [
+            "intent-13"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-13"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-13",
+              "domain": null,
+              "action": "Set",
+              "target": "the order parameters",
+              "goal": "Set the order parameters",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {
+                "note": null
+              },
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [
+          {
+            "container": "inputs",
+            "intentId": "intent-13",
+            "field": "orderId",
+            "path": "/orderId",
+            "status": "not_provided",
+            "trigger": "selection",
+            "explanation": "No definite value was provided."
+          },
+          {
+            "container": "inputs",
+            "intentId": "intent-13",
+            "field": "amount",
+            "path": "/amount",
+            "status": "invalid",
+            "trigger": "selection",
+            "explanation": "The supplied value violates the declared rules.",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          },
+          {
+            "container": "inputs",
+            "intentId": "intent-13",
+            "field": "note",
+            "path": "/note",
+            "status": "explicit_null",
+            "trigger": "selection",
+            "explanation": "The user explicitly supplied null and the declaration allows it.",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          },
+          {
+            "container": "inputs",
+            "intentId": "intent-13",
+            "field": "address",
+            "path": "/address",
+            "status": "unknown",
+            "trigger": "selection",
+            "explanation": "No definite value was provided."
+          },
+          {
+            "container": "inputs",
+            "intentId": "intent-13",
+            "field": "pickup",
+            "path": "/pickup",
+            "status": "not_applicable",
+            "trigger": "selection",
+            "explanation": "The field does not apply to this goal."
+          }
+        ],
+        "issues": [
+          {
+            "id": "field-0",
+            "code": "FIELD_REQUIRED_MISSING",
+            "category": "data",
+            "message": "No definite value was provided.",
+            "container": "inputs",
+            "field": "orderId",
+            "path": "/orderId",
+            "intentId": "intent-13"
+          },
+          {
+            "id": "field-1",
+            "code": "FIELD_VALUE_INVALID",
+            "category": "data",
+            "message": "The supplied value violates the declared rules.",
+            "container": "inputs",
+            "field": "amount",
+            "path": "/amount",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ],
+            "intentId": "intent-13"
+          },
+          {
+            "id": "field-2",
+            "code": "FIELD_APPLICABILITY_UNKNOWN",
+            "category": "data",
+            "message": "No definite value was provided.",
+            "container": "inputs",
+            "field": "address",
+            "path": "/address",
+            "intentId": "intent-13"
+          }
+        ],
+        "inferences": []
+      }
+    },
+    {
+      "slug": "output-options",
+      "title": "Extension labels and output options",
+      "config": {
+        "language": "en",
+        "extensionSchema": {
+          "type": "object",
+          "properties": {
+            "audience": {
+              "type": "string",
+              "enum": [
+                "internal",
+                "external"
+              ]
+            }
+          }
+        }
+      },
+      "request": {
+        "input": "Generate an internal report",
+        "output": {
+          "extensions": true,
+          "suggestions": true,
+          "evidence": true
+        }
+      },
+      "result": {
+        "schemaVersion": "2.0-draft.6",
+        "input": "Generate an internal report",
+        "status": "complete",
+        "turn": {
+          "kind": "request",
+          "normalizedInput": "Generate an internal report",
+          "intentIds": [
+            "intent-14"
+          ],
+          "changes": [
+            {
+              "operation": "add",
+              "target": {
+                "kind": "intent",
+                "id": "intent-14"
+              },
+              "description": "Add the explicit request from this turn",
+              "sourceRefs": [
+                {
+                  "root": "input",
+                  "pointer": ""
+                }
+              ],
+              "effect": "applied"
+            }
+          ],
+          "facts": {}
+        },
+        "effective": {
+          "schemaVersion": "2.0-draft.6",
+          "coverage": "complete",
+          "scope": "current_request",
+          "intents": [
+            {
+              "id": "intent-14",
+              "domain": null,
+              "action": "Generate",
+              "target": "an internal report",
+              "goal": "Generate an internal report",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {},
+              "references": [],
+              "children": [],
+              "extensions": {
+                "audience": "internal"
+              }
+            }
+          ],
+          "constraints": [],
+          "relations": [],
+          "unresolved": []
+        },
+        "fieldResults": [
+          {
+            "container": "extensions",
+            "intentId": "intent-14",
+            "field": "audience",
+            "path": "/audience",
+            "status": "present",
+            "trigger": "selection",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          }
+        ],
+        "issues": [],
+        "inferences": [],
+        "evidence": [
+          {
+            "target": "/effective/intents/0/goal",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          }
+        ],
+        "suggestions": [
+          {
+            "kind": "clarification",
+            "text": "Provide the desired length if you need a length limit.",
+            "relatesTo": [
+              "intent-14"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

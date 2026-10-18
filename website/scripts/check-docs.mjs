@@ -2,6 +2,7 @@ import {readFile as readRawFile, readdir, access} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import ts from 'typescript';
+import {checkLocalePairs, checkConfigurationDefaults, checkTranslationSemantics} from './translation-check.mjs';
 import {checkResponseFields, checkTypeSnippet, checkPublicTypes, documentationBlocks, normalizeText} from './contract-check.mjs';
 
 const readFile = async (...args) => normalizeText(await readRawFile(...args));
@@ -10,8 +11,11 @@ const website = fileURLToPath(new URL('../', import.meta.url)), repo = path.reso
 const files = [];
 async function scan(dir) {for (const entry of await readdir(dir, {withFileTypes: true})) {const p = path.join(dir, entry.name); if (entry.isDirectory()) await scan(p); else if (/\.(md|mdx)$/.test(p)) files.push(p);}}
 await scan(root);
-const pages = new Map(await Promise.all(files.map(async file => ['/' + path.relative(root, file).replace(/\\/g, '/').replace(/\.(md|mdx)$/, ''), {file, text: await readFile(file, 'utf8')}])));
+const pages = new Map(await Promise.all(files.map(async file => ['/' + path.relative(root, file).replace(/\\/g, '/').replace(/\.(md|mdx)$/, '').replace(/^en\//, ''), {file, text: await readFile(file, 'utf8')}])));
 pages.set('/', pages.get('/index'));
+pages.set('/zh/', pages.get('/zh/index'));
+pages.set('/zh', pages.get('/zh/index'));
+checkLocalePairs(pages);
 const fail = message => {throw new Error(message);};
 const slug = text => text.toLowerCase().replace(/<[^>]+>/g, '').replace(/[^\p{L}\p{N}\s_-]/gu, '').replace(/\s/g, '-');
 function anchors(text) {return new Set([...text.matchAll(/^#{1,6}\s+(.+)$/gm)].map(m => slug(m[1])).concat([...text.matchAll(/\bid=["']([^"']+)["']/g)].map(m => m[1])));}
@@ -48,18 +52,28 @@ for (const file of [...files, readme, config]) {
     if (match[2].trimEnd() !== source.trimEnd()) fail('Stale executable example: ' + match[1] + ' in ' + file);
     examples++;
   }
+  for (const match of documentationBlocks(text, 'javascript')) {
+    const source = await readFile(path.join(repo, match[1]), 'utf8');
+    const compiled = ts.transpileModule(source, {compilerOptions: {target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext}}).outputText;
+    if (match[2].trimEnd() !== compiled.trimEnd()) fail('Stale generated JavaScript example: ' + match[1] + ' in ' + file);
+    examples++;
+  }
   for (const match of documentationBlocks(text, 'typecheck')) checkTypeSnippet(match[1]);
   for (const match of documentationBlocks(text, 'result')) {
-    const bundle = JSON.parse(await readFile(path.join(root, 'public/examples/scenarios.json'), 'utf8'));
+    const bundle = JSON.parse(await readFile(path.join(root, 'public/examples', file.includes(path.sep + 'en' + path.sep) ? 'en' : '', 'scenarios.json'), 'utf8'));
     const expected = bundle.cases.find(c => c.slug === match[1])?.result;
     if (!expected || JSON.stringify(JSON.parse(match[2])) !== JSON.stringify(expected)) fail('Stale full Result example: ' + match[1]);
   }
   for (const match of documentationBlocks(text, 'json')) {
-    const expected = JSON.parse(await readFile(path.join(root, 'public/examples', match[1] + '.json'), 'utf8'));
+    const expected = JSON.parse(await readFile(path.join(root, 'public/examples', file.includes(path.sep + 'en' + path.sep) ? 'en' : '', match[1] + '.json'), 'utf8'));
     if (JSON.stringify(JSON.parse(match[2])) !== JSON.stringify(expected)) fail('Stale JSON example: ' + match[1]);
   }
 }
-const typeReference = pages.get('/api/types').text;
+for (const locale of ['en', 'zh']) {
+const prefix = locale === 'zh' ? '/zh' : '';
+const page = name => pages.get(prefix + name).text;
+checkTranslationSemantics(page, locale);
+const typeReference = page('/api/types');
 const native = await readFile(path.join(repo, 'src/contracts/public.ts'), 'utf8');
 checkPublicTypes(native, typeReference);
 const norm = value => value.replace(/\b(export|declare)\s+/g, '').replace(/\s|;/g, '');
@@ -87,33 +101,35 @@ for (const sourceFile of ['src/adapters/api.ts', 'src/mcp/index.ts']) {
 const maintenance = await readFile(path.join(repo, 'src/cli/maintenance.ts'), 'utf8');
 const report = declarations(maintenance).find(([name]) => name === 'MaintenanceReport');
 if (!report || declared.get(report[0]) !== report[1]) fail('Stale CLI MaintenanceReport shape.');
-const maintenanceDoc = pages.get('/operations/codex').text;
+const maintenanceDoc = page('/operations/codex');
 const commandSource = await readFile(path.join(repo, 'src/cli/index.ts'), 'utf8');
 const flags = new Set([...commandSource.matchAll(/['"](--[a-z-]+)['"]/g)].map(m => m[1]));
 for (const flag of flags) if (!maintenanceDoc.includes(flag)) fail('Missing CLI flag: ' + flag);
-const nativeApi = pages.get('/api/intent').text;
+const nativeApi = page('/api/intent');
 for (const name of ['constructor','parse','dispose','toJSON','serialize','includePartialResult','INTENT_RESULT_SCHEMA']) if (!nativeApi.includes(name)) fail('Missing Native API method/option: ' + name);
 const defaults = await readFile(path.join(repo, 'src/intent.ts'), 'utf8');
 const limitBody = /DEFAULT_LIMITS[^\n]+Object\.freeze\(\{([^}]+)\}/.exec(defaults)?.[1];
 if (!limitBody) fail('Cannot locate limit defaults.');
-const configuration = pages.get('/guide/configuration').text;
+const configuration = page('/guide/configuration');
 for (const [, name, value] of limitBody.matchAll(/(\w+):\s*(\d+)/g)) {
   if (!configuration.split('\n').some(line => line.startsWith('| ' + name + ' |') && line.includes('| ' + value + ' |'))) fail('Incorrect limit documentation: ' + name);
 }
 for (const name of ['language','executor','schema','extensionSchema','semantics','timeoutMs','defaultOutput','limits','suggestions','evidence','diagnostics','extensions']) {
   if (!configuration.split('\n').some(line => line.startsWith('| ' + name + ' |'))) fail('Missing configuration: ' + name);
 }
-const api = await readFile(path.join(repo, 'src/adapters/api.ts'), 'utf8'), apiDoc = pages.get('/integrations/api').text;
+const api = await readFile(path.join(repo, 'src/adapters/api.ts'), 'utf8'), apiDoc = page('/integrations/api');
 for (const name of ['provider','protocol','model','apiKey','baseURL','maxOutputTokens','maxResponseBytes','format']) if (!apiDoc.split('\n').some(line => line.startsWith('| ' + name + ' |'))) fail('Missing API config: ' + name);
 for (const name of ['maxOutputTokens','maxResponseBytes']) {
   const value = new RegExp(name + ' = data\\.' + name + ' \\?\\? (\\d+)').exec(api)?.[1];
   if (!value || !apiDoc.split('\n').some(line => line.startsWith('| ' + name + ' |') && line.includes('| ' + value + ' |'))) fail('Incorrect API default: ' + name);
 }
-const response = pages.get('/api/response').text;
+const response = page('/api/response');
 const resultRows = checkResponseFields(native, response);
 for (const name of ['present','explicit_null','not_provided','unknown','not_applicable','invalid','invalidated','removed','precondition','depends_on','parallel','exclusive']) if (!response.includes(name)) fail('Missing response variant: ' + name);
 const versionSource = await readFile(path.join(website, 'site.ts'), 'utf8');
 if (!versionSource.includes("version = `V${metadata.version.split('.')[0]}`;")) fail('Document the package major version without development suffixes.');
-if (!pages.has('/guide/multi-turn')) fail('Missing multi-turn guide.');
+if (!pages.has(prefix + '/guide/multi-turn')) fail('Missing multi-turn guide.');
 if (examples === 0 || declared.size === 0 || publicDeclarations === 0) fail('Documentation contract coverage must not be empty.');
-console.log(`User documentation checked: ${files.length} pages, ${links} links/assets/anchors, ${examples} exact examples, ${resultRows} public result rows, ${publicDeclarations} API/MCP declarations, CLI report and configuration defaults.`);
+console.log(`User documentation ${locale} checked: ${files.length} pages, ${links} links/assets/anchors, ${examples} exact examples, ${resultRows} public result rows, ${publicDeclarations} API/MCP declarations, CLI report and configuration defaults.`);
+
+}

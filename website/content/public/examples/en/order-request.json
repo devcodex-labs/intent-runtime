@@ -1,0 +1,25 @@
+{
+  "config": {
+    "mode": "host",
+    "instances": {
+      "main": {
+        "language": "en",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            }
+          }
+        }
+      }
+    }
+  },
+  "request": {
+    "input": "Look up order 000123. Do not cancel the order.",
+    "fields": [
+      "orderId"
+    ]
+  }
+}

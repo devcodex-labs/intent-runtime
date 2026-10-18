@@ -1,0 +1,154 @@
+{
+  "slug": "vip",
+  "title": "VIP discount: Set VIP=true and discount=15 for order 000123",
+  "config": {
+    "language": "en",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        },
+        "isVip": {
+          "type": "boolean"
+        },
+        "discount": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "if": {
+        "properties": {
+          "isVip": {
+            "const": true
+          }
+        },
+        "required": [
+          "isVip"
+        ]
+      },
+      "then": {
+        "properties": {
+          "discount": {
+            "maximum": 20
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "discount": {
+            "maximum": 10
+          }
+        }
+      }
+    }
+  },
+  "request": {
+    "input": "Set VIP=true and discount=15 for order 000123",
+    "fields": "all"
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "Set VIP=true and discount=15 for order 000123",
+    "status": "complete",
+    "turn": {
+      "kind": "request",
+      "normalizedInput": "Set VIP=true and discount=15 for order 000123",
+      "intentIds": [
+        "intent-8"
+      ],
+      "changes": [
+        {
+          "operation": "add",
+          "target": {
+            "kind": "intent",
+            "id": "intent-8"
+          },
+          "description": "Add the explicit request from this turn",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-8",
+          "domain": null,
+          "action": "Set",
+          "target": "the VIP status and discount for order 000123",
+          "goal": "Set the VIP status and discount for order 000123",
+          "understanding": "clear",
+          "constraints": [],
+          "inputs": {
+            "orderId": "000123",
+            "isVip": true,
+            "discount": 15
+          },
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [
+      {
+        "container": "inputs",
+        "intentId": "intent-8",
+        "field": "orderId",
+        "path": "/orderId",
+        "status": "present",
+        "trigger": "selection",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      },
+      {
+        "container": "inputs",
+        "intentId": "intent-8",
+        "field": "isVip",
+        "path": "/isVip",
+        "status": "present",
+        "trigger": "selection",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      },
+      {
+        "container": "inputs",
+        "intentId": "intent-8",
+        "field": "discount",
+        "path": "/discount",
+        "status": "present",
+        "trigger": "selection",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      }
+    ],
+    "issues": [],
+    "inferences": []
+  }
+}

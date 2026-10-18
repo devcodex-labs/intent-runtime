@@ -1,0 +1,155 @@
+{
+  "slug": "removed",
+  "title": "Withdraw a field requirement",
+  "config": {
+    "language": "en",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        },
+        "isVip": {
+          "type": "boolean"
+        },
+        "discount": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "if": {
+        "properties": {
+          "isVip": {
+            "const": true
+          }
+        },
+        "required": [
+          "isVip"
+        ]
+      },
+      "then": {
+        "properties": {
+          "discount": {
+            "maximum": 20
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "discount": {
+            "maximum": 10
+          }
+        }
+      }
+    }
+  },
+  "request": {
+    "input": "Withdraw the discount parameter requirement; keep VIP and the order ID unchanged",
+    "fields": [
+      "discount"
+    ],
+    "baseline": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "provided_materials",
+      "intents": [
+        {
+          "id": "intent-8",
+          "domain": null,
+          "action": "Set",
+          "target": "the VIP status and discount for order 000123",
+          "goal": "Set the VIP status and discount for order 000123",
+          "understanding": "clear",
+          "constraints": [],
+          "inputs": {
+            "orderId": "000123",
+            "isVip": false,
+            "discount": 5
+          },
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    }
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "Withdraw the discount parameter requirement; keep VIP and the order ID unchanged",
+    "status": "complete",
+    "turn": {
+      "kind": "amendment",
+      "normalizedInput": "Withdraw the discount parameter requirement; keep VIP and the order ID unchanged",
+      "intentIds": [
+        "intent-8"
+      ],
+      "changes": [
+        {
+          "operation": "modify",
+          "target": {
+            "kind": "intent",
+            "id": "intent-8"
+          },
+          "description": "Modify only what this turn specifies",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "provided_materials",
+      "intents": [
+        {
+          "id": "intent-8",
+          "domain": null,
+          "action": "Set",
+          "target": "the VIP status and discount for order 000123",
+          "goal": "Set the VIP status and discount for order 000123",
+          "understanding": "clear",
+          "constraints": [],
+          "inputs": {
+            "orderId": "000123",
+            "isVip": false
+          },
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [
+      {
+        "container": "inputs",
+        "intentId": "intent-8",
+        "field": "discount",
+        "path": "/discount",
+        "status": "removed",
+        "trigger": "selection",
+        "explanation": "The user changed the previous value; an unselected replacement is not extracted.",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      }
+    ],
+    "issues": [],
+    "inferences": []
+  }
+}

@@ -7,7 +7,7 @@
     "dev": "rspress dev",
     "build": "rspress build && node scripts/check-rendered.mjs",
     "preview": "rspress preview",
-    "check": "tsc --noEmit && node scripts/check-docs.mjs && node --test scripts/check-rendered.test.mjs scripts/contract-check.test.mjs ../scripts/documentation/result-check.test.mjs"
+    "check": "tsc --noEmit && node scripts/check-docs.mjs && node --test scripts/check-rendered.test.mjs scripts/contract-check.test.mjs scripts/translation-check.test.mjs ../scripts/documentation/result-check.test.mjs"
   },
   "engines": {
     "node": ">=24.0.0"

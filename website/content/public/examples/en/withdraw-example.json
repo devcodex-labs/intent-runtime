@@ -1,0 +1,262 @@
+{
+  "slug": "withdraw",
+  "title": "Withdraw a child goal and change the deliverable language",
+  "config": {
+    "language": "en"
+  },
+  "request": {
+    "input": "Withdraw registration and its parallel relationship. Keep sign-in, change the instructions to English, and keep everything else.",
+    "baseline": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "current_request",
+      "intents": [
+        {
+          "id": "intent-5",
+          "domain": null,
+          "action": "Implement",
+          "target": "the user module",
+          "goal": "Implement the user module",
+          "understanding": "clear",
+          "constraints": [
+            {
+              "id": "constraint-4",
+              "kind": "prohibition",
+              "text": "Do not modify the database",
+              "scope": {
+                "type": "intent",
+                "intentId": "intent-5"
+              }
+            }
+          ],
+          "inputs": {},
+          "references": [],
+          "children": [
+            {
+              "id": "intent-6",
+              "domain": null,
+              "action": "Implement",
+              "target": "sign-in",
+              "goal": "Implement sign-in",
+              "understanding": "clear",
+              "constraints": [
+                {
+                  "id": "constraint-5",
+                  "kind": "requirement",
+                  "text": "Sign-in requires an email verification code",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-6"
+                  }
+                },
+                {
+                  "id": "constraint-6",
+                  "kind": "precondition",
+                  "text": "Enable sign-in only after approval",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-6"
+                  }
+                },
+                {
+                  "id": "constraint-7",
+                  "kind": "preference",
+                  "text": "Prefer the existing styles",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-6"
+                  }
+                }
+              ],
+              "inputs": {},
+              "references": [],
+              "children": [],
+              "extensions": {}
+            },
+            {
+              "id": "intent-7",
+              "domain": null,
+              "action": "Implement",
+              "target": "registration",
+              "goal": "Implement registration",
+              "understanding": "clear",
+              "constraints": [],
+              "inputs": {},
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "extensions": {},
+          "expectedOutput": [
+            "Chinese user instructions"
+          ]
+        }
+      ],
+      "constraints": [],
+      "relations": [
+        {
+          "id": "relation-1",
+          "fromId": "intent-6",
+          "toId": "intent-7",
+          "kind": "parallel"
+        }
+      ],
+      "unresolved": []
+    }
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "Withdraw registration and its parallel relationship. Keep sign-in, change the instructions to English, and keep everything else.",
+    "status": "complete",
+    "turn": {
+      "kind": "amendment",
+      "normalizedInput": "Withdraw registration and its parallel relationship. Keep sign-in, change the instructions to English, and keep everything else.",
+      "intentIds": [
+        "intent-5",
+        "intent-6"
+      ],
+      "changes": [
+        {
+          "operation": "modify",
+          "target": {
+            "kind": "intent",
+            "id": "intent-5"
+          },
+          "description": "Modify only what this turn specifies",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied",
+          "deltas": [
+            {
+              "path": "/expectedOutput",
+              "operation": "set",
+              "after": [
+                "English user instructions"
+              ],
+              "before": [
+                "Chinese user instructions"
+              ]
+            }
+          ]
+        },
+        {
+          "operation": "withdraw",
+          "target": {
+            "kind": "intent",
+            "id": "intent-7"
+          },
+          "description": "Withdraw the specified goal",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        },
+        {
+          "operation": "withdraw",
+          "target": {
+            "kind": "relation",
+            "id": "relation-1"
+          },
+          "description": "Withdraw the specified goal",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "provided_materials",
+      "intents": [
+        {
+          "id": "intent-5",
+          "domain": null,
+          "action": "Implement",
+          "target": "the user module",
+          "goal": "Implement the user module",
+          "understanding": "clear",
+          "constraints": [
+            {
+              "id": "constraint-4",
+              "kind": "prohibition",
+              "text": "Do not modify the database",
+              "scope": {
+                "type": "intent",
+                "intentId": "intent-5"
+              }
+            }
+          ],
+          "inputs": {},
+          "references": [],
+          "children": [
+            {
+              "id": "intent-6",
+              "domain": null,
+              "action": "Implement",
+              "target": "sign-in",
+              "goal": "Implement sign-in",
+              "understanding": "clear",
+              "constraints": [
+                {
+                  "id": "constraint-5",
+                  "kind": "requirement",
+                  "text": "Sign-in requires an email verification code",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-6"
+                  }
+                },
+                {
+                  "id": "constraint-6",
+                  "kind": "precondition",
+                  "text": "Enable sign-in only after approval",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-6"
+                  }
+                },
+                {
+                  "id": "constraint-7",
+                  "kind": "preference",
+                  "text": "Prefer the existing styles",
+                  "scope": {
+                    "type": "intent",
+                    "intentId": "intent-6"
+                  }
+                }
+              ],
+              "inputs": {},
+              "references": [],
+              "children": [],
+              "extensions": {}
+            }
+          ],
+          "extensions": {},
+          "expectedOutput": [
+            "English user instructions"
+          ]
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [],
+    "issues": [],
+    "inferences": []
+  }
+}

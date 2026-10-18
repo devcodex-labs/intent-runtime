@@ -6,6 +6,21 @@ Pushing a version tag starts the release pipeline. A matching stable V2 version,
 
 Use npm trusted publishing for this GitHub repository's `.github/workflows/publish.yml`, including the `npm-release` environment if configured on the npm publisher. The job requests `id-token: write`; publication uses provenance. The setup must match the npm package, repository, workflow filename and environment exactly. See [npm trusted publishers](https://docs.npmjs.com/trusted-publishers/).
 
+Open the [package settings](https://www.npmjs.com/package/@devcodex/intent-runtime/access) as a package maintainer, find **Trusted Publisher**, and select **GitHub Actions**:
+
+| npm field | Value for this repository |
+|---|---|
+| Package | `@devcodex/intent-runtime` |
+| Organization or user | `devcodex-labs` |
+| Repository | `intent-runtime` |
+| Workflow filename | `publish.yml` — filename only, without `.github/workflows/` |
+| Environment name | `npm-release` — the current publishing job always uses this environment |
+| Allowed actions | Allow direct **`npm publish`**; staged publishing alone does not match this workflow |
+
+Save the publisher. No new npm token secret is required for this OIDC path. The current job already uses a GitHub-hosted Ubuntu runner, `id-token: write`, Node 24, the public npm registry, and `--provenance`. Trusted publishing requires Node >=22.14.0 and npm >=11.5.1; check the runner's npm version if troubleshooting. Separate `npm dist-tag` permission is unnecessary for the current workflow, which sets the initial default tag through publication and does not run `npm dist-tag`.
+
+After configuration, the reviewed stable tag triggers validation and publication automatically. Confirm the publish job and registry-install verification both succeed. A local unauthenticated `npm trust list` returning 401 cannot confirm or disprove the GitHub OIDC configuration. Do not change package publishing-access policy or delete an existing token merely to inspect this setup.
+
 An `NPM_TOKEN` repository/environment secret is supported as an alternative for an appropriately authorized npm token. An empty GitHub secret list alone does not establish whether trusted publishing is configured. Never treat a dry run as proof of publication authority.
 
 GitHub Pages must use GitHub Actions as its source. The docs workflow deploys to the `github-pages` environment. Its deployment rules must allow `main` for manual documentation updates and the `v2.*` tag pattern for V2 releases. The version guard still restricts publication to a matching stable V2 tag. Environment protection settings remain part of the repository's deployment configuration.
@@ -53,5 +68,7 @@ For the first V2 release, do not point `latest` back to the incompatible abandon
 ## Documentation outside a package release
 
 For a reviewed documentation fix already on `main`, run the **Deploy Docs** workflow manually on `main`. It verifies the deployment SHA before building. Check the live installation page, quick start, MCP/Codex guides, navigation and README links after deployment; a green build alone does not establish that users see the updated site.
+
+English is the default language at the existing root URLs; Chinese is available under `/zh/`. Check both language selectors and corresponding pages, the two search indices, localized scenario downloads, and native search focus recovery. Sources live under `website/content/en` and `website/content/zh`; shared assets stay in `website/content/public`. Preserve old Chinese fragment aliases on default English pages when moving headings.
 
 Reference: [GitHub package publishing](https://docs.github.com/en/actions/tutorials/publish-packages/publish-nodejs-packages), [reusable workflows](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows).

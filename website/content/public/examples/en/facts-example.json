@@ -1,0 +1,63 @@
+{
+  "slug": "facts",
+  "title": "A fact without an operation",
+  "config": {
+    "language": "en",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        }
+      }
+    }
+  },
+  "request": {
+    "input": "The order ID is 000123.",
+    "fields": [
+      "orderId"
+    ]
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "The order ID is 000123.",
+    "status": "complete",
+    "turn": {
+      "kind": "statement",
+      "normalizedInput": "The order ID is 000123.",
+      "intentIds": [],
+      "changes": [],
+      "facts": {
+        "orderId": "000123"
+      }
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "current_request",
+      "intents": [],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [
+      {
+        "container": "facts",
+        "intentId": null,
+        "field": "orderId",
+        "path": "/orderId",
+        "status": "present",
+        "trigger": "selection",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ]
+      }
+    ],
+    "issues": [],
+    "inferences": []
+  }
+}

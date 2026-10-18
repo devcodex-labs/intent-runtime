@@ -2,6 +2,8 @@
 
 **[Documentation](https://devcodex-labs.github.io/intent-runtime/)** · [Quick start](#install) · [Examples](https://github.com/devcodex-labs/intent-runtime/tree/main/examples) · [npm](https://www.npmjs.com/package/@devcodex/intent-runtime) · [Issues](https://github.com/devcodex-labs/intent-runtime/issues)
 
+English is the default documentation language. [简体中文](https://devcodex-labs.github.io/intent-runtime/zh/) covers the same V2 API.
+
 [![CI](https://github.com/devcodex-labs/intent-runtime/actions/workflows/ci.yml/badge.svg)](https://github.com/devcodex-labs/intent-runtime/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@devcodex/intent-runtime)](https://www.npmjs.com/package/@devcodex/intent-runtime)
 [![Node.js >=20](https://img.shields.io/badge/node-%3E%3D20-339933)](https://nodejs.org/)
@@ -172,7 +174,7 @@ Already have a registration from an automatic setup? Follow the [safe registrati
 
 ## Documentation
 
-The full documentation is currently in Chinese:
+The full documentation is available in English by default, with an equivalent [Simplified Chinese edition](https://devcodex-labs.github.io/intent-runtime/zh/):
 
 - [Quick start](https://devcodex-labs.github.io/intent-runtime/guide/quick-start.html) and [configuration](https://devcodex-labs.github.io/intent-runtime/guide/configuration.html)
 - [Complete response reference](https://devcodex-labs.github.io/intent-runtime/api/response.html) and [multi-turn requests](https://devcodex-labs.github.io/intent-runtime/guide/multi-turn.html)

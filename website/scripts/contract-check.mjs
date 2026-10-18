@@ -5,9 +5,10 @@ import {fileURLToPath} from 'node:url';
 const repo = fileURLToPath(new URL('../../', import.meta.url));
 export const normalizeText = text => text.replace(/\r\n?/g, '\n');
 export function documentationBlocks(text, kind) {
-  const value = normalizeText(text).replace(/\{\/\*\s*((?:example|typecheck|result|json)\b[^\n]*?)\s*\*\/\}/g, '<!-- $1 -->');
+  const value = normalizeText(text).replace(/\{\/\*\s*((?:example|javascript|typecheck|result|json)\b[^\n]*?)\s*\*\/\}/g, '<!-- $1 -->');
   const patterns = {
     example: /<!-- example: ([\w/.-]+) -->\s*```(?:js|ts)\n([\s\S]*?)\n```/g,
+    javascript: /<!-- javascript: ([\w/.-]+) -->\s*```js\n([\s\S]*?)\n```/g,
     typecheck: /<!-- typecheck -->\s*```ts\n([\s\S]*?)\n```/g,
     result: /<!-- result: ([\w-]+) -->\s*```json\n([\s\S]*?)\n```/g,
     json: /<!-- json: ([\w-]+) -->\s*```json\n([\s\S]*?)\n```/g,
@@ -47,7 +48,7 @@ export function checkResponseFields(source, markdown) {
     IntentSuggestion: 'suggestions[]', SourceEvidence: 'evidence[]', IntentDiagnostics: 'diagnostics',
   };
   const rows = new Map();
-  for (const line of markdown.split('\n').filter(l => l.startsWith('| '))) {
+  for (const line of normalizeText(markdown).split('\n').filter(l => l.startsWith('| '))) {
     const cells = line.slice(1, -1).split('|').map(s => s.trim().replace(/`/g, ''));
     if (cells.length === 4) rows.set(cells[0], cells);
   }

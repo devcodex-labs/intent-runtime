@@ -1,0 +1,115 @@
+{
+  "schemaVersion": "2.0-draft.6",
+  "input": "Adopt the third proposal, but the proposal list is not supplied. Do not modify code yet.",
+  "status": "partial",
+  "turn": {
+    "kind": "request",
+    "normalizedInput": "Adopt the third proposal, but the proposal list is not supplied. Do not modify code yet.",
+    "intentIds": [
+      "intent-10"
+    ],
+    "changes": [
+      {
+        "operation": "add",
+        "target": {
+          "kind": "intent",
+          "id": "intent-10"
+        },
+        "description": "Add the explicit request from this turn",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ],
+        "effect": "applied"
+      },
+      {
+        "operation": "add",
+        "target": {
+          "kind": "constraint",
+          "id": "constraint-9"
+        },
+        "description": "Add the explicit request from this turn",
+        "sourceRefs": [
+          {
+            "root": "input",
+            "pointer": ""
+          }
+        ],
+        "effect": "applied"
+      }
+    ],
+    "facts": {}
+  },
+  "effective": {
+    "schemaVersion": "2.0-draft.6",
+    "coverage": "partial",
+    "scope": "current_request",
+    "intents": [
+      {
+        "id": "intent-10",
+        "domain": null,
+        "action": "Adopt",
+        "target": "the third proposal",
+        "goal": "Adopt the third proposal",
+        "understanding": "ambiguous",
+        "constraints": [],
+        "inputs": {},
+        "references": [
+          {
+            "id": "reference-1",
+            "kind": "entity",
+            "ref": null,
+            "resolved": false,
+            "description": "The third proposal in a list that was not supplied",
+            "sourceRefs": [
+              {
+                "root": "input",
+                "pointer": ""
+              }
+            ]
+          }
+        ],
+        "children": [],
+        "extensions": {}
+      }
+    ],
+    "constraints": [
+      {
+        "id": "constraint-9",
+        "kind": "prohibition",
+        "text": "Do not modify code yet",
+        "scope": {
+          "type": "global"
+        }
+      }
+    ],
+    "relations": [],
+    "unresolved": [
+      "The proposal list was not supplied, so the third proposal cannot be identified."
+    ]
+  },
+  "fieldResults": [],
+  "issues": [
+    {
+      "id": "issue-proposal",
+      "code": "AMBIGUOUS_REFERENCE",
+      "category": "ambiguity",
+      "message": "The proposal list was not supplied, so the third proposal cannot be identified.",
+      "intentId": "intent-10",
+      "sourceRefs": [
+        {
+          "root": "input",
+          "pointer": ""
+        }
+      ],
+      "questions": [
+        {
+          "question": "Please provide the content of the third proposal."
+        }
+      ]
+    }
+  ],
+  "inferences": []
+}

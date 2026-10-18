@@ -1,0 +1,125 @@
+{
+  "slug": "fact-query",
+  "title": "Supply the previous fact explicitly for a lookup",
+  "config": {
+    "language": "en",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        }
+      }
+    }
+  },
+  "request": {
+    "input": "Look up this order. Do not cancel the order.",
+    "fields": [
+      "orderId"
+    ],
+    "context": {
+      "previousFacts": {
+        "orderId": "000123"
+      }
+    }
+  },
+  "result": {
+    "schemaVersion": "2.0-draft.6",
+    "input": "Look up this order. Do not cancel the order.",
+    "status": "complete",
+    "turn": {
+      "kind": "request",
+      "normalizedInput": "Look up this order. Do not cancel the order.",
+      "intentIds": [
+        "intent-9"
+      ],
+      "changes": [
+        {
+          "operation": "add",
+          "target": {
+            "kind": "intent",
+            "id": "intent-9"
+          },
+          "description": "Add the explicit request from this turn",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        },
+        {
+          "operation": "add",
+          "target": {
+            "kind": "constraint",
+            "id": "constraint-8"
+          },
+          "description": "Add the explicit request from this turn",
+          "sourceRefs": [
+            {
+              "root": "input",
+              "pointer": ""
+            }
+          ],
+          "effect": "applied"
+        }
+      ],
+      "facts": {}
+    },
+    "effective": {
+      "schemaVersion": "2.0-draft.6",
+      "coverage": "complete",
+      "scope": "provided_materials",
+      "intents": [
+        {
+          "id": "intent-9",
+          "domain": null,
+          "action": "Look up",
+          "target": "order 000123",
+          "goal": "Look up order 000123",
+          "understanding": "clear",
+          "constraints": [
+            {
+              "id": "constraint-8",
+              "kind": "prohibition",
+              "text": "Do not cancel the order",
+              "scope": {
+                "type": "intent",
+                "intentId": "intent-9"
+              }
+            }
+          ],
+          "inputs": {
+            "orderId": "000123"
+          },
+          "references": [],
+          "children": [],
+          "extensions": {}
+        }
+      ],
+      "constraints": [],
+      "relations": [],
+      "unresolved": []
+    },
+    "fieldResults": [
+      {
+        "container": "inputs",
+        "intentId": "intent-9",
+        "field": "orderId",
+        "path": "/orderId",
+        "status": "present",
+        "trigger": "selection",
+        "sourceRefs": [
+          {
+            "root": "context",
+            "pointer": "/previousFacts/orderId"
+          }
+        ]
+      }
+    ],
+    "issues": [],
+    "inferences": []
+  }
+}
