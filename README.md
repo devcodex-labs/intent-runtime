@@ -143,7 +143,9 @@ npx --no-install intent-runtime-mcp --config /absolute/path/intent.host.config.m
 
 Connect the client to `http://127.0.0.1:3001/mcp`. Change the listener with `--host`, `--port`, and `--path`. Set `--public-origin https://mcp.example.com` when using a public domain or HTTPS proxy; wildcard listeners require an explicit public origin. See the [remote deployment example](https://devcodex-labs.github.io/intent-runtime/integrations/mcp.html#远程地址与-https-代理). HTTP supports the stateful MCP 2025-06-18 and 2025-11-25 protocols; stdio also supports 2026-07-28. Authentication and HTTPS belong to your deployment layer.
 
-Ask your client to use the intent tools to identify the goal and prohibition in the example request. It should use `intent_prepare`, produce a candidate with its current model, and submit it through `intent_accept` in the same session. The tools do not automatically process every chat message. See [MCP client configuration and usage](https://devcodex-labs.github.io/intent-runtime/integrations/mcp.html).
+Host mode exposes `intent_runtime_prepare`, `intent_runtime_accept`, and `intent_runtime_cancel` by default; executor mode exposes `intent_runtime_parse`. Embedded adapters use the same names, so ordinary integrations need no `toolPrefix`. Multiple instances share the tool set and use `instance` for selection. An optional extra prefix such as `orders_` produces `orders_intent_runtime_prepare`; merged tool names must still be unique.
+
+Ask your client to use the intent tools to identify the goal and prohibition in the example request. It should use `intent_runtime_prepare`, produce a candidate with its current model, and submit it through `intent_runtime_accept` in the same session. The tools do not automatically process every chat message. See [MCP client configuration and usage](https://devcodex-labs.github.io/intent-runtime/integrations/mcp.html).
 
 For an existing MCP server, start with the [four integration changes](https://devcodex-labs.github.io/intent-runtime/integrations/mcp-sdk.html); keep your existing transport, resources, prompts, and tool handlers.
 

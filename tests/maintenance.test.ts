@@ -5,6 +5,7 @@ import path from 'node:path';
 import {maintain, type MaintenanceOptions} from '../src/cli/maintenance.js';
 import {tableRange} from '../src/cli/toml.js';
 import {spawnSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 
 async function fixture() {
   const root = await mkdtemp(path.join(process.env.INTENT_TEST_DIR!, 'maintenance-')); process.env.HOME = root; process.env.USERPROFILE = root; process.env.CODEX_HOME = path.join(root, 'codex'); process.env.INTENT_RUNTIME_HOME = path.join(root, 'state');
@@ -16,6 +17,9 @@ async function fixture() {
 test('Explicit setup, repeat setup, read-only doctor and clean preserve user TOML, config and unrelated tools', async () => {
   const f = await fixture(), original = '# 用户注释\r\nmodel = "gpt-test"\r\n[mcp_servers.other]\r\ncommand = "other"\r\n'; await writeFile(f.codex, original);
   const first = await maintain(f.options); assert.equal(first.exitCode, 0, JSON.stringify(first.report)); assert(first.report.changed);
+  const skill = await readFile(f.skill, 'utf8');
+  for (const name of ['intent_runtime_prepare', 'intent_runtime_accept', 'intent_runtime_cancel']) assert(skill.includes(name));
+  assert(skill.includes('toolPrefix'));
   const content = await readFile(f.codex, 'utf8'); assert(content.startsWith(original)); assert(!content.replace(/\r\n/g, '').includes('\n'));
   const repeat = await maintain(f.options); assert.equal(repeat.exitCode, 0); assert.equal(repeat.report.changed, false); assert.equal(await readFile(f.codex, 'utf8'), content);
   const doctor = await maintain({...f.options, command: 'doctor', config: undefined} as any); assert.equal(doctor.exitCode, 0); assert.equal(doctor.report.changed, false);
@@ -28,6 +32,26 @@ test('Dry-run does not execute a trusted module or create the registration/state
   await writeFile(f.config, `import {writeFileSync} from 'node:fs'; writeFileSync(${JSON.stringify(marker)}, 'executed'); export default {mode:'host',instances:{main:{}}};`);
   const r = await maintain({...f.options, dryRun: true}); assert.equal(r.exitCode, 0); assert.equal(r.report.status, 'planned'); assert.equal(r.report.changed, false);
   for (const file of [marker, f.codex, f.registry, f.skill]) await assert.rejects(access(file));
+});
+
+test('Repeat setup refreshes an unmodified owned Skill after package tool names change', async () => {
+  const f = await fixture(); assert.equal((await maintain(f.options)).exitCode, 0);
+  const expected = await readFile(f.skill, 'utf8'), configBefore = await readFile(f.codex, 'utf8');
+  // Reproduce a previously installed, unmodified managed Skill and its own
+  // ownership record. User edits must still follow the protection tests below.
+  const previous = expected.replaceAll('intent_runtime_', 'intent_');
+  const state = JSON.parse(await readFile(f.registry, 'utf8'));
+  state['intent-runtime'].skillText = previous;
+  state['intent-runtime'].skillHash = createHash('sha256').update(previous).digest('hex');
+  await writeFile(f.registry, JSON.stringify(state)); await writeFile(f.skill, previous);
+  try {
+    const updated = await maintain(f.options); assert.equal(updated.exitCode, 0); assert.equal(updated.report.changed, true);
+    assert.equal(await readFile(f.skill, 'utf8'), expected); assert.equal(await readFile(f.codex, 'utf8'), configBefore);
+    const next = JSON.parse(await readFile(f.registry, 'utf8'))['intent-runtime'];
+    assert.equal(next.skillText, expected); assert.equal(next.skillHash, createHash('sha256').update(expected).digest('hex'));
+    assert.equal((await maintain(f.options)).report.changed, false);
+    assert.equal((await maintain({...f.options, command: 'doctor', config: undefined} as any)).exitCode, 0);
+  } finally {await maintain({...f.options, command: 'clean', config: undefined} as any);}
 });
 
 test('An old same-name registration stays protected until backed up and explicitly removed', async () => {

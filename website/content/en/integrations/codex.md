@@ -41,7 +41,7 @@ macOS/Linux:
 intent-runtime setup --host codex --config "$PWD/intent.host.config.js"
 ```
 
-setup registers user-level MCP and installs the Skill in host mode. Reload configuration as required by your client; start a new CLI session. You should discover intent_prepare, intent_accept, and intent_cancel. Ordinary npm installation does not change client configuration.
+setup registers user-level MCP and installs the Skill in host mode. Reload configuration as required by your client; start a new CLI session. You should discover intent_runtime_prepare, intent_runtime_accept, and intent_runtime_cancel. Ordinary npm installation does not change client configuration.
 
 <span id="3-发起识别" aria-hidden="true"></span>
 
@@ -103,7 +103,7 @@ intent-runtime doctor --host codex
 |---|---|
 | Command missing | Global npm bin on client PATH; use an absolute executable path if needed, including .cmd where supported |
 | Configuration fails to load | Absolute .js/.mjs path; type=module for .js; local dependencies in its project |
-| Only intent_parse appears | Check executor versus host mode and reload the client |
+| Only intent_runtime_parse appears | Check executor versus host mode and reload the client |
 | Model never completes a candidate | End recognition; do not treat ordinary chat as a final Result |
 | HOST_REQUEST_NOT_FOUND | Session change/restart; prepare again with complete material |
 

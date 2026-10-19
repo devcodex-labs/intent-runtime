@@ -3,7 +3,7 @@
   "id": 1,
   "method": "tools/call",
   "params": {
-    "name": "intent_parse",
+    "name": "intent_runtime_parse",
     "arguments": {
       "input": "Look up order 000123. Do not cancel the order."
     }

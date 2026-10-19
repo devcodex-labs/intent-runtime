@@ -6,8 +6,8 @@
 
 | 模型来源 | 适用情况 | 提供的工具 |
 |---|---|---|
-| host：当前客户端模型 | 希望复用宿主模型，不配置另一套 Key | intent_prepare / intent_accept / intent_cancel |
-| executor：服务所配模型 | 服务端已有模型 API / 网关 | intent_parse |
+| host：当前客户端模型 | 希望复用宿主模型，不配置另一套 Key | intent_runtime_prepare / intent_runtime_accept / intent_runtime_cancel |
+| executor：服务所配模型 | 服务端已有模型 API / 网关 | intent_runtime_parse |
 
 | 连接方式 | 你提供什么 | 谁管理连接 |
 |---|---|---|
@@ -86,7 +86,7 @@ npx --no-install intent-runtime-mcp --config /absolute/path/my-service/intent.ho
 |---|---|---|
 | mode | executor或host / executor | 可信服务配置，不由工具参数切换 |
 | instances | Record&lt;string, IntentConfig&gt; / 必填 | 非空配置映射；CLI创建并拥有Intent |
-| toolPrefix | string / 空 | 加在所有工具名前；最终名称≤128字符 |
+| toolPrefix | string / 空 | 可省略；加在完整的 intent_runtime_* 名称前，例如 orders_intent_runtime_prepare；最终名称≤128字符 |
 
 executor实例要配置[模型执行器](/zh/integrations/api)，host无需executor。支持--help/--version；无效参数退出2，加载/启动失败退出1，正常EOF或SIGINT/SIGTERM退出0。stdout仅传MCP，日志用stderr。
 
@@ -182,18 +182,18 @@ export default {mode: 'executor', instances: {main: {language: 'zh-CN', executor
 
 连接支持工具调用的 AI 客户端后，提出：“请使用 intent-runtime 识别‘查询订单000123，不取消订单’，提取订单号，展示查询目标和禁止事项，不执行订单操作。”
 
-host 模式应列出 intent_prepare、intent_accept、intent_cancel。它需要客户端模型完成交接；只支持列工具的客户端不会自动完成识别。工具参数与调用顺序见[宿主交接](/zh/api/mcp#宿主交接)。Codex 的 setup 会安装对应 Skill。
+host 模式应列出 intent_runtime_prepare、intent_runtime_accept、intent_runtime_cancel。它需要客户端模型完成交接；只支持列工具的客户端不会自动完成识别。工具参数与调用顺序见[宿主交接](/zh/api/mcp#宿主交接)。Codex 的 setup 会安装对应 Skill。
 
 executor 模式可直接调用：
 
 ```json
 {
-  "name": "intent_parse",
+  "name": "intent_runtime_parse",
   "arguments": {"input": "查询订单000123，不取消订单"}
 }
 ```
 
-executor模式应列出intent_parse：传入input“查询订单000123，不取消订单”，无Schema时不选字段。structuredContent中的结果应保留查询目标和禁止事项，随后按[读取结果](/zh/guide/results)消费。host不额外调用API，executor使用服务所配模型。
+executor模式应列出intent_runtime_parse：传入input“查询订单000123，不取消订单”，无Schema时不选字段。structuredContent中的结果应保留查询目标和禁止事项，随后按[读取结果](/zh/guide/results)消费。host不额外调用API，executor使用服务所配模型。
 
 | 现象 | 下一步 |
 |---|---|
@@ -210,10 +210,11 @@ executor模式应列出intent_parse：传入input“查询订单000123，不取�
 
 <a id="adapter-api"></a>
 <a id="intent_parse"></a>
+<a id="intent_runtime_parse"></a>
 <a id="成功与错误信封"></a>
 <a id="协议与远程调用"></a>
 <a id="完整-executor-回复"></a>
 
 ## 参数与协议参考
 
-查阅[Adapter API](/zh/api/mcp#adapter-api)、[工具请求](/zh/api/mcp#intent_parse)、[成功与错误信封](/zh/api/mcp#成功与错误信封)、[协议与会话](/zh/api/mcp#协议与远程调用)和[完整回复下载](/zh/api/mcp#完整-executor-回复)。
+查阅[Adapter API](/zh/api/mcp#adapter-api)、[工具请求](/zh/api/mcp#intent_runtime_parse)、[成功与错误信封](/zh/api/mcp#成功与错误信封)、[协议与会话](/zh/api/mcp#协议与远程调用)和[完整回复下载](/zh/api/mcp#完整-executor-回复)。

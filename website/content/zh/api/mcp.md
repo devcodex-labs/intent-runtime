@@ -19,12 +19,14 @@ session.close(): Promise<void>
 |---|---|---|
 | config.mode | executor或host / executor | executor要求每实例已有执行器 |
 | config.instances | Record&lt;string, Intent&gt; / 必填 | 非空、调用方创建的实例；不是独立服务的配置对象 |
-| config.toolPrefix | string / 空 | 避免覆盖原工具；注册前检查同名冲突 |
+| config.toolPrefix | string / 空 | 可选，添加到完整默认工具名之前；注册前检查同名冲突 |
 | connect.protocolVersion | 声明版本 / 必填 | 由SDK协商结果提供，不能取自input/context |
 | callTool.args.instance | string / 单实例自动选择 | 多实例必须明确指定；不猜default |
 | callTool.options.signal | AbortSignal / 可省略 | 协议层取消，不放进工具JSON |
 
-实例名为1～64字符 `[A-Za-z0-9_.-]`，禁止__proto__/prototype/constructor；前缀同字符集，可空。非法连接配置报CONFIG_INVALID/transport。已dispose实例不可用于新的识别。
+默认工具名自带 `intent_runtime_`：host 为 `intent_runtime_prepare`、`intent_runtime_accept`、`intent_runtime_cancel`，executor 为 `intent_runtime_parse`。常规接入无需设置 toolPrefix；设置 `toolPrefix: 'orders_'` 后，例如得到 `orders_intent_runtime_prepare`。本页工具表使用默认名称。独立 stdio、HTTP 和已有服务内的 adapter 使用相同命名规则。
+
+实例名为1～64字符 `[A-Za-z0-9_.-]`，禁止__proto__/prototype/constructor；前缀同字符集，可空。每个完整工具名最多128字符，因此 host 前缀最多106字符，executor 前缀最多108字符。多实例共享一组工具，通过 instance 选择，不为每个实例生成另一组名称。非法连接配置报CONFIG_INVALID/transport。已dispose实例不可用于新的识别。
 
 未知tool精确返回undefined，交原路由。session.close结束所属识别和保留记录；adapter.close关闭自有sessions。二者不dispose调用方Intent，不关闭外部SDK、transport或共享模型。逻辑连接结束时再close，不为host的每个工具调用重建session；多客户端/租户不要共用一个session。
 
@@ -32,17 +34,19 @@ session.close(): Promise<void>
 
 | 工具 | 输入 | 成功返回 |
 |---|---|---|
-| intent_prepare | Native请求加可选instance | HostTask：kind=model_task、requestId、submissionToken、instructions、input、outputSchema |
-| intent_accept | requestId、submissionToken、完整candidateText字符串 | IntentResult |
-| intent_cancel | requestId，可选reason=cancelled/refusal/incomplete | requestId、status=cancelled/already_cancelled/already_completed |
+| intent_runtime_prepare | Native请求加可选instance | HostTask：kind=model_task、requestId、submissionToken、instructions、input、outputSchema |
+| intent_runtime_accept | requestId、submissionToken、完整candidateText字符串 | IntentResult |
+| intent_runtime_cancel | requestId，可选reason=cancelled/refusal/incomplete | requestId、status=cancelled/already_cancelled/already_completed |
 
 当前模型按HostTask材料和outputSchema生成候选，不按最终Result猜格式。服务端不另调模型。随包Skill对可纠正格式错误按明确反馈最多纠正一次；信息缺失或字段无法判断不触发格式纠正。无法完成时cancel，拒绝/截断分别用refusal/incomplete。
 
 相同token和逐字相同候选并发共享校验；完成回复仍保留时可重放。不同候选冲突。显式纠正不重置校验预算。默认无识别期限；显式timeout从prepare开始。终态回复每adapter最多32项/8MiB，session关闭、进程重启或记录回收后需重新prepare。这些记录不替应用持久保存需求或对话。
 
-## intent_parse
+<a id="intent_parse"></a>
 
-executor模式只暴露intent_parse。输入为Native的input、fields、context、baseline、referenceTime、output，加instance。默认值和错误见[Native参考](/zh/api/intent)。schema、executor、apiKey、signal、配置路径与mode不能由MCP调用者传入。
+## intent_runtime_parse
+
+executor模式只暴露intent_runtime_parse。输入为Native的input、fields、context、baseline、referenceTime、output，加instance。默认值和错误见[Native参考](/zh/api/intent)。schema、executor、apiKey、signal、配置路径与mode不能由MCP调用者传入。
 
 单实例 main 可以省略 instance。完成 SDK 协商后，标准 tools/call 请求例如：
 
@@ -53,7 +57,7 @@ executor模式只暴露intent_parse。输入为Native的input、fields、context
   "id": 1,
   "method": "tools/call",
   "params": {
-    "name": "intent_parse",
+    "name": "intent_runtime_parse",
     "arguments": {
       "input": "查询订单000123，不要取消订单"
     }

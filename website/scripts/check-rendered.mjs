@@ -41,11 +41,12 @@ export function assertLocaleMetadata(headLinks, name, locale) {
     assert.equal(new URL(links[0].href).href.replace(/\/index\.html$/, '/'), url(lang).replace(/\/index\.html$/, '/'), 'Incorrect locale alternate URL: ' + name + ':' + lang);
   }
 }
-export function assertPage(html, {home = false, response = false, locale = 'en'} = {}) {
+export function assertPage(html, {home = false, response = false, mcpReference = false, locale = 'en'} = {}) {
   const result = inspectHtml(html);
   assert(!leakedSyntax.test(result.visibleText), 'Visible raw import/JSX expression');
   assert(!/\bimport\s*\{[^}]+\}\s*from\s*['"][^'"]+['"]/.test(result.visibleText), 'Visible raw import statement; interactive pages must use MDX');
   if (home) assert.equal(result.h1, 1, 'Homepage must contain exactly one H1');
+  if (mcpReference) for (const id of ['intent_parse', 'intent_runtime_parse']) assert(result.ids.has(id), 'Missing stable MCP fragment: #' + id);
   if (response) for (const href of downloadsByLocale[locale]) {
     // Rspress 2.0.23 intercepts same-window links even with download. A separate
     // target bypasses its SPA navigation; the browser honors download first.
@@ -70,7 +71,7 @@ export async function checkRendered(root) {
   for (const file of files.filter(file => file.endsWith('.html'))) {
     const name = relative(file);
     const locale = name.startsWith('zh/') ? 'zh' : 'en';
-    pages.set(name, assertPage(await readFile(file, 'utf8'), {home: /^(?:zh\/)?index\.html$/.test(name), response: /^(?:zh\/)?api\/response\.html$/.test(name), locale}));
+    pages.set(name, assertPage(await readFile(file, 'utf8'), {home: /^(?:zh\/)?index\.html$/.test(name), response: /^(?:zh\/)?api\/response\.html$/.test(name), mcpReference: /^(?:zh\/)?(?:api|integrations)\/mcp\.html$/.test(name), locale}));
     if (name !== '404.html') {
       assert.equal(pages.get(name).lang, locale, 'Incorrect page language: ' + name);
       assertLocaleMetadata(pages.get(name).headLinks, name, locale);

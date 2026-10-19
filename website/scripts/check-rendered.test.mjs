@@ -73,3 +73,11 @@ test('reject duplicate canonical declarations', () => {
 test('duplicate IDs cannot hide behind the rendered anchor inventory', () => {
   assert.throws(() => inspectHtml('<span id="same"></span><h2 id="same">B</h2>'), /Duplicate rendered ID/);
 });
+
+test('MCP references preserve published and current tool fragments', () => {
+  assertPage('<span id="intent_parse"></span><h2 id="intent_runtime_parse">Tool input</h2>', {mcpReference: true});
+});
+for (const missing of ['intent_parse', 'intent_runtime_parse']) test('reject MCP reference missing fragment #' + missing, () => {
+  const retained = missing === 'intent_parse' ? 'intent_runtime_parse' : 'intent_parse';
+  assert.throws(() => assertPage('<h2 id="' + retained + '">Tool input</h2>', {mcpReference: true}), {message: 'Missing stable MCP fragment: #' + missing});
+});

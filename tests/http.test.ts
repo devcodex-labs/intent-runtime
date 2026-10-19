@@ -7,22 +7,49 @@ import type {HostTask} from '../src/mcp/index.js';
 import {request} from 'node:http';
 import {publicOrigin} from '../src/mcp/http-origin.js';
 
+for (const mode of ['host', 'executor'] as const) test('HTTP SDK routes complete names with an additional prefix: ' + mode, async () => {
+  const d = draft(); d.observations = [observation('orderId', '000123')];
+  let calls = 0;
+  const service = await startHttp({mode, toolPrefix: 'orders_', instances: {main: {
+    schema: {type: 'object', properties: {orderId: {type: 'string'}}},
+    executor: {id: 'http-names-language', async generate() {calls++; return {outcome: 'complete', text: JSON.stringify(d)};}},
+  }}}, {host: '127.0.0.1', port: 0, path: '/mcp'});
+  const client = new Client({name: 'http-prefixed-tools', version: '1.0.0'}, {supportedProtocolVersions: ['2025-11-25'], versionNegotiation: {mode: 'legacy'}});
+  try {
+    await client.connect(new StreamableHTTPClientTransport(new URL(service.url)));
+    const expected = mode === 'host' ? ['orders_intent_runtime_prepare', 'orders_intent_runtime_accept', 'orders_intent_runtime_cancel'] : ['orders_intent_runtime_parse'];
+    assert.deepEqual((await client.listTools()).tools.map(tool => tool.name), expected);
+    await assert.rejects(client.callTool({name: mode === 'host' ? 'intent_runtime_prepare' : 'intent_runtime_parse', arguments: {input: 'query'}}), {code: -32602});
+    const first = await client.callTool({name: expected[0]!, arguments: {input: 'query order 000123', fields: ['orderId']}});
+    assert.equal(first.isError, false);
+    const task = first.structuredContent as unknown as HostTask;
+    const result = mode === 'executor' ? first : await client.callTool({name: 'orders_intent_runtime_accept', arguments: {requestId: task.requestId, submissionToken: task.submissionToken, candidateText: JSON.stringify(d)}});
+    assert.equal(result.isError, false); assert.equal((result.structuredContent as any).effective.intents[0].inputs.orderId, '000123');
+    assert.equal(calls, mode === 'host' ? 0 : 1);
+    if (mode === 'host') {
+      const pending = await client.callTool({name: expected[0]!, arguments: {input: 'stop'}});
+      const cancelled = await client.callTool({name: 'orders_intent_runtime_cancel', arguments: {requestId: (pending.structuredContent as unknown as HostTask).requestId}});
+      assert.equal((cancelled.structuredContent as {status: string}).status, 'cancelled');
+    }
+  } finally {await client.close(); await service.close();}
+});
+
 for (const version of ['2025-06-18', '2025-11-25'] as const) test('HTTP SDK host keeps each client session through real prepare/accept: ' + version, async () => {
   const service = await startHttp({mode: 'host', instances: {orders: {schema: {type: 'object', properties: {orderId: {type: 'string'}}}}}}, {host: '127.0.0.1', port: 0, path: '/mcp'});
   const clients = [0, 1].map(() => new Client({name: 'http-integration', version: '1.0.0'}, {supportedProtocolVersions: [version], versionNegotiation: {mode: 'legacy'}}));
   const transports = clients.map(() => new StreamableHTTPClientTransport(new URL(service.url)));
   try {
     await Promise.all(clients.map((client, i) => client.connect(transports[i]!)));
-    assert.deepEqual((await clients[0]!.listTools()).tools.map(t => t.name), ['intent_prepare', 'intent_accept', 'intent_cancel']);
-    const prepared = await clients[0]!.callTool({name: 'intent_prepare', arguments: {input: 'query order 000123', fields: ['orderId']}});
+    assert.deepEqual((await clients[0]!.listTools()).tools.map(t => t.name), ['intent_runtime_prepare', 'intent_runtime_accept', 'intent_runtime_cancel']);
+    const prepared = await clients[0]!.callTool({name: 'intent_runtime_prepare', arguments: {input: 'query order 000123', fields: ['orderId']}});
     assert.equal(prepared.isError, false); const task = prepared.structuredContent as unknown as HostTask;
     const d = draft(); d.observations = [observation('orderId', '000123')];
     const args = {requestId: task.requestId, submissionToken: task.submissionToken, candidateText: JSON.stringify(d)};
-    const foreign = await clients[1]!.callTool({name: 'intent_accept', arguments: args}); assert.equal(foreign.isError, true);
-    const result = await clients[0]!.callTool({name: 'intent_accept', arguments: args});
+    const foreign = await clients[1]!.callTool({name: 'intent_runtime_accept', arguments: args}); assert.equal(foreign.isError, true);
+    const result = await clients[0]!.callTool({name: 'intent_runtime_accept', arguments: args});
     assert.equal(result.isError, false); assert.equal((result.structuredContent as any).effective.intents[0].inputs.orderId, '000123');
-    const pending = await clients[0]!.callTool({name: 'intent_prepare', arguments: {input: 'query order 000123'}});
-    const cancelled = await clients[0]!.callTool({name: 'intent_cancel', arguments: {requestId: (pending.structuredContent as unknown as HostTask).requestId}});
+    const pending = await clients[0]!.callTool({name: 'intent_runtime_prepare', arguments: {input: 'query order 000123'}});
+    const cancelled = await clients[0]!.callTool({name: 'intent_runtime_cancel', arguments: {requestId: (pending.structuredContent as unknown as HostTask).requestId}});
     assert.equal((cancelled.structuredContent as {status: string}).status, 'cancelled');
     assert.equal((await fetch(service.url, {method: 'POST', headers: {origin: 'https://other.example'}})).status, 403);
     assert.equal((await fetch(service.url, {method: 'POST', headers: {'mcp-session-id': 'unknown'}})).status, 404);

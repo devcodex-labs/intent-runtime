@@ -18,7 +18,7 @@ export async function verifyMcpCoexistence({Intent, attachIntentTools, candidate
     id: 'coexistence-language-candidate', async generate() {generated++; return {outcome: 'complete', text: JSON.stringify(candidate)};},
   }});
   const connection = {protocolVersion: '2025-11-25'};
-  const config = {mode: 'host', instances: {orders: intent}, toolPrefix: 'ir_'};
+  const config = {mode: 'host', instances: {orders: intent}};
   let attached;
   async function rejectsAttachment(expected) {
     let unexpected;
@@ -30,17 +30,17 @@ export async function verifyMcpCoexistence({Intent, attachIntentTools, candidate
     await rejectsAttachment(/Duplicate MCP tool name: cg_lookup/);
     checks.push('duplicate original tool names rejected before attachment');
 
-    tools = [definition('ir_intent_prepare')];
-    await rejectsAttachment(/Duplicate MCP tool name: ir_intent_prepare/);
+    tools = [definition('intent_runtime_prepare')];
+    await rejectsAttachment(/Duplicate MCP tool name: intent_runtime_prepare/);
     const renamed = await attachIntentTools(original, {...config, toolPrefix: 'ir2_'}, connection);
-    try {assert.deepEqual((await renamed.listTools()).map(tool => tool.name), ['ir_intent_prepare', 'ir2_intent_prepare', 'ir2_intent_accept', 'ir2_intent_cancel']);}
+    try {assert.deepEqual((await renamed.listTools()).map(tool => tool.name), ['intent_runtime_prepare', 'ir2_intent_runtime_prepare', 'ir2_intent_runtime_accept', 'ir2_intent_runtime_cancel']);}
     finally {await renamed.close();}
     checks.push('cross-module collision rejected; a distinct prefix resolves it');
 
     tools = [definition('cg_lookup'), definition('ping')];
     attached = await attachIntentTools(original, config, connection);
     const merged = await attached.listTools();
-    assert.deepEqual(merged.map(tool => tool.name), ['cg_lookup', 'ping', 'ir_intent_prepare', 'ir_intent_accept', 'ir_intent_cancel']);
+    assert.deepEqual(merged.map(tool => tool.name), ['cg_lookup', 'ping', 'intent_runtime_prepare', 'intent_runtime_accept', 'intent_runtime_cancel']);
     assert.deepEqual(merged.slice(0, 2), tools);
     assert.equal(tools.length, 2);
     checks.push('existing descriptors preserved in one merged tool list');
@@ -48,20 +48,20 @@ export async function verifyMcpCoexistence({Intent, attachIntentTools, candidate
     const args = {query: 'provided material'}, options = {signal: new AbortController().signal};
     assert.equal((await attached.callTool('cg_lookup', args, options)).content[0].text, 'Existing handler: cg_lookup');
     assert.equal(calls.at(-1).args, args); assert.equal(calls.at(-1).options, options);
-    tools.push(definition('ir_intent_prepare_extra'));
-    await attached.callTool('ir_intent_prepare_extra', args, options);
-    assert.equal(calls.at(-1).name, 'ir_intent_prepare_extra');
+    tools.push(definition('intent_runtime_prepare_extra'));
+    await attached.callTool('intent_runtime_prepare_extra', args, options);
+    assert.equal(calls.at(-1).name, 'intent_runtime_prepare_extra');
     checks.push('unmatched and similar-prefix names retain original arguments and routing');
 
     const previousCalls = calls.length;
-    const prepared = await attached.callTool('ir_intent_prepare', {input: 'Query order 000123', fields: ['orderId']});
+    const prepared = await attached.callTool('intent_runtime_prepare', {input: 'Query order 000123', fields: ['orderId']});
     assert.equal(prepared.isError, false);
     const {requestId, submissionToken} = prepared.structuredContent;
-    const accepted = await attached.callTool('ir_intent_accept', {requestId, submissionToken, candidateText: JSON.stringify(candidate)});
+    const accepted = await attached.callTool('intent_runtime_accept', {requestId, submissionToken, candidateText: JSON.stringify(candidate)});
     assert.equal(accepted.isError, false);
     assert.equal(accepted.structuredContent.effective.intents[0].inputs.orderId, '000123');
     assert.equal(generated, 0); assert.equal(calls.length, previousCalls);
-    assert.equal((await attached.callTool('ir_intent_accept', {})).isError, true);
+    assert.equal((await attached.callTool('intent_runtime_accept', {})).isError, true);
     assert.equal(calls.length, previousCalls);
     checks.push('host handoff validates real fields; matched failures never fall through');
 
@@ -70,10 +70,10 @@ export async function verifyMcpCoexistence({Intent, attachIntentTools, candidate
     await assert.rejects(attached.callTool('unknown_tool', {}), error => error === originalError);
     checks.push('existing failures and unknown-tool policy remain with the original handler');
 
-    tools.push(definition('ir_intent_cancel'));
-    await assert.rejects(attached.listTools(), /Duplicate MCP tool name: ir_intent_cancel/);
+    tools.push(definition('intent_runtime_cancel'));
+    await assert.rejects(attached.listTools(), /Duplicate MCP tool name: intent_runtime_cancel/);
     const beforeCollisionCall = calls.length;
-    await assert.rejects(attached.callTool('cg_lookup', {}), /Duplicate MCP tool name: ir_intent_cancel/);
+    await assert.rejects(attached.callTool('cg_lookup', {}), /Duplicate MCP tool name: intent_runtime_cancel/);
     assert.equal(calls.length, beforeCollisionCall);
     tools.pop();
     tools.push(definition('cg_lookup'));
@@ -89,10 +89,10 @@ export async function verifyMcpCoexistence({Intent, attachIntentTools, candidate
     assert.equal((await intent.parse({input: 'Query order 000123', fields: ['orderId']})).effective.intents[0].inputs.orderId, '000123');
     const executor = await attachIntentTools(original, {...config, mode: 'executor'}, connection);
     try {
-      assert((await executor.listTools()).some(tool => tool.name === 'ir_intent_parse'));
+      assert((await executor.listTools()).some(tool => tool.name === 'intent_runtime_parse'));
       const beforeExecutorCall = calls.length;
-      assert.equal((await executor.callTool('ir_intent_parse', {input: 'Query order 000123', fields: ['orderId']})).structuredContent.effective.intents[0].inputs.orderId, '000123');
-      assert.equal((await executor.callTool('ir_intent_parse', {})).isError, true);
+      assert.equal((await executor.callTool('intent_runtime_parse', {input: 'Query order 000123', fields: ['orderId']})).structuredContent.effective.intents[0].inputs.orderId, '000123');
+      assert.equal((await executor.callTool('intent_runtime_parse', {})).isError, true);
       assert.equal(calls.length, beforeExecutorCall);
     } finally {await executor.close();}
     checks.push('closing the helper preserves caller-owned Intent; executor routing also works');

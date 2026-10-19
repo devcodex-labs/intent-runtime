@@ -15,7 +15,7 @@ npm install @devcodex/intent-runtime
 ## 在原服务里改哪几处
 
 1. 创建一个 Intent 实例及 adapter，声明需要提取的字段。
-2. 为 Intent 工具显式设置前缀，将 adapter.tools 合入原 `tools/list`，并检查最终名称是否重复。
+2. 将默认自带 intent_runtime_ 的 adapter.tools 合入原 `tools/list`，并检查最终名称是否重复。
 3. 在原 `tools/call` 路由中先交给对应 session；返回 undefined 时走原工具处理器。
 4. 连接关闭时释放 session；服务结束时释放 adapter 和你创建的 Intent。
 
@@ -29,7 +29,7 @@ const intent = new Intent({language: 'zh-CN'});
 let attached;
 const tools = () => attached ??= attachIntentTools(
   original,
-  {mode: 'host', instances: {main: intent}, toolPrefix: 'ir_'},
+  {mode: 'host', instances: {main: intent}},
   {protocolVersion: server.getNegotiatedProtocolVersion()},
 );
 
@@ -53,16 +53,18 @@ server.setRequestHandler('tools/call', async (request, context) => {
 
 本例的 `original.listTools()` 与转接对象的 `listTools()` 返回工具定义数组。定义包含 name 和 inputSchema，通常带 description，也可声明 outputSchema；其他模块的定义原样保留。SDK 处理器将数组放在 `tools/list` 的 `{tools: [...]}` 回复中，客户端从回复的 tools 读取定义，据此展示工具并组织调用；实际调用结果由 `tools/call` 返回。
 
-如果现有服务已接入 capability-graph，original.listTools 就应保留其真实工具定义，original.callTool 保留其真实处理器。模块名称不会为同一 MCP Server 的工具创建独立命名空间；**最终合并列表中的每个 name 都必须唯一**。原有工具名称和参数沿用 capability-graph 的实际 API，Intent 工具在接入配置中使用 `toolPrefix: 'ir_'`。
+如果现有服务已接入 capability-graph，original.listTools 就应保留其真实工具定义，original.callTool 保留其真实处理器。MCP 协议不会按模块自动隔离工具；本模块直接提供带 `intent_runtime_` 的默认名称，常规接入不必配置前缀。原有工具名称和参数沿用 capability-graph 的实际 API；**最终合并列表中的每个 name 都必须唯一**。
 
 | 合并后的工具 | 调用处理器 |
 |---|---|
 | capability-graph 的实际工具名及其他原有工具 | original.callTool |
-| ir_intent_prepare | 本连接 Intent session：准备宿主候选任务 |
-| ir_intent_accept | 同一 Intent session：校验候选并返回完整结果 |
-| ir_intent_cancel | 同一 Intent session：结束该次识别交接 |
+| intent_runtime_prepare | 本连接 Intent session：准备宿主候选任务 |
+| intent_runtime_accept | 同一 Intent session：校验候选并返回完整结果 |
+| intent_runtime_cancel | 同一 Intent session：结束该次识别交接 |
 
-上表是分发说明；真实 `tools/list` 返回的是完整工具定义，不是仅有名称的数组。executor 模式则加入 `ir_intent_parse`，不同时加入三个 host 工具。前缀由接入方显式配置，包的默认行为和公共 API 不变。
+上表是分发说明；真实 `tools/list` 返回的是完整工具定义，不是仅有名称的数组。executor 模式则加入 `intent_runtime_parse`，不同时加入三个 host 工具。
+
+同一 adapter 可包含多个 instances，调用时用 instance 选择，共享上表的一组工具。只有同一 Server 需要挂载多个 adapter 或已有工具恰好同名时，才额外设置 toolPrefix，例如 `toolPrefix: 'orders_'` 得到 `orders_intent_runtime_prepare`（accept/cancel 同理）。默认名称仍需检查冲突，重复挂载不会自动编号或覆盖原工具。
 
 同一个 Server 为 `tools/list`、`tools/call` 各保留一个统一入口，按完整工具名分发。不要让两个模块分别重设同一个入口。仅在 Intent session 返回 `undefined` 时转发到 original；已命中的工具即使返回 `isError=true`，也保留该错误，不尝试另一个模块。
 
@@ -73,7 +75,7 @@ server.setRequestHandler('tools/call', async (request, context) => {
 <details>
 <summary>展开两个完整文件与启动步骤</summary>
 
-下面两个完整文件保存到同一目录，运行node server.mjs。stdout只传MCP，应用日志用stderr。客户端应能发现ping和三个ir_前缀意图工具；原资源、Prompt也保持可用。
+下面两个完整文件保存到同一目录，运行node server.mjs。stdout只传MCP，应用日志用stderr。客户端应能发现ping和三个默认 intent_runtime_ 意图工具；原资源、Prompt也保持可用。
 
 | 文件或资源 | 职责 |
 |---|---|
@@ -148,7 +150,7 @@ const handle = serveStdio(() => {
   };
   let bridge;
   // Created after protocol negotiation, once for this logical SDK connection.
-  const tools = () => bridge ??= attachIntentTools(original, {mode: 'host', instances: {orders: intent}, toolPrefix: 'ir_'}, {protocolVersion: server.getNegotiatedProtocolVersion()});
+  const tools = () => bridge ??= attachIntentTools(original, {mode: 'host', instances: {orders: intent}}, {protocolVersion: server.getNegotiatedProtocolVersion()});
   server.setRequestHandler('tools/list', async () => ({tools: await (await tools()).listTools()}));
   server.setRequestHandler('tools/call', async (request, context) => (await tools()).callTool(request.params.name, request.params.arguments ?? {}, {signal: context.mcpReq.signal}));
   server.setRequestHandler('resources/list', async () => ({resources: [{uri: 'note://welcome', name: 'welcome', mimeType: 'text/plain'}]}));
@@ -178,7 +180,7 @@ process.once('SIGINT', () => {void close();});
 process.once('SIGTERM', () => {void close();});
 ```
 
-示例是stdio；不要在同一stdout输出应用日志。宿主连接后会看到ping、ir_intent_prepare、ir_intent_accept、ir_intent_cancel。识别请求使用instance=orders、fields=[orderId]，并遵循[host工具流程](/zh/integrations/codex#工具与回复)。
+示例是stdio；不要在同一stdout输出应用日志。宿主连接后会看到ping、intent_runtime_prepare、intent_runtime_accept、intent_runtime_cancel。识别请求使用instance=orders、fields=[orderId]，并遵循[host工具流程](/zh/integrations/codex#工具与回复)。
 
 
 连接协商、生命周期和错误信封见[Adapter参考](/zh/api/mcp#adapter-api)。本例承载 stdio；已有 HTTP 服务沿用自己的监听和会话管理。

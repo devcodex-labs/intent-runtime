@@ -6,8 +6,8 @@ Choose two independent things: **who calls the model**, and **how the client con
 
 | Model source | Use when | Tools |
 |---|---|---|
-| host: current client model | Reuse the current model without a second key | intent_prepare / intent_accept / intent_cancel |
-| executor: server-configured model | Server already has an API or gateway | intent_parse |
+| host: current client model | Reuse the current model without a second key | intent_runtime_prepare / intent_runtime_accept / intent_runtime_cancel |
+| executor: server-configured model | Server already has an API or gateway | intent_runtime_parse |
 
 | Connection | Supply | Connection owner |
 |---|---|---|
@@ -89,7 +89,7 @@ For global commands missing from PATH, use the executable's absolute path as wel
 |---|---|---|
 | mode | executor or host / executor | Trusted server configuration; tools cannot switch it |
 | instances | Record&lt;string, IntentConfig&gt; / required | Nonempty map; CLI creates and owns each Intent |
-| toolPrefix | string / empty | Prefix every tool name; final names at most 128 characters |
+| toolPrefix | string / empty | Optional; added before the complete intent_runtime_* name, e.g. orders_intent_runtime_prepare; final names at most 128 characters |
 
 executor instances require a [model executor](/integrations/api); host does not. --help/--version are supported. Invalid arguments exit 2, loading/startup failures exit 1, normal EOF or SIGINT/SIGTERM exits 0. Keep stdout for MCP and logs on stderr.
 
@@ -194,13 +194,13 @@ export default {mode: 'executor', instances: {main: {language: 'en', executor: c
 
 In a tool-capable AI client, ask: “Use intent-runtime to recognize 'Look up order 000123. Do not cancel the order.' Extract the order ID, show the goal and prohibition, and do not perform order operations.”
 
-Host mode lists intent_prepare, intent_accept, intent_cancel and needs the client model to complete the handoff. A client that only lists tools does not finish recognition. See [Host handoff](/api/mcp#host-handoff). Codex setup installs the corresponding Skill.
+Host mode lists intent_runtime_prepare, intent_runtime_accept, intent_runtime_cancel and needs the client model to complete the handoff. A client that only lists tools does not finish recognition. See [Host handoff](/api/mcp#host-handoff). Codex setup installs the corresponding Skill.
 
 Executor mode can call:
 
 ```json
 {
-  "name": "intent_parse",
+  "name": "intent_runtime_parse",
   "arguments": {"input": "Look up order 000123. Do not cancel the order."}
 }
 ```
@@ -225,10 +225,11 @@ Keep your SDK, transport, and tools; start with the [four integration points](/i
 <span id="参数与协议参考" aria-hidden="true"></span>
 <span id="adapter-api" aria-hidden="true"></span>
 <span id="intent_parse" aria-hidden="true"></span>
+<span id="intent_runtime_parse" aria-hidden="true"></span>
 <span id="成功与错误信封" aria-hidden="true"></span>
 <span id="协议与远程调用" aria-hidden="true"></span>
 <span id="完整-executor-回复" aria-hidden="true"></span>
 
 ## Parameter and protocol reference
 
-See [Adapter API](/api/mcp#adapter-api), [tool input](/api/mcp#intent_parse), [envelopes](/api/mcp#success-and-error-envelopes), [protocols](/api/mcp#protocols-and-remote-calls), and [complete replies](/api/mcp#complete-executor-reply).
+See [Adapter API](/api/mcp#adapter-api), [tool input](/api/mcp#intent_runtime_parse), [envelopes](/api/mcp#success-and-error-envelopes), [protocols](/api/mcp#protocols-and-remote-calls), and [complete replies](/api/mcp#complete-executor-reply).

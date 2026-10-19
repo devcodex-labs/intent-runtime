@@ -21,12 +21,14 @@ session.close(): Promise<void>
 |---|---|---|
 | config.mode | executor or host / executor | Executor mode requires an executor for each instance |
 | config.instances | Record&lt;string, Intent&gt; / required | Nonempty caller-created instances, not standalone config objects |
-| config.toolPrefix | string / empty | Avoid original tool collisions; check before registration |
+| config.toolPrefix | string / empty | Optional addition before the complete default name; check collisions before registration |
 | connect.protocolVersion | Declared version / required | SDK-negotiated version, not input/context |
 | callTool.args.instance | string / auto-select a single instance | Required with multiple instances; no guessed default |
 | callTool.options.signal | AbortSignal / optional | Protocol cancellation, outside tool JSON |
 
-Instance names use 1–64 characters [A-Za-z0-9_.-]; __proto__/prototype/constructor are forbidden. Prefixes use the same alphabet and may be empty. Invalid connection configuration produces CONFIG_INVALID/transport. Disposed instances cannot start new recognition.
+Default names include `intent_runtime_`: host exposes `intent_runtime_prepare`, `intent_runtime_accept`, and `intent_runtime_cancel`; executor exposes `intent_runtime_parse`. Ordinary integrations can omit toolPrefix. For example, `toolPrefix: 'orders_'` produces `orders_intent_runtime_prepare`. The tool tables below use default names. Standalone stdio, HTTP, and embedded adapters follow the same naming rule.
+
+Instance names use 1–64 characters [A-Za-z0-9_.-]; __proto__/prototype/constructor are forbidden. Prefixes use the same alphabet and may be empty. Each complete tool name is limited to 128 characters, allowing a prefix of up to 106 characters in host mode or 108 in executor mode. Multiple instances share one tool set and use instance for selection; they do not generate separate names. Invalid connection configuration produces CONFIG_INVALID/transport. Disposed instances cannot start new recognition.
 
 Unknown tools return exactly undefined for your original router. session.close ends its recognition and retained records; adapter.close closes owned sessions. Neither disposes borrowed Intent objects nor closes external SDKs, transports, or shared models. Close at logical connection end; do not recreate host sessions for each tool call or share one session across clients/tenants.
 
@@ -36,17 +38,19 @@ Unknown tools return exactly undefined for your original router. session.close e
 
 | Tool | Input | Successful result |
 |---|---|---|
-| intent_prepare | Native request plus optional instance | HostTask: kind=model_task, requestId, submissionToken, instructions, input, outputSchema |
-| intent_accept | requestId, submissionToken, complete candidateText string | IntentResult |
-| intent_cancel | requestId; optional reason=cancelled/refusal/incomplete | requestId, status=cancelled/already_cancelled/already_completed |
+| intent_runtime_prepare | Native request plus optional instance | HostTask: kind=model_task, requestId, submissionToken, instructions, input, outputSchema |
+| intent_runtime_accept | requestId, submissionToken, complete candidateText string | IntentResult |
+| intent_runtime_cancel | requestId; optional reason=cancelled/refusal/incomplete | requestId, status=cancelled/already_cancelled/already_completed |
 
 The current model follows HostTask material and outputSchema, not a guessed final Result shape. The server makes no extra model call. The bundled Skill allows at most one format correction from explicit feedback. Missing information or indeterminate fields do not trigger format correction. Cancel when unable to complete; use refusal/incomplete for those outcomes.
 
 Concurrent submissions with the same token and byte-identical candidate share validation; retained completed replies can replay. A different candidate conflicts. Explicit correction does not reset the validation budget. Default recognition has no deadline; explicit timeout starts at prepare. Terminal replies are bounded to 32 records/8 MiB per adapter. Closed sessions, restarted processes, or reclaimed records require new prepare. These records are not durable business storage.
 
-## intent_parse
+<span id="intent_parse" aria-hidden="true"></span>
 
-Executor mode exposes only intent_parse. Input contains Native input/fields/context/baseline/referenceTime/output plus instance. See [Native API](/api/intent) for defaults and errors. MCP callers cannot provide schema, executor, apiKey, signal, config paths, or mode.
+## intent_runtime_parse
+
+Executor mode exposes only intent_runtime_parse. Input contains Native input/fields/context/baseline/referenceTime/output plus instance. See [Native API](/api/intent) for defaults and errors. MCP callers cannot provide schema, executor, apiKey, signal, config paths, or mode.
 
 With a single main instance, instance may be omitted. After SDK negotiation:
 
@@ -57,7 +61,7 @@ With a single main instance, instance may be omitted. After SDK negotiation:
   "id": 1,
   "method": "tools/call",
   "params": {
-    "name": "intent_parse",
+    "name": "intent_runtime_parse",
     "arguments": {
       "input": "Look up order 000123. Do not cancel the order."
     }

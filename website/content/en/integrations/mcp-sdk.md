@@ -18,7 +18,7 @@ Keep your existing compatible MCP SDK; adding tools does not require rebuilding 
 ## Four integration points
 
 1. Create an Intent and adapter; declare fields if needed.
-2. Set an explicit prefix, merge adapter.tools into the original tools/list response, and check every final tool name for duplicates.
+2. Merge adapter.tools, whose default names include intent_runtime_, into the original tools/list response and check every final name for duplicates.
 3. Forward tools/call through its session; when it returns undefined, use the original handler.
 4. Close the session when its connection ends; close the adapter and caller-created Intent when the service stops.
 
@@ -32,7 +32,7 @@ const intent = new Intent({language: 'en'});
 let attached;
 const tools = () => attached ??= attachIntentTools(
   original,
-  {mode: 'host', instances: {main: intent}, toolPrefix: 'ir_'},
+  {mode: 'host', instances: {main: intent}},
   {protocolVersion: server.getNegotiatedProtocolVersion()},
 );
 
@@ -56,16 +56,18 @@ The sketch and complete example reuse the same collision checks and call forward
 
 In this example, original.listTools() and the forwarding helper's listTools() return an array of tool definitions. Each definition has name and inputSchema, usually includes description, and may declare outputSchema; other modules' definitions remain intact. The SDK handler wraps the array in a tools/list response shaped as {tools: [...]}. Clients read definitions from the response's tools property to display tools and prepare calls. tools/call returns the actual invocation result.
 
-If your existing server already includes capability-graph, original.listTools retains its actual definitions and original.callTool retains its actual handlers. Module names do not create separate tool namespaces inside one MCP Server: **every name in the final merged list must be unique**. Keep capability-graph's actual names and parameters, and configure Intent tools with toolPrefix: 'ir_'.
+If your existing server already includes capability-graph, original.listTools retains its actual definitions and original.callTool retains its actual handlers. MCP does not automatically isolate tools by module. This module supplies default names containing `intent_runtime_`, so ordinary integrations need no prefix configuration. Keep capability-graph's actual names and parameters; **every name in the final merged list must be unique**.
 
 | Merged tool | Handler |
 |---|---|
 | Actual capability-graph tool names and other existing tools | original.callTool |
-| ir_intent_prepare | This connection's Intent session: prepare a host candidate task |
-| ir_intent_accept | The same Intent session: validate the candidate and return the complete result |
-| ir_intent_cancel | The same Intent session: end this recognition handoff |
+| intent_runtime_prepare | This connection's Intent session: prepare a host candidate task |
+| intent_runtime_accept | The same Intent session: validate the candidate and return the complete result |
+| intent_runtime_cancel | The same Intent session: end this recognition handoff |
 
-This table explains routing; the actual tools/list contains full definitions, not just an array of names. Executor mode adds ir_intent_parse instead of the three host tools. The integration configures the prefix explicitly; package defaults and public APIs remain unchanged.
+This table explains routing; the actual tools/list contains full definitions, not just an array of names. Executor mode adds intent_runtime_parse instead of the three host tools.
+
+One adapter may contain multiple instances, selected by instance, sharing the tool set above. Use an additional toolPrefix only when the same Server needs multiple adapters or already has a matching tool name. For example, `toolPrefix: 'orders_'` produces `orders_intent_runtime_prepare` (and corresponding accept/cancel names). Default names still require collision checks; repeated attachment does not automatically number tools or overwrite existing ones.
 
 Keep one shared handler for tools/list and one for tools/call on the Server, dispatching by exact tool name. Do not let two modules replace the same handler independently. Forward to original only when the Intent session returns undefined. A matched tool's isError=true reply remains its error; do not try another module.
 
@@ -78,7 +80,7 @@ The helper below checks **all** merged names on attachment, on each listing and 
 <details>
 <summary>Two files and startup instructions</summary>
 
-Save both files in one directory and run node server-en.mjs. stdout carries MCP only; application logs go to stderr. The client should discover ping and the three ir_ intent tools; the existing resource and prompt remain usable.
+Save both files in one directory and run node server-en.mjs. stdout carries MCP only; application logs go to stderr. The client should discover ping and the three default intent_runtime_ tools; the existing resource and prompt remain usable.
 
 | File or resource | Responsibility |
 |---|---|
@@ -157,7 +159,7 @@ const handle = serveStdio(() => {
   };
   let bridge;
   // Created after protocol negotiation, once for this logical SDK connection.
-  const tools = () => bridge ??= attachIntentTools(original, {mode: 'host', instances: {orders: intent}, toolPrefix: 'ir_'}, {protocolVersion: server.getNegotiatedProtocolVersion()});
+  const tools = () => bridge ??= attachIntentTools(original, {mode: 'host', instances: {orders: intent}}, {protocolVersion: server.getNegotiatedProtocolVersion()});
   server.setRequestHandler('tools/list', async () => ({tools: await (await tools()).listTools()}));
   server.setRequestHandler('tools/call', async (request, context) => (await tools()).callTool(request.params.name, request.params.arguments ?? {}, {signal: context.mcpReq.signal}));
   server.setRequestHandler('resources/list', async () => ({resources: [{uri: 'note://welcome', name: 'welcome', mimeType: 'text/plain'}]}));
@@ -187,7 +189,7 @@ process.once('SIGINT', () => {void close();});
 process.once('SIGTERM', () => {void close();});
 ```
 
-This example uses stdio; do not print application logs on stdout. Connect a client and check ping, ir_intent_prepare, ir_intent_accept, ir_intent_cancel. For recognition use instance=orders and fields=['orderId'], following the [host handoff](/integrations/codex#tools-and-replies).
+This example uses stdio; do not print application logs on stdout. Connect a client and check ping, intent_runtime_prepare, intent_runtime_accept, intent_runtime_cancel. For recognition use instance=orders and fields=['orderId'], following the [host handoff](/integrations/codex#tools-and-replies).
 
 See [Adapter reference](/api/mcp#adapter-api) for negotiation, ownership and error envelopes. An existing HTTP service keeps its listener and session management.
 

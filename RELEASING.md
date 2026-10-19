@@ -29,11 +29,11 @@ GitHub Pages must use GitHub Actions as its source. The docs workflow deploys to
 
 1. Update the version in both `package.json` and the root package entries in `package-lock.json`. Add a matching `## 2.x.y` section to `CHANGELOG.md`; its body becomes the GitHub Release notes. Do not change result `schemaVersion` just because the npm package version changes.
 2. Review the current public API, upgrade instructions and examples. Run `npm ci`, `npm run typecheck`, `npm run lint`, `npm test`, `npm run test:release`, and `npm run check:package`. For documentation, run `npm --prefix website ci`, `npm run docs:check`, and `npm run docs:build`.
-3. Commit and push the reviewed source. Tag that exact commit, then push the tag. For version 2.0.0:
+3. Commit and push the reviewed source. Tag that exact commit, then push the tag. For version 2.0.1:
 
 ```bash
-git tag v2.0.0
-git push origin v2.0.0
+git tag v2.0.1
+git push origin v2.0.1
 ```
 
 The version guard rejects prereleases, mismatching tags, and inconsistent lock metadata. Tags outside the supported stable V2 line do not publish.

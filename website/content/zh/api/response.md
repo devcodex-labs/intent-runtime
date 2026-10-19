@@ -654,7 +654,7 @@ JSON Pointer：空串指根，`/meta/` 指空属性名，`~0` 表示波浪号，
 ## Native、MCP 与 Host 封装
 
 - Native `parse()` 正常返回 IntentResult，技术失败抛出 IntentError。
-- executor MCP 的 intent_parse 成功把相同 IntentResult 放在 structuredContent，content 中为同一 JSON，isError=false。
+- executor MCP 的 intent_runtime_parse 成功把相同 IntentResult 放在 structuredContent，content 中为同一 JSON，isError=false。
 - host 的 prepare 返回 HostTask，当前宿主生成 candidateText，accept 才返回最终 IntentResult；cancel 返回取消状态。候选不是最终响应。
 - MCP 技术失败为 isError=true，content 文本包含 `{error: SerializedIntentError}`，不附 structuredContent 或 partialResult。
 - 声明协议对应的额外信封字段和 SDK 协商见[MCP 接入](/zh/api/mcp#协议与远程调用)，不把协议外层字段加到 Native IntentResult。

@@ -32,6 +32,6 @@
 ## host和executor有什么区别
 
 - **host**：prepare返回识别材料，当前宿主模型生成候选，再由accept校验并组装结果。服务端不暗中另调模型。
-- **executor**：Native的parse或MCP的intent_parse直接调用所配置的执行器。需要调用方提供可用模型与凭据。
+- **executor**：Native的parse或MCP的intent_runtime_parse直接调用所配置的执行器。需要调用方提供可用模型与凭据。
 
 工具注册只暴露能力，不会自动监听所有消息。宿主兼容范围见[兼容与支持](/zh/testing/validation)。

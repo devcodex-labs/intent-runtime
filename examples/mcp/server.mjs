@@ -24,7 +24,7 @@ const handle = serveStdio(() => {
   };
   let bridge;
   // Created after protocol negotiation, once for this logical SDK connection.
-  const tools = () => bridge ??= attachIntentTools(original, {mode: 'host', instances: {orders: intent}, toolPrefix: 'ir_'}, {protocolVersion: server.getNegotiatedProtocolVersion()});
+  const tools = () => bridge ??= attachIntentTools(original, {mode: 'host', instances: {orders: intent}}, {protocolVersion: server.getNegotiatedProtocolVersion()});
   server.setRequestHandler('tools/list', async () => ({tools: await (await tools()).listTools()}));
   server.setRequestHandler('tools/call', async (request, context) => (await tools()).callTool(request.params.name, request.params.arguments ?? {}, {signal: context.mcpReq.signal}));
   server.setRequestHandler('resources/list', async () => ({resources: [{uri: 'note://welcome', name: 'welcome', mimeType: 'text/plain'}]}));

@@ -16,10 +16,10 @@ test('Host correction locates the invalid effect without inventing a missing wit
   const intent = new Intent({executor: {id: 'must-not-run', async generate() {modelCalls++; throw new Error('Unexpected executor call');}}});
   const adapter = createIntentMcpAdapter({mode: 'host', instances: {main: intent}}), session = adapter.connect({protocolVersion: '2025-06-18'});
   try {
-    const prepared = await session.callTool('intent_prepare', {input: d.normalizedInput, output: {diagnostics: true}});
+    const prepared = await session.callTool('intent_runtime_prepare', {input: d.normalizedInput, output: {diagnostics: true}});
     assert.equal(prepared!.isError, false);
     const task = prepared!.structuredContent as unknown as HostTask;
-    const submit = () => session.callTool('intent_accept', {requestId: task.requestId, submissionToken: task.submissionToken, candidateText: JSON.stringify(d)});
+    const submit = () => session.callTool('intent_runtime_accept', {requestId: task.requestId, submissionToken: task.submissionToken, candidateText: JSON.stringify(d)});
     const bad = await submit(); assert.equal(bad!.isError, true);
     const error = JSON.parse(bad!.content[0]!.text).error;
     assert.equal(error.code, 'MODEL_OUTPUT_INVALID');

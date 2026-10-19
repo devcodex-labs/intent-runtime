@@ -1,6 +1,7 @@
 import { Client } from '@modelcontextprotocol/client';
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import type { IntentMcpMode } from '../mcp/index.js';
+import { MCP_TOOL_NAMES_BY_MODE } from '../mcp/tool-names.js';
 import {PACKAGE_VERSION} from '../internal/version.js';
 
 export async function diagnose(command: string, args: string[]): Promise<IntentMcpMode> {
@@ -11,8 +12,10 @@ export async function diagnose(command: string, args: string[]): Promise<IntentM
   const work = (async () => {
     transport.stderr?.on('data', () => {}); await client.connect(transport);
     const {tools} = await client.listTools({}, {timeout: 10000});
-    if (tools.length === 1 && tools[0]!.name.endsWith('intent_parse')) return 'executor' as const;
-    if (tools.length === 3 && ['intent_prepare', 'intent_accept', 'intent_cancel'].every(suffix => tools.some(t => t.name.endsWith(suffix)))) return 'host' as const;
+    for (const mode of ['executor', 'host'] as const) {
+      const names = MCP_TOOL_NAMES_BY_MODE[mode];
+      if (tools.length === names.length && names.every(suffix => tools.some(t => t.name.endsWith(suffix)))) return mode;
+    }
     throw new Error('Unexpected tool definitions');
   })();
   try {return await Promise.race([work, stopped]);} finally {clearTimeout(timer); await client.close();}

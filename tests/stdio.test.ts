@@ -12,6 +12,14 @@ import {spawnSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {InMemoryTransport} from '@modelcontextprotocol/server';
 import {startStdio} from '../src/mcp/stdio.js';
+import {diagnose} from '../src/cli/diagnose.js';
+
+for (const mode of ['host', 'executor']) for (const toolPrefix of ['', 'orders_']) test('Doctor discovers namespaced ' + mode + ' tools with prefix ' + JSON.stringify(toolPrefix), async () => {
+  const dir = await mkdtemp(path.join(process.env.INTENT_TEST_DIR!, 'diagnose-')), config = path.join(dir, 'server.mjs');
+  const instance = mode === 'host' ? '{}' : "{executor:{id:'never-called',async generate(){throw new Error('Doctor must not call a model')}}}";
+  await writeFile(config, `export default {mode:${JSON.stringify(mode)},toolPrefix:${JSON.stringify(toolPrefix)},instances:{main:${instance}}};`);
+  assert.equal(await diagnose(process.execPath, [path.join(process.env.INTENT_PACKAGE_TEST_ROOT!, 'dist/cli/mcp.js'), '--config', config]), mode);
+});
 
 test('SC-37 actual SDK send failure after host commit preserves the real validated reply for same-session replay', async () => {
   const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair();
@@ -33,13 +41,13 @@ test('SC-37 actual SDK send failure after host commit preserves the real validat
   const client = new Client({name: 'actual-sdk-send-race', version: '1.0.0'}, {supportedProtocolVersions: ['2025-06-18'], versionNegotiation: {mode: 'legacy'}});
   try {
     await client.connect(clientTransport);
-    const prepared = await client.callTool({name: 'intent_prepare', arguments: {input: 'query order 000123', fields: ['orderId'], output: {diagnostics: true}}});
+    const prepared = await client.callTool({name: 'intent_runtime_prepare', arguments: {input: 'query order 000123', fields: ['orderId'], output: {diagnostics: true}}});
     const task = prepared.structuredContent as unknown as HostTask;
     const d = draft(); d.observations = [observation('orderId', '000123')];
     const args = {requestId: task.requestId, submissionToken: task.submissionToken, candidateText: JSON.stringify(d)};
-    await assert.rejects(client.callTool({name: 'intent_accept', arguments: args}, {signal: lostReply.signal}));
+    await assert.rejects(client.callTool({name: 'intent_runtime_accept', arguments: args}, {signal: lostReply.signal}));
     assert.equal(dropped, true);
-    const replay = await client.callTool({name: 'intent_accept', arguments: args});
+    const replay = await client.callTool({name: 'intent_runtime_accept', arguments: args});
     assert.deepEqual(replay, committed);
     assert.equal((replay.structuredContent as any).effective.intents[0].inputs.orderId, '000123');
     // Exact replay includes the original generated IDs and business-validated
@@ -52,7 +60,7 @@ for (const version of ['2025-06-18', '2025-11-25', '2026-07-28'] as const) test(
   const configData = {language: 'en', semantics: {description: ''}}, input = 'query A';
   const measuring = new Intent(configData), adapter = createIntentMcpAdapter({mode: 'host', instances: {main: measuring}}), session = adapter.connect({protocolVersion: version});
   try {
-    const sample = await session.callTool('intent_prepare', {input}); assert.equal(sample!.isError, false);
+    const sample = await session.callTool('intent_runtime_prepare', {input}); assert.equal(sample!.isError, false);
     configData.semantics.description = 'a'.repeat(1048576 - Buffer.byteLength(JSON.stringify(sample!.structuredContent)));
   } finally {await adapter.close(); await measuring.dispose();}
   const dir = await mkdtemp(path.join(process.env.INTENT_TEST_DIR!, 'large-stdio-')), config = path.join(dir, 'host.mjs');
@@ -61,13 +69,13 @@ for (const version of ['2025-06-18', '2025-11-25', '2026-07-28'] as const) test(
   const client = new Client({name: 'actual-sdk-size-boundary', version: '1.0.0'}, {supportedProtocolVersions: [version], versionNegotiation: {mode: version === '2026-07-28' ? {pin: version} : 'legacy'}});
   try {
     await client.connect(transport);
-    const prepared = await client.callTool({name: 'intent_prepare', arguments: {input}}); assert.equal(prepared.isError, false);
+    const prepared = await client.callTool({name: 'intent_runtime_prepare', arguments: {input}}); assert.equal(prepared.isError, false);
     const task = prepared.structuredContent as unknown as HostTask;
     assert.equal(Buffer.byteLength(JSON.stringify(task)), 1048576);
     assert.deepEqual(JSON.parse((prepared.content[0] as {text: string}).text), task);
     const d = draft(); d.messages.changed = ''; d.messages.changed = 'a'.repeat(1048576 - Buffer.byteLength(JSON.stringify(d)));
     const candidateText = JSON.stringify(d); assert.equal(Buffer.byteLength(candidateText), 1048576);
-    const result = await client.callTool({name: 'intent_accept', arguments: {requestId: task.requestId, submissionToken: task.submissionToken, candidateText}});
+    const result = await client.callTool({name: 'intent_runtime_accept', arguments: {requestId: task.requestId, submissionToken: task.submissionToken, candidateText}});
     assert.equal(result.isError, false); assert.equal((result.structuredContent as any).turn.intentIds.length, 1);
   } finally {await client.close();}
 });
@@ -81,14 +89,14 @@ for (const version of ['2025-06-18', '2025-11-25', '2026-07-28'] as const) test(
   const client = new Client({name: 'fixed-real-sdk-client', version: '1.0.0'}, {supportedProtocolVersions: [version], versionNegotiation: {mode: version === '2026-07-28' ? {pin: version} : 'legacy'}});
   try {
     await client.connect(transport); assert.equal(client.getNegotiatedProtocolVersion(), version); assert.equal(client.getProtocolEra(), version === '2026-07-28' ? 'modern' : 'legacy');
-    const listed = await client.listTools(); assert.deepEqual(listed.tools.map(t => t.name), ['intent_prepare', 'intent_accept', 'intent_cancel']);
+    const listed = await client.listTools(); assert.deepEqual(listed.tools.map(t => t.name), ['intent_runtime_prepare', 'intent_runtime_accept', 'intent_runtime_cancel']);
     for (const tool of listed.tools) assert.deepEqual(tool.annotations, {readOnlyHint: true, destructiveHint: false, openWorldHint: false});
-    const prepared = await client.callTool({name: 'intent_prepare', arguments: {input: 'query order 000123', fields: ['orderId']}}), task = prepared.structuredContent as unknown as HostTask;
+    const prepared = await client.callTool({name: 'intent_runtime_prepare', arguments: {input: 'query order 000123', fields: ['orderId']}}), task = prepared.structuredContent as unknown as HostTask;
     assert.equal(prepared.isError, false); assert.equal(task.kind, 'model_task');
     const d = draft(); d.observations = [observation('orderId', '000123')];
-    const result = await client.callTool({name: 'intent_accept', arguments: {requestId: task.requestId, submissionToken: task.submissionToken, candidateText: JSON.stringify(d)}});
+    const result = await client.callTool({name: 'intent_runtime_accept', arguments: {requestId: task.requestId, submissionToken: task.submissionToken, candidateText: JSON.stringify(d)}});
     assert.equal(result.isError, false); assert.equal((result.structuredContent as any).effective.intents[0].inputs.orderId, '000123');
-    const bad = await client.callTool({name: 'intent_prepare', arguments: {input: 'query', mode: 'executor'}}); assert.equal(bad.isError, true); assert.equal('structuredContent' in bad, false);
+    const bad = await client.callTool({name: 'intent_runtime_prepare', arguments: {input: 'query', mode: 'executor'}}); assert.equal(bad.isError, true); assert.equal('structuredContent' in bad, false);
     assert.equal(stderr, '');
   } finally {await client.close();}
 });
@@ -125,9 +133,9 @@ for (const version of ['2025-06-18', '2025-11-25', '2026-07-28'] as const) test(
   try {
     await client.connect(transport); const wire: any[] = [], receive = transport.onmessage;
     transport.onmessage = message => {if (Array.isArray((message as any).result?.content)) wire.push((message as any).result); receive?.(message);};
-    assert.equal(client.getNegotiatedProtocolVersion(), version); const listed = await client.listTools(); assert.deepEqual(listed.tools.map(t => t.name), ['intent_parse']);
+    assert.equal(client.getNegotiatedProtocolVersion(), version); const listed = await client.listTools(); assert.deepEqual(listed.tools.map(t => t.name), ['intent_runtime_parse']);
     assert.equal(listed.tools[0]!.annotations?.readOnlyHint, undefined);
-    const r = await client.callTool({name: 'intent_parse', arguments: {input: 'query order 000123', fields: ['orderId']}}); assert.equal((r.structuredContent as any).effective.intents[0].inputs.orderId, '000123');
+    const r = await client.callTool({name: 'intent_runtime_parse', arguments: {input: 'query order 000123', fields: ['orderId']}}); assert.equal((r.structuredContent as any).effective.intents[0].inputs.orderId, '000123');
     assert.equal(wire.length, 1); assert.equal(Object.hasOwn(wire[0], 'resultType'), version === '2026-07-28'); if (version === '2026-07-28') assert.equal(wire[0].resultType, 'complete');
     await assert.rejects(client.callTool({name: 'unknown', arguments: {}}), {code: -32602});
   } finally {await client.close();}
@@ -143,7 +151,7 @@ export default {mode:'executor',instances:{main:{executor:{id:'observed-cancella
   const waitFile = async (file: string) => {for (let i = 0; i < 500; i++) {try {const value = await readFile(file, 'utf8'); if (value.length) return value;} catch {} await new Promise(resolve => setTimeout(resolve, 10));} throw new Error('Observed executor signal did not complete.');};
   try {
     await client.connect(transport); await client.listTools(); const controller = new AbortController();
-    const rejected = assert.rejects(client.callTool({name: 'intent_parse', arguments: {input: 'query'}}, {signal: controller.signal}));
+    const rejected = assert.rejects(client.callTool({name: 'intent_runtime_parse', arguments: {input: 'query'}}, {signal: controller.signal}));
     assert.equal(await waitFile(started), 'started'); controller.abort(); await rejected; assert.equal(await waitFile(aborted), 'aborted');
   } finally {await client.close();}
 });

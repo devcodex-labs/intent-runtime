@@ -45,9 +45,9 @@ const adapter=createIntentMcpAdapter({mode:'host',instances:{orders:intent}});
 try {
  const first=await intent.parse({input:'query order 000123',fields:['orderId']}); assert.equal(first.effective.intents[0].inputs.orderId,'000123');
  const session=adapter.connect({protocolVersion:'2026-07-28'});
- const p=await session.callTool('intent_prepare',{input:'query order 000123',fields:['orderId']});assert.equal(p.isError,false);
+ const p=await session.callTool('intent_runtime_prepare',{input:'query order 000123',fields:['orderId']});assert.equal(p.isError,false);
  const t=p.structuredContent;
- const done=await session.callTool('intent_accept',{requestId:t.requestId,submissionToken:t.submissionToken,candidateText:candidate});assert.equal(done.structuredContent.effective.intents[0].inputs.orderId,'000123');assert.equal(done.resultType,'complete');
+ const done=await session.callTool('intent_runtime_accept',{requestId:t.requestId,submissionToken:t.submissionToken,candidateText:candidate});assert.equal(done.structuredContent.effective.intents[0].inputs.orderId,'000123');assert.equal(done.resultType,'complete');
  assert.throws(()=>createApiExecutor({provider:'unknown',model:'x',apiKey:'x'}),e=>e instanceof IntentError&&e.code==='CONFIG_INVALID');
 } finally {await adapter.close();await intent.dispose();}
 console.log('Installed Native/worker/API/MCP entries verified.');

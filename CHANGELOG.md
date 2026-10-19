@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.1
+
+- Name MCP tools `intent_runtime_prepare`, `intent_runtime_accept`, `intent_runtime_cancel` (host) and `intent_runtime_parse` (executor) by default across embedded adapters, stdio, HTTP and Codex. Optional `toolPrefix` adds to the complete name; multiple instances still share one tool set. Update the Codex Skill, diagnostics, examples and documentation. Tool parameters and result schemas are unchanged.
+- MCP callers using the 2.0.0 tool names must update their explicit calls; old tool-name aliases are not registered. Codex users should rerun `setup` with their existing configuration and registration name to refresh the managed Skill, then reload the client.
+- Clarify how to add tools to an existing MCP server, preserve other tools and reject duplicate names. Complete the user documentation and response examples, preserve existing MCP section links, and validate both LF and CRLF documentation.
+- Fix installed-entry release verification and allow for npm registry processing before verifying the published package and default installation.
+
 ## 2.0.0
 
 - Rewrite the recognition core. The complete intent tree lives in `effective`; `turn.intentIds` and `changes` associate the current turn with that tree. Results and baselines use format version `2.0-draft.6`.

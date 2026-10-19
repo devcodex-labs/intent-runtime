@@ -43,7 +43,7 @@ const instance = new runtime.Intent({language: locale === 'en' ? 'en' : 'zh-CN',
 const adapter = createIntentMcpAdapter({mode: 'executor', instances: {main: instance}});
 try {
   const session = adapter.connect({protocolVersion: '2025-06-18'});
-  const params = {name: 'intent_parse', arguments: {input: locale === 'en' ? english('查询订单000123，不要取消订单') : '查询订单000123，不要取消订单'}};
+  const params = {name: 'intent_runtime_parse', arguments: {input: locale === 'en' ? english('查询订单000123，不要取消订单') : '查询订单000123，不要取消订单'}};
   const reply = await session.callTool(params.name, params.arguments);
   assert.equal(reply.isError, false);
   assert.deepEqual(JSON.parse(reply.content[0].text), reply.structuredContent);

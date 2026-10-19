@@ -686,7 +686,7 @@ The scenarios cover: conditional withdrawal without premature removal; order own
 ## Native, MCP, and host wrappers
 
 - Native parse returns IntentResult on success and throws IntentError on technical failure.
-- Executor MCP intent_parse puts the same IntentResult into structuredContent and JSON text content, with isError=false.
+- Executor MCP intent_runtime_parse puts the same IntentResult into structuredContent and JSON text content, with isError=false.
 - Host prepare returns HostTask. The client generates candidateText; accept returns the final IntentResult. cancel returns handoff status. A candidate is not a final response.
 - MCP technical failures have isError=true with text {error: SerializedIntentError}, without structuredContent or partialResult.
 - SDK envelope fields depend on [negotiated protocol](/api/mcp#protocols-and-remote-calls); they are not added to Native IntentResult.

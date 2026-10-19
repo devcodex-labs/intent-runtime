@@ -35,7 +35,7 @@ macOS/Linux：
 intent-runtime setup --host codex --config "$PWD/intent.host.config.js"
 ```
 
-setup登记用户级MCP并在host模式安装Skill。按客户端要求重载配置，CLI开启新会话。应能发现intent_prepare、intent_accept、intent_cancel；普通npm安装不修改宿主。
+setup登记用户级MCP并在host模式安装Skill。按客户端要求重载配置，CLI开启新会话。应能发现intent_runtime_prepare、intent_runtime_accept、intent_runtime_cancel；普通npm安装不修改宿主。
 
 ## 3. 发起识别
 
@@ -91,7 +91,7 @@ intent-runtime doctor --host codex
 |---|---|
 | 找不到命令 | npm全局bin是否进入客户端PATH；必要时填绝对路径，Windows可使用对应.cmd入口 |
 | 无法加载配置 | 绝对.js/.mjs路径；.js所在项目的type=module；找不到包时为配置所在项目安装依赖 |
-| 只有intent_parse | 配置是否为executor；改host后按客户端要求重载 |
+| 只有intent_runtime_parse | 配置是否为executor；改host后按客户端要求重载 |
 | 模型未完成候选 | 结束此识别，不把普通宿主回复当成功Result |
 | HOST_REQUEST_NOT_FOUND | 是否换session/重启；重新prepare并传完整材料 |
 

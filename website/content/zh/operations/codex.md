@@ -38,7 +38,7 @@ setup 幂等，仅编辑对应表。doctor 默认只读，通过实际 stdio 列
 
 ## 更新与重新登记
 
-已经通过本页 `setup --host codex` 登记的用户，执行 `npm install -g @devcodex/intent-runtime` 更新命令，再按需运行 setup 或 doctor --repair，最后重载客户端。更新不会自动下载业务配置；clean 只移除本模块拥有的登记和 Skill，不删除配置文件、业务数据或其他工具。
+已经通过本页 `setup --host codex` 登记的用户，执行 `npm install -g @devcodex/intent-runtime` 更新命令，再用原配置路径和相同 --name 运行 setup，更新仍由本模块管理且未经用户修改的 Skill，最后重载客户端或开启新 CLI 会话。工具名或 Skill 内容变化时需要这一步；doctor --repair 只恢复拥有权记录中的缺项，不能替代 setup 更新 Skill。用户已修改的内容仍受保护，不会强制覆盖。更新不会自动下载业务配置；clean 只移除本模块拥有的登记和 Skill，不删除配置文件、业务数据或其他工具。
 
 ## 常见现象
 

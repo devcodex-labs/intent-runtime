@@ -51,8 +51,8 @@ test('SC-26 default final Result measures inherited material at the real output 
 
 test('SC-26 actual HostTask admits the default output size and releases the failed next-byte lease', async () => {
   const intent = new Intent({}), adapter = createIntentMcpAdapter({mode: 'host', instances: {main: intent}}), session = adapter.connect({protocolVersion: '2025-11-25'});
-  const prepare = (padding: string) => session.callTool('intent_prepare', {input: 'query A', context: {padding}});
-  const cancel = (task: HostTask) => session.callTool('intent_cancel', {requestId: task.requestId, submissionToken: task.submissionToken});
+  const prepare = (padding: string) => session.callTool('intent_runtime_prepare', {input: 'query A', context: {padding}});
+  const cancel = (task: HostTask) => session.callTool('intent_runtime_cancel', {requestId: task.requestId, submissionToken: task.submissionToken});
   try {
     const sample = await prepare(''); assert.equal(sample!.isError, false);
     const task = sample!.structuredContent as unknown as HostTask; await cancel(task);

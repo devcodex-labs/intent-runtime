@@ -5,6 +5,7 @@ import { IntentError } from '../contracts/errors.js';
 import { intentAccess, type RecognitionLease } from '../core/access.js';
 import { INTENT_RESULT_SCHEMA, BASELINE_SCHEMA } from '../contracts/generated.js';
 import { cloneJson, plain } from '../internal/json.js';
+import { MCP_TOOL_NAMES, MCP_TOOL_NAMES_BY_MODE } from './tool-names.js';
 
 export type IntentMcpProtocolVersion = '2025-06-18' | '2025-11-25' | '2026-07-28';
 export type IntentMcpMode = 'executor' | 'host';
@@ -54,7 +55,7 @@ class Adapter implements IntentMcpAdapter {
     const c = data(config, ['mode', 'instances', 'toolPrefix'], 'CONFIG_INVALID');
     this.mode = c.mode === undefined ? 'executor' : c.mode as IntentMcpMode;
     this.prefix = c.toolPrefix === undefined ? '' : c.toolPrefix as string;
-    if (!['executor', 'host'].includes(this.mode) || typeof this.prefix !== 'string' || this.prefix && !/^[A-Za-z0-9_.-]+$/.test(this.prefix) || this.prefix.length + 14 > 128 || !plain(c.instances)) throw new IntentError('CONFIG_INVALID', {stage: 'transport'});
+    if (!['executor', 'host'].includes(this.mode) || typeof this.prefix !== 'string' || this.prefix && !/^[A-Za-z0-9_.-]+$/.test(this.prefix) || MCP_TOOL_NAMES_BY_MODE[this.mode].some(name => this.prefix.length + name.length > 128) || !plain(c.instances)) throw new IntentError('CONFIG_INVALID', {stage: 'transport'});
     for (const key of Reflect.ownKeys(c.instances)) {
       const d = Object.getOwnPropertyDescriptor(c.instances, key);
       if (typeof key !== 'string' || !nameValid(key) || !d || !('value' in d) || !d.enumerable || !intentAccess.has(d.value)) throw new IntentError('CONFIG_INVALID', {stage: 'transport'});
@@ -65,10 +66,10 @@ class Adapter implements IntentMcpAdapter {
     parseSchema.definitions = cloneJson(BASELINE_SCHEMA.definitions) as unknown as JsonObject;
     const taskSchema = objectSchema({kind: {const: 'model_task'}, requestId: {type: 'string'}, submissionToken: {type: 'string'}, instructions: {type: 'string'}, input: {type: 'object', additionalProperties: true}, outputSchema: {type: 'object', additionalProperties: true}}, ['kind', 'requestId', 'submissionToken', 'instructions', 'input', 'outputSchema']);
     const description = 'Structure only caller-supplied intent; never execute business operations. ';
-    this.tools = freeze(this.mode === 'executor' ? [{name: this.prefix + 'intent_parse', description: description + 'Generate and validate one result with the configured executor.', inputSchema: parseSchema, outputSchema: cloneJson(INTENT_RESULT_SCHEMA) as unknown as JsonObject}] : [
-      {name: this.prefix + 'intent_prepare', description: description + 'Prepare a candidate task for the CURRENT host model; no independent model is called.', inputSchema: parseSchema, outputSchema: taskSchema},
-      {name: this.prefix + 'intent_accept', description: description + 'Validate the current host candidate using the same recognition core.', inputSchema: objectSchema({requestId: {type: 'string'}, submissionToken: {type: 'string'}, candidateText: {type: 'string'}}, ['requestId', 'submissionToken', 'candidateText']), outputSchema: cloneJson(INTENT_RESULT_SCHEMA) as unknown as JsonObject},
-      {name: this.prefix + 'intent_cancel', description: description + 'End only this short recognition handoff.', inputSchema: objectSchema({requestId: {type: 'string'}, reason: {enum: ['cancelled', 'refusal', 'incomplete']}}, ['requestId']), outputSchema: objectSchema({requestId: {type: 'string'}, status: {enum: ['cancelled', 'already_cancelled', 'already_completed']}}, ['requestId', 'status'])},
+    this.tools = freeze(this.mode === 'executor' ? [{name: this.prefix + MCP_TOOL_NAMES.parse, description: description + 'Generate and validate one result with the configured executor.', inputSchema: parseSchema, outputSchema: cloneJson(INTENT_RESULT_SCHEMA) as unknown as JsonObject}] : [
+      {name: this.prefix + MCP_TOOL_NAMES.prepare, description: description + 'Prepare a candidate task for the CURRENT host model; no independent model is called.', inputSchema: parseSchema, outputSchema: taskSchema},
+      {name: this.prefix + MCP_TOOL_NAMES.accept, description: description + 'Validate the current host candidate using the same recognition core.', inputSchema: objectSchema({requestId: {type: 'string'}, submissionToken: {type: 'string'}, candidateText: {type: 'string'}}, ['requestId', 'submissionToken', 'candidateText']), outputSchema: cloneJson(INTENT_RESULT_SCHEMA) as unknown as JsonObject},
+      {name: this.prefix + MCP_TOOL_NAMES.cancel, description: description + 'End only this short recognition handoff.', inputSchema: objectSchema({requestId: {type: 'string'}, reason: {enum: ['cancelled', 'refusal', 'incomplete']}}, ['requestId']), outputSchema: objectSchema({requestId: {type: 'string'}, status: {enum: ['cancelled', 'already_cancelled', 'already_completed']}}, ['requestId', 'status'])},
     ]);
   }
   connect(options: IntentMcpConnectOptions): IntentMcpSession {
@@ -104,17 +105,17 @@ class Session implements IntentMcpSession {
   async callTool(name: string, args: unknown, options: IntentParseOptions = {}): Promise<IntentMcpToolResult | undefined> {
     if (!this.adapter.tools.some(t => t.name === name)) return undefined;
     try {
-      if (this.closed) throw new IntentError(name === this.adapter.prefix + 'intent_accept' || name === this.adapter.prefix + 'intent_cancel' ? 'HOST_REQUEST_NOT_FOUND' : 'INSTANCE_DISPOSED', {stage: 'transport'});
+      if (this.closed) throw new IntentError(name === this.adapter.prefix + MCP_TOOL_NAMES.accept || name === this.adapter.prefix + MCP_TOOL_NAMES.cancel ? 'HOST_REQUEST_NOT_FOUND' : 'INSTANCE_DISPOSED', {stage: 'transport'});
       const o = data(options, ['signal'], 'INPUT_INVALID');
       if (o.signal !== undefined && !(o.signal instanceof AbortSignal)) throw new IntentError('INPUT_INVALID');
       const signal = o.signal as AbortSignal | undefined;
-      if (name === this.adapter.prefix + 'intent_accept') return this.envelope(await this.accept(args, signal));
-      if (name === this.adapter.prefix + 'intent_cancel') return this.envelope(this.cancel(args));
+      if (name === this.adapter.prefix + MCP_TOOL_NAMES.accept) return this.envelope(await this.accept(args, signal));
+      if (name === this.adapter.prefix + MCP_TOOL_NAMES.cancel) return this.envelope(this.cancel(args));
       const request = data(args, requestKeys, 'INPUT_INVALID'), instanceName = request.instance;
       if (instanceName !== undefined && typeof instanceName !== 'string') throw new IntentError('INPUT_INVALID');
       const instance = instanceName === undefined && this.adapter.instances.size === 1 ? this.adapter.instances.values().next().value : this.adapter.instances.get(instanceName as string);
       if (!instance) throw new IntentError('INPUT_INVALID'); delete request.instance;
-      if (name === this.adapter.prefix + 'intent_prepare') {
+      if (name === this.adapter.prefix + MCP_TOOL_NAMES.prepare) {
         const lease = intentAccess.get(instance)!.prepare(request as unknown as IntentParseRequest, signal ? {signal} : {});
         const record: HostRecord = {id: randomUUID(), token: randomUUID(), state: 'waiting', session: this, lease};
         const task: HostTask = {kind: 'model_task', requestId: record.id, submissionToken: record.token, instructions: lease.request.instructions, input: lease.request.input, outputSchema: lease.request.outputSchema as JsonObject};

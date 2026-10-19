@@ -46,7 +46,7 @@ Reports always contain command/status/changed/checks/paths/warnings. status is o
 
 ## Update and register again
 
-For an existing setup registration, run npm install -g @devcodex/intent-runtime, then setup or doctor --repair as needed and reload the client. Updates do not download business configuration. clean removes this module's owned registration/Skill without deleting configuration, business data, or other tools.
+For an existing setup registration, run npm install -g @devcodex/intent-runtime, then run setup with the original configuration path and the same --name to refresh the unmodified Skill managed by this module. Reload the client or start a new CLI session. This step is needed when tool names or Skill content change: doctor --repair restores missing items from the ownership record and does not replace setup for Skill updates. User edits remain protected and are never forcibly overwritten. Updates do not download business configuration. clean removes this module's owned registration/Skill without deleting configuration, business data, or other tools.
 
 <span id="常见现象" aria-hidden="true"></span>
 

@@ -38,6 +38,6 @@ Complete [installation](/guide/installation), then your chosen path. Native, sta
 ## Host and executor modes
 
 - **host**: prepare returns material; the current client model generates a candidate; accept validates and assembles the result. The server does not silently call a second model.
-- **executor**: Native parse or MCP intent_parse calls the configured executor. The caller supplies a working model and credentials.
+- **executor**: Native parse or MCP intent_runtime_parse calls the configured executor. The caller supplies a working model and credentials.
 
 Registering tools exposes capabilities; it does not automatically intercept every chat message. See [Compatibility](/testing/validation).
