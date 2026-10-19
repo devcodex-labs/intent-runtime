@@ -40,42 +40,6 @@ setup 幂等，仅编辑对应表。doctor 默认只读，通过实际 stdio 列
 
 已经通过本页 `setup --host codex` 登记的用户，执行 `npm install -g @devcodex/intent-runtime` 更新命令，再按需运行 setup 或 doctor --repair，最后重载客户端。更新不会自动下载业务配置；clean 只移除本模块拥有的登记和 Skill，不删除配置文件、业务数据或其他工具。
 
-## 从自动登记方式升级
-
-如果此前全局安装时自动登记过 Codex，先迁移登记，再使用当前 `setup`。旧安装的 `state.json` 与当前的 `registrations.json` 不是同一份拥有权记录；更新 npm 包不会自动接管同名配置。出现退出码3时，反复运行 setup 或 repair 不会解决这个差异。
-
-### 还没有更新全局命令
-
-1. 退出正在使用该服务的客户端，备份实际 `CODEX_HOME/config.toml`、`INTENT_RUNTIME_HOME` 状态目录和用户 `.agents/skills/intent-runtime`；未设置环境变量时使用上文默认路径。业务配置也单独保留。
-2. 用 `intent-runtime --help` 确认仍是自动登记方式的旧命令：帮助没有 `setup`，clean 不要求 `--host`。在**更新全局包之前**运行下面第一条命令。检查报告和备份，确认仅移除了本模块拥有的登记；有用户修改或清理失败时先按下一节处理。
-3. 安装当前包，创建本次要用的可信 host 配置，再显式登记、诊断和重载客户端：
-
-```bash
-# 仅限仍在使用自动登记方式的旧命令
-intent-runtime clean --json
-
-# 之后安装当前命令并登记
-npm install -g @devcodex/intent-runtime
-intent-runtime setup --host codex --config /absolute/path/intent.host.config.mjs --dry-run
-intent-runtime setup --host codex --config /absolute/path/intent.host.config.mjs
-intent-runtime doctor --host codex
-```
-
-### 已经更新，setup 返回保护冲突
-
-1. 保留并备份上述文件。当前 clean 不能根据旧 `state.json` 自动清理未知拥有内容；不要删除整个 Codex 配置或状态目录。
-2. 检查 `config.toml` 中精确的 `[mcp_servers.intent-runtime]` 表、可能的子表及对应 Skill。确认它们属于此前安装且备份完整后，手动移走该登记表和对应 Skill 文件。保留其他 MCP、全局设置、用户业务配置和备份；有自己的修改时先合并到新配置，再移走旧内容。
-3. 再运行上面的当前 setup 与 doctor，重载客户端，按[首次识别](/zh/integrations/codex#3-发起识别)完成 prepare/accept。doctor 成功仅证明登记与列工具正常。
-
-无法确认旧内容归属时，先保留它，使用一个未占用的新名称验证当前接入：
-
-```bash
-intent-runtime setup --host codex --name intent-runtime-v2 --config /absolute/path/intent.host.config.mjs
-intent-runtime doctor --host codex --name intent-runtime-v2
-```
-
-此路径不会移除旧登记。验证期间明确选择新服务的工具，避免混用；确认归属后再按备份整理旧项。清理新名称时也要传相同 `--name`。迁移只处理客户端登记，不恢复旧识别接口，也不把旧结果直接当作当前 baseline。
-
 ## 常见现象
 
 | 现象 | 下一步 |

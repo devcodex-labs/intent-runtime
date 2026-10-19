@@ -17,7 +17,7 @@ export function inspectHtml(html) {
     const attrs = Object.fromEntries((node.attrs ?? []).map(a => [a.name, a.value]));
     if (node.tagName === 'html') lang = attrs.lang;
     if (node.tagName === 'h1') h1++;
-    if (attrs.id) ids.add(attrs.id);
+    if (attrs.id) {assert(!ids.has(attrs.id), 'Duplicate rendered ID: ' + attrs.id); ids.add(attrs.id);}
     if (node.tagName === 'a' && attrs.href !== undefined) links.push(attrs);
     if (node.tagName === 'link' && attrs.href !== undefined) headLinks.push(attrs);
     const hidden = excluded || ['script', 'style', 'pre', 'code'].includes(node.tagName);

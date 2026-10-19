@@ -1,7 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {checkConfigurationDefaults, checkTranslationSemantics} from './translation-check.mjs';
+import {checkConfigurationDefaults, checkTranslationSemantics, checkLocalePairs} from './translation-check.mjs';
+import {activePages} from './active-pages.mjs';
+
+test('every current user page needs both translations', () => {
+  const pages = new Map(activePages.flatMap(route => [[route, {text:''}], ['/zh' + route, {text:''}]]));
+  checkLocalePairs(pages);
+  for (const route of activePages) {
+    const incomplete = new Map(pages); incomplete.delete('/zh' + route);
+    assert.throws(() => checkLocalePairs(incomplete), /Missing or unpaired translation page/);
+  }
+});
+test('removing an entire page pair cannot reduce the reviewed documentation inventory', () => {
+  const pages = new Map(activePages.flatMap(route => [[route, {text:''}], ['/zh' + route, {text:''}]]));
+  for (const route of activePages) {
+    const incomplete = new Map(pages); incomplete.delete(route); incomplete.delete('/zh' + route);
+    assert.throws(() => checkLocalePairs(incomplete), /complete reviewed active page inventory/);
+  }
+});
 
 for (const locale of ['en', 'zh']) {
   test(`${locale} default contract rejects an incorrect translated limit`, async () => {

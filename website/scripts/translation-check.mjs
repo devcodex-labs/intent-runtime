@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
+import {activePages} from './active-pages.mjs';
 
 export function checkLocalePairs(pages) {
   const english = [...pages.keys()].filter(name => name !== '/' && !name.startsWith('/zh'));
   const chinese = [...pages.keys()].filter(name => name.startsWith('/zh/')).map(name => name.slice(3)).filter(name => name !== '/');
-  assert.equal(english.length, 22, 'English must contain all 22 user-documentation pages');
+  assert.deepEqual([...english].sort(), [...activePages].sort(), 'English must contain the complete reviewed active page inventory');
   assert.deepEqual(chinese.sort(), english.sort(), 'Missing or unpaired translation page');
   for (const name of english) {
     const body = pages.get(name).text.replace(/```[\s\S]*?```/g, '').replace(/<span id="[^"]+" aria-hidden="true"><\/span>/g, '').replace(/<!--[\s\S]*?-->/g, '');

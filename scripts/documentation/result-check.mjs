@@ -49,16 +49,33 @@ export function checkResultLinks(result, materials) {
   for (const id of result.turn.intentIds) assert(current.intent.has(id), 'turn.intentIds must reference current intents');
   for (const relation of result.effective.relations) assert(current.intent.has(relation.fromId) && current.intent.has(relation.toId));
   for (const entry of [...result.evidence ?? [], ...result.inferences]) pointer(result, entry.target);
-  function sources(value) {
-    if (!value || typeof value !== 'object') return;
-    if ('root' in value && 'pointer' in value) {
-      assert(Object.hasOwn(materials, value.root), 'Missing source root: ' + value.root);
-      const source = pointer(materials[value.root], value.pointer);
-      if (value.quote !== undefined) assert((typeof source === 'string' ? source : JSON.stringify(source)).includes(value.quote));
-    }
-    for (const child of Object.values(value)) sources(child);
+  function sourceRef(ref) {
+    assert(Object.hasOwn(materials, ref.root), 'Missing source root: ' + ref.root);
+    const source = pointer(materials[ref.root], ref.pointer);
+    if (ref.quote !== undefined) assert((typeof source === 'string' ? source : JSON.stringify(source)).includes(ref.quote));
   }
-  sources(result);
+  const sources = value => {for (const ref of value.sourceRefs ?? []) sourceRef(ref);};
+  function expression(value) {
+    if (!value) return;
+    if (value.type === 'comparison') {
+      for (const operand of [value.left, value.right]) if (operand.type === 'source') sourceRef(operand.ref);
+    } else if (value.type === 'not') expression(value.item);
+    else for (const item of value.items ?? []) expression(item);
+  }
+  function intents(nodes) {for (const node of nodes) {
+    for (const ref of node.references ?? []) sources(ref);
+    for (const constraint of node.constraints ?? []) expression(constraint.expression);
+    intents(node.children ?? []);
+  }}
+  // Only typed SourceRef positions are references. Business inputs, facts,
+  // extensions, deltas and inference/literal values are arbitrary JSON.
+  for (const value of [...result.turn.changes, ...result.fieldResults ?? [], ...result.inferences, ...result.evidence ?? []]) sources(value);
+  for (const issue of result.issues ?? []) {
+    sources(issue);
+    for (const candidate of issue.candidates ?? []) sources(candidate);
+  }
+  for (const constraint of result.effective.constraints) expression(constraint.expression);
+  intents(result.effective.intents);
 }
 
 // Runtime IDs are opaque. Canonical names make fixed documentation readable;

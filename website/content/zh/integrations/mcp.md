@@ -32,13 +32,23 @@ export default {
 };
 ```
 
-配置是可信 Node.js 模块；无包导入，可以独立保存。由你的 MCP 客户端启动以下命令：
+配置是可信 Node.js 模块；无包导入，可以独立保存。按安装位置选择启动命令。
+
+**全局安装：** 在终端检查或由 MCP 客户端启动以下命令：
 
 ```bash
 intent-runtime-mcp --config /absolute/path/intent.host.config.js
 ```
 
-在 MCP 客户端中选择 STDIO。支持 mcpServers 格式的客户端可参考：
+**项目本地安装：** 在已执行 `npm install @devcodex/intent-runtime` 的服务项目目录运行；下面使用独立的 `.mjs` 配置文件：
+
+```bash
+npx --no-install intent-runtime-mcp --config /absolute/path/my-service/intent.host.config.mjs
+```
+
+本地安装不会把命令加入系统 PATH。先确认项目已安装该包；`--no-install` 阻止为本次命令临时安装缺失包，仍需从正确的服务项目目录运行。
+
+在 MCP 客户端中选择 STDIO。**全局安装**且客户端 PATH 可找到命令时，支持 mcpServers 格式的客户端可参考：
 
 ```json
 {
@@ -51,7 +61,26 @@ intent-runtime-mcp --config /absolute/path/intent.host.config.js
 }
 ```
 
-替换为真实配置绝对路径；客户端 PATH 找不到命令时填可执行文件的绝对路径。Windows按客户端支持使用.cmd入口；不支持时使用 node 加安装目录中 dist/cli/mcp.js 的绝对路径启动。Codex 用户可直接用[setup登记](/zh/integrations/codex)。stdout 只传协议，日志在客户端 stderr 中查看。
+**项目本地安装**可使用 Node 和已安装入口的绝对路径，不依赖客户端的工作目录或 npm 命令 PATH：
+
+```json
+{
+  "mcpServers": {
+    "intent-runtime": {
+      "command": "/absolute/path/to/node",
+      "args": [
+        "/absolute/path/my-service/node_modules/@devcodex/intent-runtime/dist/cli/mcp.js",
+        "--config",
+        "/absolute/path/my-service/intent.host.config.mjs"
+      ]
+    }
+  }
+}
+```
+
+用 `node -p "process.execPath"` 查 Node 路径，将所有占位路径替换为真实绝对路径；配置表单中每个 args 项单独填写。Windows 可使用 `C:/Program Files/nodejs/node.exe` 和 `D:/Worker/my-service/...` 这样的路径；JSON 中使用 `/` 或转义后的 `\\`。JSON 字符串中的路径即使含空格也无需再加 shell 引号。
+
+全局命令找不到时同样可填可执行文件绝对路径。Windows按客户端支持使用.cmd入口；不支持时使用上述 node 加安装入口的方式。Codex 用户可直接用[setup登记](/zh/integrations/codex)。stdout 只传协议，日志在客户端 stderr 中查看。
 
 | 独立配置 | 类型 / 默认 | 规则 |
 |---|---|---|
@@ -63,11 +92,19 @@ executor实例要配置[模型执行器](/zh/integrations/api)，host无需execu
 
 ## 使用 HTTP 与指定端口
 
-复用上面的配置，在终端中启动：
+复用上面的配置，在终端中启动。全局安装使用：
 
 ```bash
 intent-runtime-mcp --config /absolute/path/intent.host.config.js --transport http --host 127.0.0.1 --port 3001 --path /mcp
 ```
+
+项目本地安装则在服务项目目录使用：
+
+```bash
+npx --no-install intent-runtime-mcp --config /absolute/path/my-service/intent.host.config.mjs --transport http --host 127.0.0.1 --port 3001 --path /mcp
+```
+
+后面的远程部署示例使用全局命令；项目本地安装时同样在命令前加 `npx --no-install`，并在服务项目目录运行。
 
 终端应显示 `Intent MCP listening at http://127.0.0.1:3001/mcp`。保持进程运行，在客户端新增 Streamable HTTP 连接：
 

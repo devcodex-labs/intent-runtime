@@ -22,9 +22,21 @@ Recovery is **identify code/issue → repair input/configuration → make an exp
 | MODEL_AUTH_FAILED / MODEL_RATE_LIMITED / MODEL_REQUEST_FAILED | Authentication, rate limit, or request failure |
 | MODEL_REFUSED / MODEL_OUTPUT_INCOMPLETE / MODEL_OUTPUT_INVALID | Refusal, truncation, or invalid candidate structure/sources/invariants |
 | MODEL_TIMEOUT / REQUEST_ABORTED / INSTANCE_DISPOSED | Explicit deadline, cancellation, or disposal |
-| RESOURCE_LIMIT | Capacity/work exceeded; details includes limit/allowed/observed/unit |
+| RESOURCE_LIMIT | Capacity/work exceeded; inspect available limit/allowed/unit/path in details; observed is included only when known |
 | INTERNAL_PROCESSING_FAILED | Local infrastructure or final output failure, stage=validation/output |
 | HOST_REQUEST_NOT_FOUND / HOST_SUBMISSION_CONFLICT | Missing handoff record, conflicting token, or different candidate |
+
+Resource checks may stop as soon as a limit is exceeded instead of measuring all remaining material. An omitted `details.observed` does not mean zero; display only available diagnostic properties. For example, setting `limits.maxContextBytes` to 16 and supplying an oversized Context can produce this safe summary:
+
+```json
+{
+  "name": "IntentError",
+  "code": "RESOURCE_LIMIT",
+  "message": "Resource limit exceeded.",
+  "stage": "input",
+  "details": {"limit": "maxContextBytes", "allowed": 16, "unit": "bytes", "path": "/context"}
+}
+```
 
 Semantic issue codes include AMBIGUOUS_REFERENCE, INTENT_INFORMATION_MISSING, CONSTRAINT_CONFLICT, RELATION_CONFLICT, CONTEXT_CONFLICT, CONTEXT_INCOMPLETE, UNCONFIRMED_INFERENCE. Field codes include FIELD_REQUIRED_MISSING, FIELD_APPLICABILITY_UNKNOWN, FIELD_CARDINALITY_MISMATCH, FIELD_VALUE_INVALID, FIELD_DEPENDENCY_MISSING, FIELD_VALIDATION_UNDETERMINED, FIELD_INVALIDATED.
 
@@ -45,7 +57,7 @@ Ambiguity, missing fields, and invalid values are usually normal interpretation 
 | MODEL_OUTPUT_INVALID | Safe details.violations paths/rules | Native caller decides whether to recognize again; host may submit correction from explicit feedback without resetting the same validation budget |
 | MODEL_AUTH_FAILED / MODEL_RATE_LIMITED / MODEL_REQUEST_FAILED | Credentials, permission, quota, provider status, network | Repair authentication or wait for recovery; caller chooses retry policy |
 | MODEL_REFUSED / MODEL_OUTPUT_INCOMPLETE | Refusal or unfinished generation | Do not parse truncated text; explicitly retry only after appropriate input/limit changes |
-| RESOURCE_LIMIT | details.limit/allowed/observed/unit | Reduce relevant material or adjust trusted limits; maxValidationChecks exhaustion ends this recognition |
+| RESOURCE_LIMIT | Available limit/allowed/unit/path in details; observed may be omitted | Reduce relevant material or adjust trusted limits; maxValidationChecks exhaustion ends this recognition |
 | HOST_REQUEST_NOT_FOUND | Closed session, restart, reclaimed terminal record | Prepare again with complete material and use new requestId/token |
 | HOST_SUBMISSION_CONFLICT | Mixed identities/tokens or different candidates | Keep the original handoff identity; prepare a new request instead of overwriting another submission |
 | REQUEST_ABORTED / MODEL_TIMEOUT | Caller signal or explicit timeoutMs | Preserve previous state; a new recognition is explicit; default timeoutMs=0 adds no deadline |

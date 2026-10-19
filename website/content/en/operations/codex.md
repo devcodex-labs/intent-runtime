@@ -48,48 +48,6 @@ Reports always contain command/status/changed/checks/paths/warnings. status is o
 
 For an existing setup registration, run npm install -g @devcodex/intent-runtime, then setup or doctor --repair as needed and reload the client. Updates do not download business configuration. clean removes this module's owned registration/Skill without deleting configuration, business data, or other tools.
 
-<span id="从自动登记方式升级" aria-hidden="true"></span>
-
-## Migrate an old automatic registration
-
-If an earlier global installation registered Codex automatically, migrate that registration before current setup. The old state.json and current registrations.json are separate ownership records. Updating npm does not take ownership of unknown same-name content. Repeating setup/repair after exit 3 does not resolve that difference.
-
-<span id="还没有更新全局命令" aria-hidden="true"></span>
-
-### Before updating the global commands
-
-1. Exit clients using the service. Back up the actual CODEX_HOME/config.toml, INTENT_RUNTIME_HOME state directory, and user .agents/skills/intent-runtime. Use the default paths above if environment overrides are absent. Back up business configuration separately.
-2. Check intent-runtime --help still shows the old automatic-registration command: no setup and clean does not require --host. Run the first command below **before updating the global package**. Inspect its report and backups to confirm it removed only owned content. If content was edited or cleanup failed, use the next section.
-3. Install the current package, create trusted host configuration, explicitly register, diagnose, and reload:
-
-```bash
-# Only with the old automatic-registration command still installed:
-intent-runtime clean --json
-
-# Then install and register the current commands:
-npm install -g @devcodex/intent-runtime
-intent-runtime setup --host codex --config /absolute/path/intent.host.config.mjs --dry-run
-intent-runtime setup --host codex --config /absolute/path/intent.host.config.mjs
-intent-runtime doctor --host codex
-```
-
-<span id="已经更新setup-返回保护冲突" aria-hidden="true"></span>
-
-### Already updated, with a protection conflict
-
-1. Preserve and back up the files above. Current clean cannot remove unknown content using old state.json. Do not delete the entire Codex configuration or state directory.
-2. Inspect the exact [mcp_servers.intent-runtime] table, possible subtables, and matching Skill. After establishing ownership and a complete backup, manually move aside only that registration and Skill. Preserve other MCP registrations, global settings, business configuration, and backups. Merge your edits into the new configuration first.
-3. Run current setup/doctor, reload the client, and complete [first recognition](/integrations/codex#3-recognize-a-request). Successful doctor proves registration/tool discovery only.
-
-When old ownership is uncertain, preserve it and test the current integration under an unused name:
-
-```bash
-intent-runtime setup --host codex --name intent-runtime-v2 --config /absolute/path/intent.host.config.mjs
-intent-runtime doctor --host codex --name intent-runtime-v2
-```
-
-This does not remove the old registration. Explicitly select the new service's tools during verification. Resolve old content from backups after confirming ownership. Pass the same --name to clean the new registration. Migration concerns client registration; it does not restore old recognition APIs or make old results valid baselines.
-
 <span id="常见现象" aria-hidden="true"></span>
 
 ## Common symptoms

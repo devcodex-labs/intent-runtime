@@ -35,13 +35,23 @@ export default {
 };
 ```
 
-This trusted Node.js module imports no packages and can be saved independently. Have your MCP client start:
+This trusted Node.js module imports no packages and can be saved independently. Choose the command for your installation location.
+
+**Global installation:** run in a terminal to check startup, or have your MCP client start:
 
 ```bash
 intent-runtime-mcp --config /absolute/path/intent.host.config.js
 ```
 
-Select STDIO in the client. Clients supporting mcpServers can use:
+**Project-local installation:** run from the service project where you installed `@devcodex/intent-runtime`. This example uses a standalone `.mjs` configuration:
+
+```bash
+npx --no-install intent-runtime-mcp --config /absolute/path/my-service/intent.host.config.mjs
+```
+
+A local installation does not add the command to the system PATH. Install the package in the project first; `--no-install` prevents installing a missing package for this invocation, but you must still run from the correct service project.
+
+Select STDIO in the client. With a **global installation** available on the client's PATH, clients supporting mcpServers can use:
 
 ```json
 {
@@ -54,7 +64,26 @@ Select STDIO in the client. Clients supporting mcpServers can use:
 }
 ```
 
-Replace the path. If the client PATH cannot find the command, use the executable's absolute path. On Windows use .cmd if supported; otherwise invoke node with the installed dist/cli/mcp.js absolute path. Codex users can use [setup](/integrations/codex). stdout carries protocol only; inspect stderr for logs.
+With a **project-local installation**, use absolute paths to Node and the installed entry. This does not depend on the client's working directory or npm command PATH:
+
+```json
+{
+  "mcpServers": {
+    "intent-runtime": {
+      "command": "/absolute/path/to/node",
+      "args": [
+        "/absolute/path/my-service/node_modules/@devcodex/intent-runtime/dist/cli/mcp.js",
+        "--config",
+        "/absolute/path/my-service/intent.host.config.mjs"
+      ]
+    }
+  }
+}
+```
+
+Find Node with `node -p "process.execPath"` and replace every placeholder with its actual absolute path. Enter each args item separately in client forms. Windows paths can use `C:/Program Files/nodejs/node.exe` and `D:/Worker/my-service/...`; use `/` or escaped `\\` in JSON. Spaces inside a JSON path string do not require extra shell quotes.
+
+For global commands missing from PATH, use the executable's absolute path as well. On Windows use .cmd if supported; otherwise use Node with the installed entry as above. Codex users can use [setup](/integrations/codex). stdout carries protocol only; inspect stderr for logs.
 
 | Service configuration | Type / default | Rule |
 |---|---|---|
@@ -68,11 +97,19 @@ executor instances require a [model executor](/integrations/api); host does not.
 
 ## HTTP and a custom port
 
-Reuse the same configuration:
+Reuse the same configuration. For a global installation:
 
 ```bash
 intent-runtime-mcp --config /absolute/path/intent.host.config.js --transport http --host 127.0.0.1 --port 3001 --path /mcp
 ```
+
+For a project-local installation, run from the service project:
+
+```bash
+npx --no-install intent-runtime-mcp --config /absolute/path/my-service/intent.host.config.mjs --transport http --host 127.0.0.1 --port 3001 --path /mcp
+```
+
+The remote deployment examples below use the global command. For a project-local installation, prefix it with `npx --no-install` and run from the service project.
 
 Expect `Intent MCP listening at http://127.0.0.1:3001/mcp`. Keep the process running and add a Streamable HTTP client connection:
 

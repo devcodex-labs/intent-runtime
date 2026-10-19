@@ -24,3 +24,40 @@ test('pointer preserves empty names and escaped keys and rejects malformed paths
   assert.throws(() => pointer({}, '/a~2b'), /escape/);
   assert.throws(() => pointer({}, 'orders/1/amount'), /JSON Pointer/);
 });
+
+function current() {
+  return {turn: {intentIds: ['current'], facts: {}, changes: []}, effective: {intents: [{...structuredClone(old), id: 'current', inputs: {}, extensions: {}}], constraints: [], relations: []}, fieldResults: [], issues: [], inferences: []};
+}
+const source = {root: 'context', pointer: '/meta/a~1b/~0', quote: 'provided'};
+const sourceMaterials = {input: 'Inspect the supplied metadata', context: {meta: {'': 'empty name', 'a/b': {'~': 'provided value'}}}};
+const sourceLocations = [
+  ['change', (r, ref) => r.turn.changes.push({operation: 'modify', effect: 'applied', target: {kind: 'intent', id: 'current'}, sourceRefs: [ref]})],
+  ['field', (r, ref) => r.fieldResults.push({sourceRefs: [ref]})],
+  ['intent reference', (r, ref) => r.effective.intents[0].references.push({id: 'reference', sourceRefs: [ref]})],
+  ['issue', (r, ref) => r.issues.push({id: 'issue', sourceRefs: [ref]})],
+  ['issue candidate', (r, ref) => r.issues.push({id: 'issue', candidates: [{id: 'candidate', sourceRefs: [ref]}]})],
+  ['inference', (r, ref) => r.inferences.push({target: '/turn', sourceRefs: [ref]})],
+  ['evidence', (r, ref) => {r.evidence = [{target: '/turn', sourceRefs: [ref]}];}],
+  ['global expression', (r, ref) => r.effective.constraints.push({id: 'constraint', expression: {type: 'comparison', left: {type: 'source', ref}, operator: 'eq', right: {type: 'literal', value: true}}})],
+  ['nested intent expression', (r, ref) => r.effective.intents[0].children.push({...structuredClone(old), id: 'child', constraints: [{id: 'constraint', expression: {type: 'all', items: [{type: 'any', items: [{type: 'not', item: {type: 'comparison', left: {type: 'literal', value: true}, operator: 'eq', right: {type: 'source', ref}}}]}]}}]})],
+];
+for (const [name, add] of sourceLocations) test('source validation remains strict in ' + name, () => {
+  const check = ref => {const r = current(); add(r, ref); checkResultLinks(r, sourceMaterials);};
+  check(source);
+  check({root: 'context', pointer: '/meta/', quote: 'empty name'});
+  assert.throws(() => check({...source, root: 'baseline'}), /Missing source root/);
+  assert.throws(() => check({...source, pointer: '/missing'}), /\/missing/);
+  assert.throws(() => check({...source, pointer: '/a~2b'}), /Invalid pointer escape/);
+  assert.throws(() => check({...source, pointer: 'meta/a'}), /Expected JSON Pointer/);
+  assert.throws(() => check({...source, quote: 'invented quotation'}));
+});
+test('business JSON may use source-like keys without becoming a SourceRef', () => {
+  const r = current(), business = {root: 'sales', pointer: 'invoice-000123', sourceRefs: [{root: 'business', pointer: 'not a pointer'}]};
+  r.effective.intents[0].inputs.metadata = business;
+  r.effective.intents[0].extensions.metadata = business;
+  r.turn.facts.metadata = business;
+  r.turn.changes = [{operation: 'modify', effect: 'applied', target: {kind: 'intent', id: 'current'}, sourceRefs: [source], deltas: [{path: '/inputs/metadata', operation: 'set', before: business, after: business}]}];
+  r.effective.constraints = [{id: 'constraint', expression: {type: 'comparison', left: {type: 'literal', value: business}, operator: 'eq', right: {type: 'literal', value: null}}}];
+  r.inferences = [{target: '/effective/intents/0/inputs/metadata', candidate: business, sourceRefs: [source]}];
+  checkResultLinks(r, sourceMaterials);
+});

@@ -158,7 +158,7 @@ intent-runtime setup --host codex --config /absolute/path/intent.host.config.mjs
 
 Use the trusted configuration above or follow the [Codex integration guide](https://devcodex-labs.github.io/intent-runtime/integrations/codex.html) to add business fields. Reload the client after setup. Ordinary installation does not modify Codex configuration; registration is explicit. The supplied Skill guides tool use when invoked and does not take over every message.
 
-Already have a registration from an automatic setup? Follow the [safe registration upgrade](https://devcodex-labs.github.io/intent-runtime/operations/codex.html#从自动登记方式升级) before replacing it. Setup protects existing entries and user edits.
+Setup protects existing entries and user edits. See [Codex maintenance](https://devcodex-labs.github.io/intent-runtime/operations/codex.html) for diagnostics, repair, and cleanup.
 
 ## Troubleshooting
 

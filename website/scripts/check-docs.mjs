@@ -4,6 +4,7 @@ import {fileURLToPath} from 'node:url';
 import ts from 'typescript';
 import {checkLocalePairs, checkConfigurationDefaults, checkTranslationSemantics} from './translation-check.mjs';
 import {checkResponseFields, checkTypeSnippet, checkPublicTypes, documentationBlocks, normalizeText} from './contract-check.mjs';
+import {checkDocumentationPolicy} from './documentation-policy.mjs';
 
 const readFile = async (...args) => normalizeText(await readRawFile(...args));
 
@@ -23,8 +24,7 @@ let links = 0, examples = 0;
 const readme = path.join(repo, 'README.md'), config = path.join(website, 'rspress.config.ts');
 for (const file of [...files, readme, config]) {
   const text = await readFile(file, 'utf8');
-  if (/开发预览|Intent\.bridge|coreJson|dataJson|setup codex|\/api\/bridge-mcp|TDR-\d|TAF-\d|DEV-\d|GATE-\d|codex-temp|PrototypeCoverageError|Usage Contract v\d|匹配的新版发布后|确认.{0,15}新版.{0,5}已发布|尚无对应本文接口的新版发行|当前发行状态/.test(text)) fail('Obsolete or internal documentation: ' + file);
-  if (/npm install (?:-g )?@devcodex\/intent-runtime(?:@[^\s`]+|[^\n]*\bschema-dsl\b)/.test(text)) fail('Default installation must use only the unversioned runtime package: ' + file);
+  checkDocumentationPolicy(file, text);
   const prose = text.replace(/```[\s\S]*?```/g, '');
   const targets = [...prose.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)].map(m => m[1]);
   for (const target of targets) if (target.startsWith('/') && target.split('#')[0].endsWith('.json')) fail('Use a native download anchor for JSON assets (Rspress rewrites Markdown links): ' + target);

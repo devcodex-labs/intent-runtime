@@ -20,9 +20,21 @@
 | MODEL_AUTH_FAILED / MODEL_RATE_LIMITED / MODEL_REQUEST_FAILED | 认证、限流或模型请求失败 |
 | MODEL_REFUSED / MODEL_OUTPUT_INCOMPLETE / MODEL_OUTPUT_INVALID | 拒绝、截断或候选结构/来源/不变量不合法 |
 | MODEL_TIMEOUT / REQUEST_ABORTED / INSTANCE_DISPOSED | 显式期限、取消或释放 |
-| RESOURCE_LIMIT | 指定容量或工作预算超限，details 给出 limit/allowed/observed/unit |
+| RESOURCE_LIMIT | 指定容量或工作预算超限；按 details 中可用的 limit/allowed/unit/path 定位，observed 仅在已知时提供 |
 | INTERNAL_PROCESSING_FAILED | 本地设施或最终输出故障，stage=validation/output |
 | HOST_REQUEST_NOT_FOUND / HOST_SUBMISSION_CONFLICT | 会话无记录，或 token/不同候选冲突 |
+
+资源检查可能在确认超限后提前停止，不继续计算全部材料的大小。`details.observed` 未提供不表示 0；调用方应按可用属性显示诊断。例如将 `limits.maxContextBytes` 设为16，传入超限的 Context，可能得到以下安全摘要：
+
+```json
+{
+  "name": "IntentError",
+  "code": "RESOURCE_LIMIT",
+  "message": "Resource limit exceeded.",
+  "stage": "input",
+  "details": {"limit": "maxContextBytes", "allowed": 16, "unit": "bytes", "path": "/context"}
+}
+```
 
 语义问题包括 AMBIGUOUS_REFERENCE、INTENT_INFORMATION_MISSING、CONSTRAINT_CONFLICT、RELATION_CONFLICT、CONTEXT_CONFLICT、CONTEXT_INCOMPLETE、UNCONFIRMED_INFERENCE。字段码包括 FIELD_REQUIRED_MISSING、FIELD_APPLICABILITY_UNKNOWN、FIELD_CARDINALITY_MISMATCH、FIELD_VALUE_INVALID、FIELD_DEPENDENCY_MISSING、FIELD_VALIDATION_UNDETERMINED、FIELD_INVALIDATED。
 
@@ -41,7 +53,7 @@
 | MODEL_OUTPUT_INVALID | 安全details.violations中的路径/规则 | Native由应用决定是否重新识别；host只能按明确反馈提交纠正候选，不能重置同次校验预算 |
 | MODEL_AUTH_FAILED / MODEL_RATE_LIMITED / MODEL_REQUEST_FAILED | 凭据、权限、额度、供应商状态与网络 | 修复认证或等待服务恢复；是否重试、何时重试由应用决定 |
 | MODEL_REFUSED / MODEL_OUTPUT_INCOMPLETE | 模型拒绝或生成未完成 | 不解析截断文本；调整输入或生成上限后由应用明确重试 |
-| RESOURCE_LIMIT | details.limit、allowed、observed、unit | 缩小相关材料或合理调整可信配置；maxValidationChecks超限时结束本次识别 |
+| RESOURCE_LIMIT | details 中可用的 limit、allowed、unit、path；observed 可省略 | 缩小相关材料或合理调整可信配置；maxValidationChecks超限时结束本次识别 |
 | HOST_REQUEST_NOT_FOUND | session是否关闭、进程是否重启、终态记录是否回收 | 用完整材料重新prepare，再用新requestId/token提交候选 |
 | HOST_SUBMISSION_CONFLICT | 是否混用请求、token或同一请求的不同候选 | 保持原交接身份；需要新识别时重新prepare，不覆盖另一次提交 |
 | REQUEST_ABORTED / MODEL_TIMEOUT | 调用方signal或显式timeoutMs | 保留上次状态；需要继续时发起新识别，默认timeoutMs=0无需增加期限 |

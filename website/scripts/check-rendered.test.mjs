@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {assertPage, assertSearchIndex, assertLocaleMetadata, downloads} from './check-rendered.mjs';
+import {assertPage, assertSearchIndex, assertLocaleMetadata, inspectHtml, downloads} from './check-rendered.mjs';
 
 const valid = '<h1>完整响应</h1>' + downloads.map(href => `<a href="${href}" download target="_blank">下载</a>`).join('');
 test('accept actual anchors, one semantic heading and ordinary code examples', () => {
@@ -69,4 +69,7 @@ test('reject a missing language alternate', () => {
 test('reject duplicate canonical declarations', () => {
   const links = metadata(); links.push({...links[0]});
   assert.throws(() => assertLocaleMetadata(links, 'guide/quick-start.html', 'en'), /exactly one canonical/);
+});
+test('duplicate IDs cannot hide behind the rendered anchor inventory', () => {
+  assert.throws(() => inspectHtml('<span id="same"></span><h2 id="same">B</h2>'), /Duplicate rendered ID/);
 });
