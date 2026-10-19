@@ -15,37 +15,58 @@ npm install @devcodex/intent-runtime
 ## 在原服务里改哪几处
 
 1. 创建一个 Intent 实例及 adapter，声明需要提取的字段。
-2. 在原 `tools/list` 回复中加入 adapter.tools。
+2. 为 Intent 工具显式设置前缀，将 adapter.tools 合入原 `tools/list`，并检查最终名称是否重复。
 3. 在原 `tools/call` 路由中先交给对应 session；返回 undefined 时走原工具处理器。
 4. 连接关闭时释放 session；服务结束时释放 adapter 和你创建的 Intent。
 
-下面是接入位置示意，`original.listTools / original.callTool` 指你已有的工具处理函数，**不是 SDK 新增的方法**。`server` 是原服务的 SDK Server。原来的 resources/prompts 处理器不用改。
+下面是接入位置示意，`original.listTools / original.callTool` 指你已有的工具处理函数，**不是 SDK 新增的方法**。`server` 是原服务的 SDK Server。`attachIntentTools` 是下方完整提供的 `attach.mjs` 辅助函数；它检查合并后的名称，再创建 session。原来的 resources/prompts 处理器不用改。
 
 ```js
 import {Intent} from '@devcodex/intent-runtime';
-import {createIntentMcpAdapter} from '@devcodex/intent-runtime/mcp';
+import {attachIntentTools} from './attach.mjs';
 
 const intent = new Intent({language: 'zh-CN'});
-const adapter = createIntentMcpAdapter({mode: 'host', instances: {main: intent}});
-let session;
+let attached;
+const tools = () => attached ??= attachIntentTools(
+  original,
+  {mode: 'host', instances: {main: intent}, toolPrefix: 'ir_'},
+  {protocolVersion: server.getNegotiatedProtocolVersion()},
+);
 
 server.setRequestHandler('tools/list', async () => ({
-  tools: [...await original.listTools(), ...adapter.tools],
+  tools: await (await tools()).listTools(),
 }));
 server.setRequestHandler('tools/call', async (request, context) => {
-  session ??= adapter.connect({protocolVersion: server.getNegotiatedProtocolVersion()});
-  const result = await session.callTool(
+  return (await tools()).callTool(
     request.params.name,
     request.params.arguments ?? {},
     {signal: context.mcpReq.signal},
   );
-  return result ?? original.callTool(request.params.name, request.params.arguments ?? {});
 });
 ```
 
-将原工具处理函数映射到 original；在现有关闭流程中调用 `session?.close()`，服务停止时再调用 `adapter.close()` 和 `intent.dispose()`。不要覆盖或遗漏原关闭逻辑。工具名称冲突时设置 `toolPrefix`。若服务支持多个客户端，每个逻辑客户端保存独立 session；HTTP 的端口与 transport 继续由原服务配置。
+将接入前的原工具处理函数映射到 original；attached 是 Promise，连接关闭时等待它解析，对成功创建的辅助对象调用 `close()`，由其释放 session/adapter；服务停止时再调用 `intent.dispose()`。不要覆盖或遗漏原关闭逻辑。若服务支持多个客户端，每个逻辑客户端保存独立 attached/session；HTTP 的端口与 transport 继续由原服务配置。
 
-这段只说明需要改的接入位置。下面的完整工程提供名称冲突检查、生命周期处理和原有功能验证，可直接运行。JavaScript 使用 ESM `.js` 或 `.mjs`；TypeScript 使用相同 API，公共类型均由包提供。
+这段只说明需要改的接入位置，与完整工程复用同一份名称冲突检查和调用转接。下面的工程提供完整生命周期处理，可直接运行。JavaScript 使用 ESM `.js` 或 `.mjs`；TypeScript 使用相同 API，公共类型均由包提供。
+
+## 与 capability-graph 等模块共存
+
+本例的 `original.listTools()` 与转接对象的 `listTools()` 返回工具定义数组。定义包含 name 和 inputSchema，通常带 description，也可声明 outputSchema；其他模块的定义原样保留。SDK 处理器将数组放在 `tools/list` 的 `{tools: [...]}` 回复中，客户端从回复的 tools 读取定义，据此展示工具并组织调用；实际调用结果由 `tools/call` 返回。
+
+如果现有服务已接入 capability-graph，original.listTools 就应保留其真实工具定义，original.callTool 保留其真实处理器。模块名称不会为同一 MCP Server 的工具创建独立命名空间；**最终合并列表中的每个 name 都必须唯一**。原有工具名称和参数沿用 capability-graph 的实际 API，Intent 工具在接入配置中使用 `toolPrefix: 'ir_'`。
+
+| 合并后的工具 | 调用处理器 |
+|---|---|
+| capability-graph 的实际工具名及其他原有工具 | original.callTool |
+| ir_intent_prepare | 本连接 Intent session：准备宿主候选任务 |
+| ir_intent_accept | 同一 Intent session：校验候选并返回完整结果 |
+| ir_intent_cancel | 同一 Intent session：结束该次识别交接 |
+
+上表是分发说明；真实 `tools/list` 返回的是完整工具定义，不是仅有名称的数组。executor 模式则加入 `ir_intent_parse`，不同时加入三个 host 工具。前缀由接入方显式配置，包的默认行为和公共 API 不变。
+
+同一个 Server 为 `tools/list`、`tools/call` 各保留一个统一入口，按完整工具名分发。不要让两个模块分别重设同一个入口。仅在 Intent session 返回 `undefined` 时转发到 original；已命中的工具即使返回 `isError=true`，也保留该错误，不尝试另一个模块。
+
+下方辅助函数在接入时、每次列工具和每次调用前，检查合并后的**全部**名称，包括原工具列表内部的重名。发现冲突会报出具体名称；修正名称或选择不冲突的前缀后再接入。动态新增工具也执行相同检查，校验发现冲突的该次调用不会进入业务工具的执行处理器。这里只合并工具和调用路由，两个模块仍按各自参数与处理器运行。
 
 ## 完整运行示例
 
@@ -74,9 +95,10 @@ export async function attachIntentTools(original, config, connection) {
   const adapter = createIntentMcpAdapter(config);
   const check = async () => {
     const tools = await original.listTools();
-    const names = new Set(tools.map(tool => tool.name));
-    if (adapter.tools.some(tool => names.has(tool.name))) {
-      throw new Error('Choose a non-conflicting toolPrefix.');
+    const names = new Set();
+    for (const tool of [...tools, ...adapter.tools]) {
+      if (names.has(tool.name)) throw new Error('Duplicate MCP tool name: ' + tool.name + '. Rename the conflicting tool or choose a non-conflicting toolPrefix.');
+      names.add(tool.name);
     }
     return tools;
   };

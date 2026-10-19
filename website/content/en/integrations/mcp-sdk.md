@@ -18,37 +18,58 @@ Keep your existing compatible MCP SDK; adding tools does not require rebuilding 
 ## Four integration points
 
 1. Create an Intent and adapter; declare fields if needed.
-2. Include adapter.tools in your original tools/list response.
+2. Set an explicit prefix, merge adapter.tools into the original tools/list response, and check every final tool name for duplicates.
 3. Forward tools/call through its session; when it returns undefined, use the original handler.
 4. Close the session when its connection ends; close the adapter and caller-created Intent when the service stops.
 
-This sketch shows where to integrate. original.listTools/original.callTool are **your existing handlers, not SDK methods**. server is your existing SDK Server. Resources/prompts handlers remain unchanged.
+This sketch shows where to integrate. original.listTools/original.callTool are **your existing handlers, not SDK methods**. server is your existing SDK Server. attachIntentTools is the helper provided in full as attach.mjs below; it checks merged names before creating a session. Resources/prompts handlers remain unchanged.
 
 ```js
 import {Intent} from '@devcodex/intent-runtime';
-import {createIntentMcpAdapter} from '@devcodex/intent-runtime/mcp';
+import {attachIntentTools} from './attach.mjs';
 
 const intent = new Intent({language: 'en'});
-const adapter = createIntentMcpAdapter({mode: 'host', instances: {main: intent}});
-let session;
+let attached;
+const tools = () => attached ??= attachIntentTools(
+  original,
+  {mode: 'host', instances: {main: intent}, toolPrefix: 'ir_'},
+  {protocolVersion: server.getNegotiatedProtocolVersion()},
+);
 
 server.setRequestHandler('tools/list', async () => ({
-  tools: [...await original.listTools(), ...adapter.tools],
+  tools: await (await tools()).listTools(),
 }));
 server.setRequestHandler('tools/call', async (request, context) => {
-  session ??= adapter.connect({protocolVersion: server.getNegotiatedProtocolVersion()});
-  const result = await session.callTool(
+  return (await tools()).callTool(
     request.params.name,
     request.params.arguments ?? {},
     {signal: context.mcpReq.signal},
   );
-  return result ?? original.callTool(request.params.name, request.params.arguments ?? {});
 });
 ```
 
-Map original to your handlers. Add session?.close() to connection cleanup; call adapter.close() and intent.dispose() on service shutdown without losing existing cleanup. Use toolPrefix to avoid collisions. Keep a separate session for each logical client. Existing HTTP servers retain their own ports and transports.
+Map original to the handlers that existed before attachment. attached is a Promise: on connection cleanup, await it and call close() on the successfully created helper to close its session/adapter. Dispose the caller-owned Intent on service shutdown and preserve existing cleanup. Keep a separate attached helper/session for each logical client. Existing HTTP servers retain their own ports and transports.
 
-The complete example below adds collision checks, lifecycle handling, and preservation of original capabilities. JavaScript supports ESM .js/.mjs; TypeScript uses the same API with included public types.
+The sketch and complete example reuse the same collision checks and call forwarding. The complete example below adds lifecycle handling. JavaScript supports ESM .js/.mjs; TypeScript uses the same API with included public types.
+
+## Coexist with capability-graph and other modules
+
+In this example, original.listTools() and the forwarding helper's listTools() return an array of tool definitions. Each definition has name and inputSchema, usually includes description, and may declare outputSchema; other modules' definitions remain intact. The SDK handler wraps the array in a tools/list response shaped as {tools: [...]}. Clients read definitions from the response's tools property to display tools and prepare calls. tools/call returns the actual invocation result.
+
+If your existing server already includes capability-graph, original.listTools retains its actual definitions and original.callTool retains its actual handlers. Module names do not create separate tool namespaces inside one MCP Server: **every name in the final merged list must be unique**. Keep capability-graph's actual names and parameters, and configure Intent tools with toolPrefix: 'ir_'.
+
+| Merged tool | Handler |
+|---|---|
+| Actual capability-graph tool names and other existing tools | original.callTool |
+| ir_intent_prepare | This connection's Intent session: prepare a host candidate task |
+| ir_intent_accept | The same Intent session: validate the candidate and return the complete result |
+| ir_intent_cancel | The same Intent session: end this recognition handoff |
+
+This table explains routing; the actual tools/list contains full definitions, not just an array of names. Executor mode adds ir_intent_parse instead of the three host tools. The integration configures the prefix explicitly; package defaults and public APIs remain unchanged.
+
+Keep one shared handler for tools/list and one for tools/call on the Server, dispatching by exact tool name. Do not let two modules replace the same handler independently. Forward to original only when the Intent session returns undefined. A matched tool's isError=true reply remains its error; do not try another module.
+
+The helper below checks **all** merged names on attachment, on each listing and before each call, including duplicates within the original tool list. A conflict reports its name; fix the name or choose a distinct prefix before attaching again. Dynamic additions use the same checks; a call rejected by this check does not reach a business tool's execution handler. This merges tool definitions and routing; each module retains its own parameters and handlers.
 
 <span id="完整运行示例" aria-hidden="true"></span>
 
@@ -81,9 +102,10 @@ export async function attachIntentTools(original, config, connection) {
   const adapter = createIntentMcpAdapter(config);
   const check = async () => {
     const tools = await original.listTools();
-    const names = new Set(tools.map(tool => tool.name));
-    if (adapter.tools.some(tool => names.has(tool.name))) {
-      throw new Error('Choose a non-conflicting toolPrefix.');
+    const names = new Set();
+    for (const tool of [...tools, ...adapter.tools]) {
+      if (names.has(tool.name)) throw new Error('Duplicate MCP tool name: ' + tool.name + '. Rename the conflicting tool or choose a non-conflicting toolPrefix.');
+      names.add(tool.name);
     }
     return tools;
   };

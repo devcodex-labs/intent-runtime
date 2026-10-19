@@ -4,6 +4,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {checkResultLinks} from './documentation/result-check.mjs';
+import {verifyMcpCoexistence} from './documentation/mcp-coexistence.mjs';
 
 const repo = fileURLToPath(new URL('../', import.meta.url));
 const [consumer, tarball] = process.argv.slice(2);
@@ -19,6 +20,13 @@ function run(command, args, overrides = {}) {
   const result = spawnSync(command, args, {cwd: work, env: {...process.env, ...overrides}, encoding: 'utf8'});
   if (result.status !== 0) throw new Error('Example check failed: ' + args.join(' ') + '\n' + result.stderr);
   return result.stdout;
+}
+function jsonExamples(text) {
+  const lf = text.replace(/\r\n?/g, '\n');
+  const parse = source => [...source.matchAll(/```json\r?\n([\s\S]*?)\r?\n```/g)].map(match => JSON.parse(match[1]));
+  const parsed = parse(lf);
+  assert.deepEqual(parse(lf.replace(/\n/g, '\r\n')), parsed, 'Documentation JSON must parse identically with LF and CRLF');
+  return parsed;
 }
 let syntaxFiles = 0;
 const typeScriptExamples = [];
@@ -64,6 +72,8 @@ const clientDirectory = await mkdtemp(path.join(path.dirname(consumer), 'unrelat
 // this example's natural-language field description. The real core still
 // validates the value and builds the Result; no complete Result is supplied.
 const candidateSeed = JSON.parse(await readFile(path.join(consumer, 'candidate.json'), 'utf8'));
+const {attachIntentTools} = await import(pathToFileURL(path.join(examples, 'mcp/attach.mjs')).href);
+const mcpCoexistence = await verifyMcpCoexistence({Intent, attachIntentTools, candidate: candidateSeed});
 for (const locale of ['zh', 'en']) {
 const en = locale === 'en', input = en ? 'Look up order 000123' : '查询订单000123';
 const candidate = structuredClone(candidateSeed);
@@ -76,7 +86,7 @@ const candidateText = JSON.stringify(candidate);
 // Only the current model's candidate is controlled; stdio, SDK and validation
 // use the actual installed package, including config paths containing spaces.
 const mcpDoc = await readFile(path.join(repo, 'website/content', locale, 'integrations/mcp.md'), 'utf8');
-const localConfigurations = [...mcpDoc.matchAll(/```json\n([\s\S]*?)\n```/g)].map(match => JSON.parse(match[1]).mcpServers?.['intent-runtime']).filter(config => config?.command === '/absolute/path/to/node');
+const localConfigurations = jsonExamples(mcpDoc).map(value => value.mcpServers?.['intent-runtime']).filter(config => config?.command === '/absolute/path/to/node');
 assert.equal(localConfigurations.length, 1, 'One documented absolute-entry configuration per locale');
 const localConfig = path.join(configDirectory, 'intent.host.config.mjs');
 await cp(path.join(examples, 'codex', en ? 'intent.host.config-en.mjs' : 'intent.host.config.mjs'), localConfig);
@@ -143,7 +153,7 @@ try {
   });
   for (const locale of ['zh', 'en']) {
     const errorsDoc = await readFile(path.join(repo, 'website/content', locale, 'api/errors.md'), 'utf8');
-    const summaries = [...errorsDoc.matchAll(/```json\n([\s\S]*?)\n```/g)].map(match => JSON.parse(match[1])).filter(value => value.code === 'RESOURCE_LIMIT');
+    const summaries = jsonExamples(errorsDoc).filter(value => value.code === 'RESOURCE_LIMIT');
     assert.equal(summaries.length, 1);
     assert.deepEqual(summaries[0], summary);
   }
@@ -229,5 +239,5 @@ for (const name of ['basic', 'basic-en', 'parse', 'parse-en', 'multi-turn', 'mul
   assert.equal(failed.status, 1); assert.equal(JSON.parse(failed.stderr.trim()).code, 'MODEL_AUTH_FAILED');
   runnableExamples.push({name, actualCoreResults: results.length, authenticationFailureHandled: true});
 }
-await writeFile(path.join(work, 'verification.json'), JSON.stringify({node: process.version, syntaxFiles, customExecutorStrictTypes: true, resultExamples, protocolRecords, localStandalone, resourceErrorWithoutObserved: true, globalMaintenance, runnableExamples, realProviderCalls: 0, scope: 'User documentation installation/configuration/SDK examples and static result fixtures; not model semantic acceptance.'}, null, 2) + '\n');
-console.log('User examples verified: ' + syntaxFiles + ' ESM files, strict custom executor, ' + resultExamples + ' full responses, ' + protocolRecords.length + ' SDK cases (2 locales x 3 protocols), ' + localStandalone.length + ' documented local MCP configurations, resource error without observed, ' + runnableExamples.length + ' runnable API examples and auth failure branches, ' + (tarball ? 'isolated global setup/doctor/clean' : 'no new global install') + '.');
+await writeFile(path.join(work, 'verification.json'), JSON.stringify({node: process.version, syntaxFiles, customExecutorStrictTypes: true, documentationLineEndings: ['LF', 'CRLF'], resultExamples, protocolRecords, localStandalone, mcpCoexistence, resourceErrorWithoutObserved: true, globalMaintenance, runnableExamples, realProviderCalls: 0, scope: 'User documentation installation/configuration/SDK examples and static result fixtures; not model semantic acceptance.'}, null, 2) + '\n');
+console.log('User examples verified: ' + syntaxFiles + ' ESM files, strict custom executor, ' + resultExamples + ' full responses, ' + protocolRecords.length + ' SDK cases (2 locales x 3 protocols), ' + localStandalone.length + ' documented local MCP configurations, ' + mcpCoexistence.checks.length + ' coexistence checks, resource error without observed, ' + runnableExamples.length + ' runnable API examples and auth failure branches, ' + (tarball ? 'isolated global setup/doctor/clean' : 'no new global install') + '.');

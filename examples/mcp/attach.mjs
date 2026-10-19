@@ -6,9 +6,10 @@ export async function attachIntentTools(original, config, connection) {
   const adapter = createIntentMcpAdapter(config);
   const check = async () => {
     const tools = await original.listTools();
-    const names = new Set(tools.map(tool => tool.name));
-    if (adapter.tools.some(tool => names.has(tool.name))) {
-      throw new Error('Choose a non-conflicting toolPrefix.');
+    const names = new Set();
+    for (const tool of [...tools, ...adapter.tools]) {
+      if (names.has(tool.name)) throw new Error('Duplicate MCP tool name: ' + tool.name + '. Rename the conflicting tool or choose a non-conflicting toolPrefix.');
+      names.add(tool.name);
     }
     return tools;
   };
