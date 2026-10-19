@@ -153,7 +153,7 @@ pre, code, kbd, samp {font-family: var(--rp-font-family-mono);}
 .ir-handoff a {color: var(--rp-c-brand); font-size: 14px;}
 .ir-footer {border-top: 1px solid var(--ir-line); padding-top: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; font-size: 12px; color: var(--ir-muted);}
 .ir-footer nav {display: flex; flex-wrap: wrap; gap: 12px 24px;}
-.intent-nav.rp-nav {height: 64px; padding-inline: max(32px, calc((100% - 1216px) / 2)); font-family: var(--rp-font-family-base);}
+.intent-nav.rp-nav {height: 64px; padding-inline: 32px; font-family: var(--rp-font-family-base);}
 .intent-nav-tools, .intent-desktop-tools {display: flex; gap: 16px; align-items: center;}
 .intent-primary-nav .rp-nav-menu {margin: 0; --rp-nav-menu-item-gap: 24px;}
 .intent-language {position: relative;}
