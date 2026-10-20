@@ -21,6 +21,8 @@
 
 依赖缺失时不默认取某个条件分支。已知字段值在所有可能依赖状态下都合法才可确认；已确定非法为invalid，合法性取决于尚未提供信息时为unknown/FIELD_DEPENDENCY_MISSING。当前校验范围无法可靠确定规则结果时为FIELD_VALIDATION_UNDETERMINED。不存在、存在但值未知与存在性未知分别处理；null、false、0、空字符串不是缺失。
 
+Schema形式的dependencies中的description/_description也使用同一语义判定门槛，包括嵌套规则和本地引用。依赖按属性是否存在触发，false/0/null/空字符串仍会触发。已知触发属性不存在时，该依赖不增加语义要求；存在性未知不能当作不存在。必需语义判定缺失或unknown时字段保留unknown，invalid时排除权威值。数组形式的属性依赖仍是属性名列表，不作为Schema遍历。
+
 ## 格式与定义边界
 
 支持的format固定为：date、time、date-time、duration、email、hostname、ipv4、ipv6、uri、uri-reference、uuid、regex、json-pointer、relative-json-pointer。验证遵循schema-dsl@3.0.4，不进行DNS/URL查询。其他格式报SCHEMA_UNSUPPORTED_FOR_EXTRACTION。

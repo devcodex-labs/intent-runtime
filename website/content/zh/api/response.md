@@ -211,6 +211,12 @@ try {
 
 applied 表示识别结果已更新；conditional 保留条件和目标，不提前撤回。撤回目标可能不在新 effective 中，不能因此丢弃合法 withdraw。changes 也不承诺覆盖 Context 重定位等所有内部差异，不作为任意业务状态的通用 patch。
 
+所有conditionId都必须能在当前effective全局或节点约束中找到，effect=unresolved也不例外；只存在于历史材料中的ID不足以成为当前条件。候选生成方用`conditionKey: null`表示无条件；空字符串是无效引用，不会被静默丢弃。withdrawal轮次必须包含合法的意图撤回，或说明目标尚未定位的unresolved撤回；其他保留目标和保护限制仍可存在。
+
+delta可省略，也不要求列举全部差异。旧值可靠且前后相同的set，或完整baseline已经证明旧路径不存在的remove，会作为候选不一致拒绝。对象键顺序不构成差异。部分Context未给某路径不代表旧路径不存在，before继续可省略；真实删除、数组移位和设置null仍是不同的合法操作。
+
+global约束没有所属意图。Host/自定义executor的global候选必须使用ownerKey=null；非null的矛盾owner会报错，不会静默忽略或猜测转换作用域。
+
 ## 有效理解 effective
 
 | 路径 | 类型 | 出现条件 | 含义与示例 |

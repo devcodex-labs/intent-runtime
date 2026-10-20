@@ -13,6 +13,7 @@ export function checkFields(draft: CandidateDraft, materials: Record<string, unk
   const values: CheckedField[] = [], issues: CheckedIssue[] = [];
   const formalCodes = new Set(['FIELD_VALUE_INVALID', 'FIELD_DEPENDENCY_MISSING', 'FIELD_REQUIRED_MISSING', 'FIELD_VALIDATION_UNDETERMINED']);
   const mergedClaims = new Set<CandidateDraft['issues'][number]>();
+  const semanticClaims = new Set<CandidateDraft['issues'][number]>();
   for (const [i, o] of draft.observations.entries()) {
     const spec = o.container === 'extensions' ? extension : schema;
     const owner = draft.nodes.find(n => n.key === o.ownerKey);
@@ -73,6 +74,14 @@ export function checkFields(draft: CandidateDraft, materials: Record<string, unk
       }
       if (o.withdrawn) changed.add(o.field);
     }
+    const absentFields = new Set(observations.filter(o => o.presence === 'absent').map(o => o.field));
+    const semanticFields = new Map<string, boolean>();
+    const requiresProse = (field: string): boolean => {
+      if (!semanticFields.has(field)) semanticFields.set(field, scope.spec?.needsSemantics(field, known, absentFields) ?? false);
+      return semanticFields.get(field)!;
+    };
+    // Unselected claims must use the same applicability knowledge as selected values.
+    for (const claim of draft.issues) if (claim.ownerKey === key && claim.fieldTarget?.container === container && formalCodes.has(claim.code) && requiresProse(claim.fieldTarget.field)) semanticClaims.add(claim);
     const checks = new Set(scope.selected);
     for (const field of Object.keys(inherited)) if (changed.has(field) || scope.spec?.fields.includes(field) && changed.size && [...scope.spec.plan(field, directory).reads, ...observations.filter(o => o.field === field).flatMap(o => o.semantic?.dependencies.map(d => d.field) ?? [])].some(f => changed.has(f))) checks.add(field);
     for (const field of Object.keys(inherited)) if (!checks.has(field)) values.push({ownerKey: key, container, field, path: '/' + escapeToken(field), status: inherited[field] === null ? 'explicit_null' : 'present', trigger: 'selection', value: inherited[field]!, sources: [], inherited: true});
@@ -87,7 +96,7 @@ export function checkFields(draft: CandidateDraft, materials: Record<string, unk
       const modelIssues = draft.issues.filter(q => q.ownerKey === key && q.fieldTarget?.container === container && q.fieldTarget.field === field);
       const semantic = observation?.semantic;
       const unavailableDependency = semantic?.dependencies.some(d => !Object.hasOwn(known, d.field) && !(d.requires === 'presence' && ['present_unknown', 'absent'].includes(current.get(d.field)?.presence ?? '')));
-      const requiresSemantic = scope.spec?.needsSemantics(field) ?? false;
+      const requiresSemantic = requiresProse(field);
       // Prose, cardinality and applicability remain model evidence. Formal-only
       // claims must agree with a separately computed proof, including its path.
       const formalIssues = requiresSemantic ? [] : modelIssues.filter(q => formalCodes.has(q.code));
@@ -180,8 +189,7 @@ export function checkFields(draft: CandidateDraft, materials: Record<string, unk
   // Do not accept formal claims for unselected/unexamined values. In particular,
   // collecting aliases must never turn a missing proof into an extra check.
   for (const [index, claim] of draft.issues.entries()) if (claim.fieldTarget && formalCodes.has(claim.code)) {
-    const spec = claim.fieldTarget.container === 'extensions' ? extension : schema;
-    if (!spec?.needsSemantics(claim.fieldTarget.field) && !mergedClaims.has(claim)) violation('/issues/' + index + '/code', 'SEMANTIC_INVARIANT');
+    if (!semanticClaims.has(claim) && !mergedClaims.has(claim)) violation('/issues/' + index + '/code', 'SEMANTIC_INVARIANT');
   }
   return {values, issues};
 }

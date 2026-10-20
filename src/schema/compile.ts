@@ -221,17 +221,53 @@ export class Definition {
     const bundle = (atoms: Atom[]): SchemaNode => ({$schema: 'http://json-schema.org/draft-07/schema#', definitions: {__intent_source: this.normalized}, allOf: atoms.map(a => a.schema)});
     return {rule: bundle(obligations), reads: new Set([...valueReads, ...presenceReads]), valueReads, presenceReads, required: [...selected].some(a => a.required === field), certainRule: (knownValues, knownPresence) => bundle(obligations.filter(a => [...a.reads ?? names].every(n => knownValues.has(n)) && [...a.presence ?? names].every(n => knownPresence.has(n))))};
   }
-  needsSemantics(field: string): boolean {
-    const visited = new WeakSet<object>();
-    const visit = (raw: SchemaNode): boolean => {
+  /** Detect relevant prose, pruning dependencies only with known instance absence. */
+  needsSemantics(field: string, known: Record<string, unknown>, absentFields: ReadonlySet<string>): boolean {
+    const unknown = Symbol('unknown-instance'), missing = Symbol('absent-instance'), root = Symbol('partial-root');
+    const visited = new WeakMap<object, Set<unknown>>();
+    const object = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === 'object' && !Array.isArray(value);
+    const visit = (raw: SchemaNode, value: unknown = unknown, partial = false): boolean => {
       let node = raw;
       while (typeof node !== 'boolean' && node.$ref) node = resolve(this.normalized, node.$ref.slice('#/definitions/__intent_source'.length)).value as SchemaNode;
-      if (typeof node === 'boolean' || visited.has(node)) return false; visited.add(node);
+      if (typeof node === 'boolean') return false;
+      // A shared local ref can be inactive in one object and active in another.
+      const identity = partial ? root : value, seen = visited.get(node) ?? new Set<unknown>();
+      if (seen.has(identity)) return false; seen.add(identity); visited.set(node, seen);
       if (['description', '_description'].some(k => typeof node[k] === 'string' && node[k].trim())) return true;
-      for (const key of ['properties', 'patternProperties']) for (const child of Object.values(node[key] ?? {})) if (visit(child as SchemaNode)) return true;
-      for (const key of ['items', 'additionalItems', 'additionalProperties', 'contains', 'not', 'if', 'then', 'else', 'allOf', 'anyOf', 'oneOf']) {
+      const property = (name: string): unknown => object(value) && Object.hasOwn(value, name) ? value[name]
+        : partial ? absentFields.has(name) ? missing : unknown : value === unknown ? unknown : missing;
+      for (const [name, child] of Object.entries(node.properties ?? {})) if (visit(child as SchemaNode, property(name))) return true;
+      const matchingValues = (matches: (name: string) => boolean): unknown[] => {
+        const values = object(value) ? Object.keys(value).filter(matches).map(name => value[name]) : [];
+        if (partial || value === unknown) values.push(unknown);
+        return values.length ? values : [missing];
+      };
+      for (const [pattern, child] of Object.entries(node.patternProperties ?? {})) {
+        const re = new RegExp(pattern, 'u');
+        if (matchingValues(name => re.test(name)).some(v => visit(child as SchemaNode, v))) return true;
+      }
+      for (const [name, dependency] of Object.entries(node.dependencies ?? {})) {
+        if (Array.isArray(dependency)) continue;
+        // Existence, not truthiness: false/0/null still trigger a dependency.
+        if (partial ? absentFields.has(name) : value !== unknown && (!object(value) || !Object.hasOwn(value, name))) continue;
+        if (visit(dependency as SchemaNode, value, partial)) return true;
+      }
+      for (const key of ['not', 'if', 'then', 'else', 'allOf', 'anyOf', 'oneOf']) {
         const children = Array.isArray(node[key]) ? node[key] : node[key] === undefined ? [] : [node[key]];
-        if (children.some((child: SchemaNode) => visit(child))) return true;
+        if (children.some((child: SchemaNode) => visit(child, value, partial))) return true;
+      }
+      for (const key of ['items', 'additionalItems', 'contains']) {
+        const rule = node[key]; if (rule === undefined) continue;
+        if (key === 'items' && Array.isArray(rule)) {
+          if (rule.some((child: SchemaNode, i: number) => visit(child, Array.isArray(value) ? i < value.length ? value[i] : missing : value === unknown ? unknown : missing))) return true;
+        } else {
+          const values = Array.isArray(value) ? key === 'additionalItems' ? value.slice(Array.isArray(node.items) ? node.items.length : value.length) : value : [];
+          if ((values.length ? values : [value === unknown ? unknown : missing]).some(v => visit(rule as SchemaNode, v))) return true;
+        }
+      }
+      if (node.additionalProperties !== undefined) {
+        const patterns = Object.keys(node.patternProperties ?? {}).map(pattern => new RegExp(pattern, 'u'));
+        if (matchingValues(name => !Object.hasOwn(node.properties ?? {}, name) && !patterns.some(re => re.test(name))).some(v => visit(node.additionalProperties, v))) return true;
       }
       return false;
     };
@@ -244,7 +280,7 @@ export class Definition {
     };
     // Positive-root prose survives splitting, while the complete relevant
     // atomic rules include descriptions inside conditions and local refs.
-    return rootDescription(this.normalized) || visit(this.plan(field).rule);
+    return rootDescription(this.normalized) || visit(this.plan(field).rule, known, true);
   }
   domain(field: string): unknown[] | null {
     const rules: SchemaNode[] = [], roots = new WeakSet<object>();

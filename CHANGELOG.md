@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.2
+
+- Apply the semantic evidence gate to descriptions inside schema-valued dependencies, including local references and nested instances. Preserve known inactive dependencies, conservative unknown presence, and present values such as `false`, `0` and `null`. Use the same applicability knowledge for selected values and unselected field diagnoses.
+- Require every change condition to reference a current global or node constraint. Reject empty supplied condition keys instead of silently treating them as absent; retain explicit `null` and valid unresolved changes. Report the exact candidate path so MCP hosts can correct a submission within the same request.
+- Reject unchanged `set` deltas and removals whose prior path is proven absent by a complete baseline. Preserve partial Context, real null changes, object key-order equivalence and legitimate array removals.
+- Require withdrawal turns to contain a valid intent or unresolved withdrawal, and reject global constraints with a non-null owner rather than discarding it.
+- Add shared-core and MCP correction regressions and update the English and Chinese Schema and response references. Public result fields, `schemaVersion`, configuration, dependencies, tool names and single-request behavior are unchanged.
+
 ## 2.0.1
 
 - Coalesce redundant formal field diagnoses only against an independent core proof for the same owner, container and field path. Preserve semantic field problems, sources, clarification options and suggestion references; reject contradictory formal claims. Correlate field targets, categories and codes in the private OpenAI strict format. Reject inference targets at business containers and their descendants, including nested-child paths, while retaining semantic inference, field evidence and deltas. Public result fields, configuration, dependencies and single-request behavior are unchanged.

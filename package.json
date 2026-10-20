@@ -1,6 +1,6 @@
 {
   "name": "@devcodex/intent-runtime",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "A model-driven Node.js component that structures user intent and extracts schema-defined data for applications and MCP servers.",
   "type": "module",
   "license": "MIT",

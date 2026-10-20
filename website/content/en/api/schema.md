@@ -27,6 +27,8 @@ Pass schema-dsl@3.0.4 s({...}), an ObjectDslBuilder, or JSON Schema as schema/ex
 
 Missing dependencies do not select a default branch. Confirm a known value only if it is valid under every possible dependency state. A definitely illegal value is invalid; dependency-sensitive validity remains unknown/FIELD_DEPENDENCY_MISSING. When local proof cannot reliably determine the rule, use FIELD_VALIDATION_UNDETERMINED. Absence, presence with unknown value, and unknown existence are distinct. null, false, 0, and empty strings are not absence.
 
+Descriptions inside Schema-valued dependencies use the same semantic gate as other relevant descriptions, including nested rules and local references. The dependency is triggered by property presence, so false/0/null/empty strings still trigger it. A dependency whose trigger is known absent adds no semantic requirement; unknown existence cannot be assumed absent. Missing or unknown required semantic verdicts keep the value unknown, and an invalid verdict excludes it. Array-valued property dependencies remain property-name lists, not Schemas.
+
 <span id="格式与定义边界" aria-hidden="true"></span>
 
 ## Formats and definition boundaries

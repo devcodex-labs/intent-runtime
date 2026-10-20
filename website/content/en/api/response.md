@@ -221,6 +221,12 @@ Required fields always occur in a normal IntentResult, using [] or {} when empty
 
 applied means interpretation changed. conditional retains the condition and target without premature withdrawal. A withdrawn target may be absent from new effective; do not discard the valid withdrawal. changes does not promise every internal difference such as context relocation and is not a generic business-state patch.
 
+Every conditionId must resolve to a current effective-global or node constraint, including when effect=unresolved; an ID found only in prior material is insufficient. Candidate writers use `conditionKey: null` to omit a condition; an empty supplied key is invalid and is never silently discarded. A withdrawal turn must contain a valid intent withdrawal or an unresolved withdrawal describing its unlocated target. Other retained goals and protective constraints can remain.
+
+Deltas are optional and need not enumerate all differences. A set with a reliably known identical old value, or a remove of a path known absent from the complete baseline, is rejected as a candidate inconsistency. Object key order does not create a difference. A path omitted from partial Context does not prove old absence; before stays optional. Real removals, array shifts and setting null remain distinct valid operations.
+
+Global constraints have no owning intent. Host/custom-executor candidates must use ownerKey=null for global scope; a contradictory non-null owner is rejected rather than silently discarded or converted to another scope.
+
 <span id="有效理解-effective" aria-hidden="true"></span>
 
 ## Effective understanding

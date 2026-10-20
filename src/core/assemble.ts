@@ -30,6 +30,7 @@ export function assemble(draft: CandidateDraft, materials: Record<string, unknow
   if (draft.usedHistory && !Object.hasOwn(materials, 'context') && !Object.hasOwn(materials, 'baseline')) violation('/usedHistory', 'SOURCE_INVALID');
   const maps = { intent: new Map<string, string>(), constraint: new Map<string, string>(), relation: new Map<string, string>() };
   const old = new Map<string, Record<string, unknown>>(), objects = new Map<string, unknown>();
+  const completeOld = new Set<string>();
   const source = (refs: SourceRef[]): SourceRef[] => refs.map(ref => { sourceValue(ref, materials); return cloneJson(ref); });
   const register = (kind: keyof typeof maps, key: string, prior: SourceRef | null, path: string): void => {
     if (!key.trim()) violation(path + '/key', 'MISSING_REQUIRED');
@@ -41,7 +42,7 @@ export function assemble(draft: CandidateDraft, materials: Record<string, unknow
       if (prior.root === 'baseline') {
         const previous = value as Record<string, unknown> | null;
         if (!previous || typeof previous !== 'object' || typeof previous.id !== 'string' || kind === 'intent' && !Array.isArray(previous.children) || kind === 'constraint' && !previous.scope || kind === 'relation' && typeof previous.fromId !== 'string') violation('', 'REFERENCE_NOT_FOUND');
-        id = previous.id; old.set(kind + ':' + key, previous);
+        id = previous.id; old.set(kind + ':' + key, previous); completeOld.add(kind + ':' + key);
       } else {
         // Free Context may describe prior intent in ordinary text or an Agent's
         // own object shape. It must not be forced into StructuredIntent first.
@@ -95,6 +96,7 @@ export function assemble(draft: CandidateDraft, materials: Record<string, unknow
     const path = '/constraints/' + i;
     // Scope errors need the original candidate slot so a host can correct the
     // reference without guessing at a root-level validation failure.
+    if (c.scope === 'global' && c.ownerKey !== null) violation(path + '/ownerKey', 'SEMANTIC_INVARIANT');
     if (c.scope !== 'global' && (c.ownerKey === null || !nodes.has(c.ownerKey))) violation(path + '/ownerKey', 'REFERENCE_NOT_FOUND');
     const scope: IntentConstraint['scope'] = c.scope === 'global' ? {type: 'global'} : c.scope === 'target' ? {type: 'target', intentId: id('intent', c.ownerKey, path + '/ownerKey'), referenceId: referenceIds.get(JSON.stringify([c.ownerKey, c.referenceKey])) ?? violation(path + '/referenceKey', 'REFERENCE_NOT_FOUND')} : {type: c.scope, intentId: id('intent', c.ownerKey, path + '/ownerKey')};
     let decoded: StructuredExpression | undefined;
@@ -137,7 +139,8 @@ export function assemble(draft: CandidateDraft, materials: Record<string, unknow
     if (c.effect !== 'applied' && c.deltaHints.length) violation(path + '/deltaHints', 'SEMANTIC_INVARIANT');
     const target = c.targetKind === 'unresolved' ? {kind: 'unresolved' as const, description: c.description} : {kind: c.targetKind, id: id(c.targetKind, c.targetKey, path + '/targetKey')};
     const base = {operation: c.operation, target, description: c.description, sourceRefs: source(c.sources)};
-    const change: IntentChange = c.effect === 'conditional' ? {...base, effect: 'conditional', conditionId: id('constraint', c.conditionKey, path + '/conditionKey')} : c.effect === 'unresolved' ? {...base, effect: 'unresolved', ...(c.conditionKey ? {conditionId: id('constraint', c.conditionKey, path + '/conditionKey')} : {})} : {...base, effect: 'applied'};
+    // Only null omits a condition; an empty supplied key must still resolve.
+    const change: IntentChange = c.effect === 'conditional' ? {...base, effect: 'conditional', conditionId: id('constraint', c.conditionKey, path + '/conditionKey')} : c.effect === 'unresolved' ? {...base, effect: 'unresolved', ...(c.conditionKey !== null ? {conditionId: id('constraint', c.conditionKey, path + '/conditionKey')} : {})} : {...base, effect: 'applied'};
     result.turn.changes.push(change);
     if (change.effect === 'applied' && c.deltaHints.length) {
       const deltas: IntentDelta[] = []; change.deltas = deltas;
@@ -147,6 +150,8 @@ export function assemble(draft: CandidateDraft, materials: Record<string, unknow
       const before = previous ? resolve(previous, h.path) : {found: false};
       let delta: IntentDelta;
       if (h.operation === 'remove') {
+        // Only a complete baseline proves nonexistence; free Context may be partial.
+        if (!before.found && completeOld.has(c.targetKind + ':' + c.targetKey)) violation(hintPath, 'SEMANTIC_INVARIANT');
         if (next !== undefined && resolve(next, h.path).found) {
           // Removing an array member shifts subsequent members into its path.
           // Compare typed object identities, or the exact literal-array removal,
@@ -165,6 +170,7 @@ export function assemble(draft: CandidateDraft, materials: Record<string, unknow
         delta = {path: h.path, operation: 'remove', ...(before.found ? {before: before.value as JsonValue} : {})};
       } else {
         const after = resolve(next, h.path); if (!after.found) violation(hintPath, 'REFERENCE_NOT_FOUND');
+        if (before.found && equalJson(before.value, after.value)) violation(hintPath, 'SEMANTIC_INVARIANT');
         delta = {path: h.path, operation: 'set', after: after.value as JsonValue, ...(before.found ? {before: before.value as JsonValue} : {})};
       }
       // Measure shared references by expanded JSON cost BEFORE cloning them.
