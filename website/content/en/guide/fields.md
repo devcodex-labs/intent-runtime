@@ -2,6 +2,8 @@
 
 # Extract fields
 
+Formal type, range, condition, required-field and finite-dependency checks belong to the core. A matching redundant model diagnosis is combined with the core issue for the same owner, container and field path. Scalar cardinality, uncertain applicability and prose-rule problems remain semantic evidence; they are not discarded because a value has the right JSON type. Resolve suggestions and clarification options using the IDs in the same result, without assuming ID prefixes or duplicate issue counts.
+
 To extract order IDs, amounts, or other business fields, declare rules, select the fields needed for this call, and read values by their field status. For goals and constraints alone, use the [quick start](/guide/quick-start) without a Schema.
 
 <span id="从一个字段开始" aria-hidden="true"></span>

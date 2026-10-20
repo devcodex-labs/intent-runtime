@@ -39,6 +39,10 @@ export function invariants(result: IntentResult, draft: CandidateDraft): void {
     if (c.target.kind === 'intent' && active && !result.turn.intentIds.includes(c.target.id)) violation('/relatedKeys', 'SEMANTIC_INVARIANT');
     if (c.effect === 'applied') c.deltas?.forEach(d => tokens(d.path));
   }
+  // The aggregate new-node count already rejects this case; locate the actual
+  // operation so a caller can correct the existing object's lifecycle choice.
+  const existingAdd = draft.changes.findIndex(c => c.operation === 'add' && c.effect === 'applied' && c.targetKind === 'intent' && draft.nodes.some(n => n.key === c.targetKey && n.priorRef !== null));
+  if (existingAdd >= 0) violation('/changes/' + existingAdd + '/operation', 'SEMANTIC_INVARIANT');
   const added = result.turn.changes.filter(c => c.operation === 'add' && c.effect === 'applied' && c.target.kind === 'intent').map(c => c.target.kind === 'intent' ? c.target.id : '');
   if (new Set(added).size !== draft.nodes.filter(x => !x.priorRef).length) violation('/turn/changes', 'MISSING_REQUIRED');
   const fields = new Set<string>();

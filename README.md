@@ -20,6 +20,8 @@ For example, “Look up order 000123. Do not cancel the order” contains both a
 - **Explicit multi-turn state.** Supply context and a baseline to track changes without hidden conversation history.
 - **Your model, your transport.** Use Responses, Chat Completions, a custom executor, or the MCP client's current model.
 
+The core computes formal field validation and invalidation. Redundant model claims are combined only when they agree with an independent check for the same owner and field path; genuine semantic problems remain separate. Suggestions and clarification options continue to reference the retained issue. Treat issue and option IDs as opaque. Unconfirmed assumptions belong to semantic inference locations, never to an `inputs` or `extensions` container or its fields.
+
 [Install and run](#install) · [Model APIs and gateways](#connect-a-model-or-gateway) · [MCP](#run-a-standalone-mcp-service) · [Codex](#use-the-current-codex-model) · [Contributing](#contributing)
 
 ## Choose an integration
@@ -117,6 +119,8 @@ See [reading results](https://devcodex-labs.github.io/intent-runtime/guide/resul
 For a gateway endpoint such as `https://gateway.example.com/v1/chat/completions`, use `baseURL: 'https://gateway.example.com/v1'`. The adapter appends the protocol endpoint. `format: 'text'` is available when your service does not support JSON Schema output; the returned candidate JSON is still validated.
 
 A custom executor receives instructions, input, an output schema, and a cancellation signal. It returns model-generated candidate text; Intent Runtime validates it and assembles the final result. You do not need to build a new gateway service. See [model APIs and custom executors](https://devcodex-labs.github.io/intent-runtime/integrations/api.html) for complete configuration and examples.
+
+The built-in OpenAI adapter uses strict structured output for both protocols. Your gateway must support OpenAI's strict JSON Schema subset. Its private generation contract constrains identity, reference kinds and change states. Current-input sources use the whole-input pointer with `quote: null`, restored to an omitted optional quote; this path does not generate local input quotations. Other source quotes retain their exact meaning. The adapter never fills missing intent fields or repairs invalid replies. `format: 'text'` remains an explicit caller choice. Source, semantic, and business validation still apply.
 
 ## Run a standalone MCP service
 

@@ -1,5 +1,7 @@
 # 兼容与支持
 
+诊断回归应同时覆盖模型声明与正式证明相符及矛盾、不同对象与嵌套路径、多个语义问题，以及归并后的问题、澄清选项和建议引用。推断检查应拒绝业务容器及嵌套子目标绕过，并保留合法语义推断、字段 evidence 和 delta。受控候选、实际客户端调用与新的供应商请求分别提供证据；仅符合 Schema 的回复不能证明语义正确。
+
 本文档适用于 **Intent Runtime V2**。本页列出运行环境、接入方式与兼容边界；安装步骤见[安装与版本](/zh/guide/installation)。结果与 baseline 的 `schemaVersion` 为 `2.0-draft.6`，用于识别结果格式，与 npm 包版本不同。
 
 ## 运行环境
@@ -26,12 +28,16 @@
 
 客户端支持目标与实测版本分别看待。更换模型/客户端版本、SDK或部署环境后，应验证自己的实际配置。结构检查不能保证所有自然语言正确，特定语料通过率不作为产品总体准确率承诺。
 
+内置 OpenAI json_schema 路径在两协议使用严格输出。服务端接受严格 Schema 只证明传输格式可用；完整识别还要求来源指针、节点归属、声明字段与语义一致。模型可能通过前一层却在后一层失败，HTTP成功或结构合法都不等于识别已完成。
+
 ## 验证记录与范围
 
 当前 main 的自动检查可查看 [CI 工作流](https://github.com/devcodex-labs/intent-runtime/actions/workflows/ci.yml)。下表是固定日期与版本的证据，不能据此认定以后每个提交或你的模型配置都已经验证。
 
 | 记录日期 | 环境/方法 | 可支持的结论与证据 |
 |---|---|---|
+| 2026-10-19 | 含v1.2适配层加固的本地V2候选；Node24.17.0 | Linux完整374/374与Windows真实Codex CLI0.145.0 prepare/accept通过。OpenAI两型号/两协议均接受严格Schema；gpt-4.1-mini各五例及两步复测通过，gpt-5-mini改非VIP时仍生成字段/冲突或未确认推断诊断。供应商矩阵未验收，不构成发布就绪证明 |
+| 2026-10-19 | 较早v1.1候选；Windows、Node24.17.0、Codex CLI0.145.0 | 真实host prepare/accept保留orderId=000123和不取消约束。OpenAI两型号/两协议均接受strict Schema，但该候选五例语义矩阵未通过 |
 | 2026-10-15 | 提交71c774d；Linux/Windows/macOS × Node20.0.0/24.x；质量、文档共8项 | [该提交的CI](https://github.com/devcodex-labs/intent-runtime/actions/runs/38686149645)全部通过；证明历史工程回归和打包检查，不代表后续提交或模型语义验收 |
 | 2026-10-15 | 实际MCP SDK2.3.1，三个声明协议 | [示例检查脚本](https://github.com/devcodex-labs/intent-runtime/blob/f36f11163c4cbe7ea492fd4673a6c81197a0d0aa/scripts/check-doc-examples.mjs)使用可控语言候选与真实核心/Validator；验证协议和字段链，不作为真实模型验收 |
 | 2026-10-14 | Linux、Codex CLI0.162.1、gpt-6.1-sol、high配置 | 已执行当前模型prepare/accept及语义样本；该特定配置的记录不构成所有模型输入的准确率保证 |

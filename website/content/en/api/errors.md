@@ -2,6 +2,8 @@
 
 # Errors and recovery
 
+A redundant formal field diagnosis that agrees with the core is combined with the retained issue, including its sources, candidates, questions and suggestion references. A claim that contradicts a formal proof remains `MODEL_OUTPUT_INVALID`, with a candidate location where available. An inference targeting an `inputs`/`extensions` container or its descendants is also invalid; use a real semantic location for an unconfirmed assumption. Ordinary invalid business values remain normal field results and data issues.
+
 Technical failures throw IntentError rather than returning truncated candidates or infrastructure failures as normal success. Field issues remain in a normal result's issues.
 
 If there is no result, check for an exception. If the result lacks an order ID, inspect fieldResults and issues first. Timeout, authentication failure, and missing user information need different recovery actions. If Codex cannot start or has no tools, begin with [registration diagnostics](/operations/codex).
@@ -13,6 +15,10 @@ If there is no result, check for an exception. If the result lacks an order ID, 
 | Change only VIP=false; previous discount=15 violates its new rule | Normal result, discount invalidated | Do not consume the old value; select discount and supply a valid value next turn |
 
 Recovery is **identify code/issue → repair input/configuration → make an explicit new call → inspect the new result**. It is not automatic retry. See [MCP envelopes](/api/mcp#success-and-error-envelopes).
+
+Structure failures use MODEL_OUTPUT_INVALID with stage='validation' and bounded JSON Pointer paths in details.violations, such as /relations, /nodes/0/action, or /observations/0/path. An invalid complete OpenAI wire candidate is a candidate failure; it is not an authentication or transport failure. Unsupported local projection shapes fail before a request with CONFIG_INVALID and an outputSchema path. Strict output does not repair missing business data or bypass source and semantic checks.
+
+Canonical diagnostics identify an invalid related node at `/relatedKeys/1`, a wrong snapshot delta path at `/changes/0/deltaHints/0/path`, and an applied `add` for an existing intent at `/changes/0/operation` (`SEMANTIC_INVARIANT`). The OpenAI wire may reject these combinations earlier with `STRUCTURE`; callers should use the reported rule and path rather than assuming one validation stage.
 
 | Technical code | Meaning |
 |---|---|

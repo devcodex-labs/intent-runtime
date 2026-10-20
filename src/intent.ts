@@ -86,6 +86,10 @@ export class Intent {
       try {reply = await this.executor!.generate(lease.request);}
       catch (cause) {
         lease.assertActive();
+        // API adapters validate their wire candidate before returning ModelReply.
+        // Keep these bounded diagnostics at their original layer instead of
+        // misclassifying a candidate/configuration error as a transport failure.
+        if (cause instanceof IntentError && (cause.stage === 'validation' && ['MODEL_OUTPUT_INVALID', 'RESOURCE_LIMIT'].includes(cause.code) || cause.stage === 'config' && cause.code === 'CONFIG_INVALID')) throw new IntentError(cause.code, {stage: cause.stage, ...(cause.details ? {details: cause.details} : {}), cause});
         if (cause instanceof IntentError && cause.code === 'RESOURCE_LIMIT' && cause.stage === 'model') throw new IntentError('RESOURCE_LIMIT', {stage: 'model', ...(cause.details ? {details: cause.details} : {}), cause});
         if (cause instanceof IntentError && ['MODEL_AUTH_FAILED', 'MODEL_RATE_LIMITED', 'MODEL_TIMEOUT', 'MODEL_REQUEST_FAILED', 'MODEL_REFUSED', 'MODEL_OUTPUT_INCOMPLETE'].includes(cause.code)) throw new IntentError(cause.code, {stage: 'model', cause});
         throw new IntentError('MODEL_REQUEST_FAILED');

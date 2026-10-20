@@ -2,6 +2,8 @@
 
 # Compatibility and support
 
+Diagnostic regressions must cover both agreement and contradiction with formal proofs, distinct owners and nested paths, multiple semantic problems, and issue/clarification/suggestion references after coalescing. Inference checks must reject business containers and nested-child bypasses while retaining legitimate semantic inference, field evidence and deltas. Controlled fixtures, actual client calls and new provider requests provide separate evidence; a Schema-valid reply alone does not establish semantic correctness.
+
 This documentation describes **Intent Runtime V2**. See [Installation](/guide/installation) for setup. Result and baseline schemaVersion is `2.0-draft.6`, a format identifier independent of the npm package version.
 
 <span id="运行环境" aria-hidden="true"></span>
@@ -32,6 +34,8 @@ This documentation describes **Intent Runtime V2**. See [Installation](/guide/in
 
 Separate supported targets from tested versions. Recheck your real model, client, SDK, and deployment after changes. Structural checks do not guarantee correct understanding of every natural-language input. A particular corpus pass rate is not a product-wide accuracy claim.
 
+The built-in OpenAI json_schema path uses strict output in both protocols. Strict Schema acceptance verifies the wire format, while complete recognition also requires valid source pointers, node ownership, declared fields, and semantic consistency. A model can pass the former and fail the latter; do not treat a successful HTTP response or a structurally valid reply as a completed recognition.
+
 <span id="验证记录与范围" aria-hidden="true"></span>
 
 ## Dated verification records
@@ -40,6 +44,8 @@ See the current [CI workflow](https://github.com/devcodex-labs/intent-runtime/ac
 
 | Date | Environment/method | Evidence and boundary |
 |---|---|---|
+| 2026-10-19 | Local V2 candidate with v1.2 adapter refinements; Node 24.17.0 | Linux regression 374/374 and actual Windows Codex CLI 0.145.0 prepare/accept passed. Both OpenAI models/protocols accepted the strict schema. gpt-4.1-mini passed each five-case sequence and its two-step repeat; gpt-5-mini still produced field/conflict or unconfirmed-inference diagnostics on the non-VIP change. The provider matrix remains unaccepted; this is not a release-readiness claim |
+| 2026-10-19 | Earlier v1.1 candidate; Windows, Node 24.17.0, Codex CLI 0.145.0 | Actual host prepare/accept preserved orderId=000123 and the cancellation prohibition. Both OpenAI models/protocols accepted strict schemas, but that candidate's five-case semantic matrix did not pass |
 | 2026-10-15 | 71c774d; Linux/Windows/macOS × Node 20.0.0/24.x; quality/docs, 8 jobs | [Exact CI](https://github.com/devcodex-labs/intent-runtime/actions/runs/38686149645) passed; historical engineering/package regression, not future commits or model semantics |
 | 2026-10-15 | Actual MCP SDK 2.3.1, three declared protocols | [Example checker](https://github.com/devcodex-labs/intent-runtime/blob/f36f11163c4cbe7ea492fd4673a6c81197a0d0aa/scripts/check-doc-examples.mjs) uses controlled candidates and real core/Validator; protocol/field-chain evidence, not actual model acceptance |
 | 2026-10-14 | Linux, Codex CLI 0.162.1, gpt-6.1-sol, high reasoning | Current-model prepare/accept and semantic samples ran; this specific configuration does not guarantee all model inputs |

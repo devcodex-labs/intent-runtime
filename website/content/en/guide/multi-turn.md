@@ -2,6 +2,10 @@
 
 # Multi-turn changes and result consumption
 
+An explicit change can invalidate an inherited field without making the intent ambiguous. The core removes that old binding from effective inputs and reports `FIELD_INVALIDATED`; a matching redundant model value-error claim is combined with that formal issue. A supplied valid replacement clears the problem on the next explicit baseline. Actual user contradictions and semantic uncertainty remain separate problems.
+
+An inference may identify an unconfirmed semantic object through `/target`, `/goal` or a real nested semantic slot. It cannot target an `inputs` or `extensions` container or any descendant, including through another intent's `children` path. Field evidence and actual nested deltas retain their own location rules; inferred candidates never become confirmed business values.
+
 Each recognition uses only the material supplied with that call. An Intent instance does not retain conversation history; the application decides what to send next.
 
 <span id="选择-context-或-baseline" aria-hidden="true"></span>

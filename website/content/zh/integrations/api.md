@@ -1,5 +1,7 @@
 # 连接模型 API 与自有网关
 
+内置 OpenAI 严格格式区分字段问题（`category: data` 且有字段目标）与语义问题（没有字段目标）。共享核心仍校验真实字段归属、规则和引用，只归并独立证明支持的冗余正式诊断，并保留语义字段问题及其澄清材料。自定义 executor、xAI、text 模式和 MCP host 提交继续使用共享候选契约与相同核心规则，不采用 OpenAI 专用的键名或 quote 约定。
+
 <a id="配置模型来源"></a>
 
 把你正在使用的模型接入 Intent Runtime。先确认服务提供哪一种协议，再选下面的接法；JavaScript 和 TypeScript 使用同一套运行时 API。第一次调用可直接按[快速开始](/zh/guide/quick-start)运行。
@@ -45,6 +47,10 @@ const executor = createApiExecutor({
 
 默认请求 JSON Schema 结构化输出；服务只支持普通文本时显式设置 `format: 'text'`，仍须返回符合任务要求的候选 JSON，由核心校验。format 不会切换接口协议，也不会自动重试另一种格式。
 
+provider='openai' 且 format='json_schema' 时，两协议都使用内部候选 Schema 投影发送 strict=true。网关必须支持 OpenAI 严格子集；不支持时明确失败，不自动降级为 text。xAI 和显式 text 模式维持原行为。
+
+投影保留必填字段，未支持的 Schema 形状会在请求前报 CONFIG_INVALID。内部生成契约还约束对象身份、引用类别和变更状态；实际成员关系及语义一致性仍由核心检查。登记的 SourceRef.quote 在传输格式中必填。当前输入来源固定为整个输入的指针和 quote:null，恢复为可选 quote 缺省；这条 API 路径不生成输入的局部引文。其他来源中 null 表示缺省，合法空串或字符串 "null" 仍保留字符串。回复先校验再映射；业务 null 和 JSON 编码字符串保持原值。重复 JSON 键、缺失字段和未知字段均拒绝，不自动修补。之后核心继续校验来源、语义、业务规则和最终结果；严格结构不保证理解正确。MCP host 和自定义执行器保留原引文契约。
+
 ## 模型参数
 
 | ApiExecutorConfig路径 | 类型 / 必填 | 默认 | 规则 |
@@ -79,6 +85,8 @@ ModelExecutor 就是你提供的“调用模型”适配对象。你可以直接
 
 下面用真实 Chat Completions 协议演示：在已有模型请求中增加应用请求头，再把 `choices[0].message.content` 转成 ModelReply。普通兼容网关优先用上面的内置适配器；需要其他协议时，修改请求和取回文本的部分。
 
+此自定义执行器用于演示协议适配，采用非严格生成，不包含内置适配器私有的 Schema 投影与 codec。调用方仍须获得合法候选；不能保留原 outputSchema 就直接开启 strict。标准 OpenAI 结构化输出请使用 createApiExecutor。
+
 <details>
 <summary>完整 TypeScript 示例：自定义请求头与回复映射</summary>
 
@@ -87,8 +95,12 @@ ModelExecutor 就是你提供的“调用模型”适配对象。你可以直接
 import {Intent, IntentError} from '@devcodex/intent-runtime';
 import type {ModelExecutor, ModelReply} from '@devcodex/intent-runtime';
 
-// Example: adapt a real Chat Completions endpoint with an application header.
-// For the standard protocol without custom headers, prefer createApiExecutor.
+/**
+ * Adapt Chat Completions with an application header using non-strict generation.
+ * The caller must obtain conforming candidate JSON; this example does not include
+ * the built-in OpenAI Schema projection/codec. Prefer createApiExecutor for the
+ * standard protocol. Do not enable strict with the unchanged core outputSchema.
+ */
 export function createGatewayExecutor(url: string, model: string, apiKey: string): ModelExecutor {
   return {
     id: 'application-chat-gateway',

@@ -14,11 +14,15 @@ async function endpoint(handler: (q: IncomingMessage, s: ServerResponse) => void
   return {server, url: 'http://127.0.0.1:' + address.port, async close() {server.closeAllConnections(); await new Promise<void>((resolve, reject) => server.close(e => e ? reject(e) : resolve()));}};
 }
 const request = (signal = new AbortController().signal): ModelRequest => ({instructions: 'Only structure supplied material', input: {language: 'en', request: {input: 'query order 000123'}}, outputSchema: CANDIDATE_SCHEMA, signal});
-const reply = (text = JSON.stringify(draft())) => JSON.stringify({status: 'completed', output: [{type: 'message', role: 'assistant', content: [{type: 'output_text', text}]}]});
+// These transport fixtures explicitly supply the provider's required SourceRef quote.
+function wireText(value = draft(['n1'])): string {
+  return JSON.stringify({...value, nodes: value.nodes.map(n => ({...n, sources: n.sources.map(s => ({...s, quote: s.quote ?? null}))})), changes: value.changes.map(c => ({...c, sources: c.sources.map(s => ({...s, quote: s.quote ?? null}))})), observations: value.observations.map(o => ({...o, sources: o.sources.map(s => ({...s, quote: s.quote ?? null}))}))});
+}
+const reply = (text = wireText()) => JSON.stringify({status: 'completed', output: [{type: 'message', role: 'assistant', content: [{type: 'output_text', text}]}]});
 
 test('Chat Completions uses its own endpoint and schema request and validates through Native', async () => {
   let calls = 0;
-  const d = draft(); d.observations = [observation('orderId', '000123')];
+  const d = draft(['n1']); d.observations = [observation('orderId', '000123', 'n1')];
   const e = await endpoint((q, s) => {
     calls++; assert.equal(q.url, '/v1/chat/completions');
     let text = ''; q.setEncoding('utf8'); q.on('data', c => text += c);
@@ -26,9 +30,10 @@ test('Chat Completions uses its own endpoint and schema request and validates th
       const body = JSON.parse(text);
       assert.equal(body.messages[0].role, 'system'); assert.equal(body.messages[1].role, 'user');
       assert.equal(body.response_format.type, 'json_schema'); assert.equal(body.response_format.json_schema.name, 'intent_candidate');
+      assert.equal(body.response_format.json_schema.strict, true); assert.match(body.messages[0].content, /quote:null/);
       assert.equal(body.max_completion_tokens, 8192); assert.equal(body.stream, false); assert.equal(body.store, false);
       assert.equal(body.tools, undefined); assert.equal(body.input, undefined);
-      s.end(JSON.stringify({choices: [{finish_reason: 'stop', message: {role: 'assistant', content: JSON.stringify(d)}}]}));
+      s.end(JSON.stringify({choices: [{finish_reason: 'stop', message: {role: 'assistant', content: wireText(d)}}]}));
     });
   });
   const intent = new Intent({executor: createApiExecutor({provider: 'openai', protocol: 'chat-completions', model: 'gateway-model', apiKey: 'test', baseURL: e.url + '/v1'}), schema: {type: 'object', properties: {orderId: {type: 'string'}}}});
@@ -62,8 +67,8 @@ test('Chat Completions rejects tool calls and ambiguous choices and retains resp
 
 for (const provider of ['openai', 'xai'] as const) test('Responses ' + provider + ' performs exactly one request through Native and the real worker', async () => {
   let calls = 0, body: Record<string, any> | undefined, auth: string | undefined;
-  const d = draft(); d.observations = [observation('orderId', '000123')];
-  const e = await endpoint((q, s) => {calls++; assert.equal(q.url, '/v1/responses'); auth = q.headers.authorization; let text = ''; q.setEncoding('utf8'); q.on('data', c => text += c); q.on('end', () => {body = JSON.parse(text); s.end(reply(JSON.stringify(d)));});});
+  const d = draft(['n1']); d.observations = [observation('orderId', '000123', 'n1')];
+  const e = await endpoint((q, s) => {calls++; assert.equal(q.url, '/v1/responses'); auth = q.headers.authorization; let text = ''; q.setEncoding('utf8'); q.on('data', c => text += c); q.on('end', () => {body = JSON.parse(text); s.end(reply(provider === 'openai' ? wireText(d) : JSON.stringify(d)));});});
   const config = {provider, model: 'explicit-test-model', apiKey: 'synthetic-test-key', baseURL: e.url + '/v1'};
   const executor = createApiExecutor(config); config.model = 'mutated';
   const intent = new Intent({executor, schema: {type: 'object', properties: {orderId: {type: 'string'}}}});
@@ -71,6 +76,7 @@ for (const provider of ['openai', 'xai'] as const) test('Responses ' + provider 
     const result = await intent.parse({input: 'query order 000123', fields: ['orderId']}); assert.equal(result.effective.intents[0]!.inputs.orderId, '000123'); assert.equal(calls, 1);
     assert.equal(body!.model, 'explicit-test-model'); assert.equal(body!.store, false); assert.equal(body!.stream, false); assert.deepEqual(body!.tools, []); assert.equal(body!.text.format.type, 'json_schema'); assert.equal(auth, 'Bearer synthetic-test-key');
     assert.equal(body!.input[0].content[0].text.includes('synthetic-test-key'), false); assert.equal(JSON.stringify(result).includes('synthetic-test-key'), false);
+    assert.equal(body!.text.format.strict, provider === 'openai');
   } finally {await intent.dispose(); await e.close();}
 });
 

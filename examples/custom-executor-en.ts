@@ -1,8 +1,12 @@
 import {Intent, IntentError} from '@devcodex/intent-runtime';
 import type {ModelExecutor, ModelReply} from '@devcodex/intent-runtime';
 
-// Example: adapt a real Chat Completions endpoint with an application header.
-// For the standard protocol without custom headers, prefer createApiExecutor.
+/**
+ * Adapt Chat Completions with an application header using non-strict generation.
+ * The caller must obtain conforming candidate JSON; this example does not include
+ * the built-in OpenAI Schema projection/codec. Prefer createApiExecutor for the
+ * standard protocol. Do not enable strict with the unchanged core outputSchema.
+ */
 export function createGatewayExecutor(url: string, model: string, apiKey: string): ModelExecutor {
   return {
     id: 'application-chat-gateway',

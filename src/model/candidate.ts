@@ -60,3 +60,10 @@ export interface CheckedField {
   status: 'present' | 'explicit_null' | 'not_provided' | 'unknown' | 'not_applicable' | 'invalid' | 'invalidated' | 'removed';
   trigger: 'selection' | 'invalidation'; value?: JsonValue; explanation?: string; rawText?: string; sources: SourceRef[]; inherited?: boolean; usedProvidedMaterials?: boolean;
 }
+
+/** Internal proof-backed aliases; never part of the model or public contract. */
+export interface CheckedIssue {
+  ownerKey: string | null;
+  issue: IntentIssue;
+  modelKeys?: string[];
+}

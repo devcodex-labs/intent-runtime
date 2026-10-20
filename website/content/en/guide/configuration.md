@@ -84,12 +84,14 @@ Rows are relative to limits, for example limits.maxValidationChecks. Omitted pro
 | maxBaselineBytes | 1048576 | baseline JSON |
 | maxSchemaBytes | 262144 | Each business/extension Schema |
 | maxRequestBytes | 3145728 | Static material plus the entire logical request, not only separate component checks |
-| maxOutputBytes | 1048576 | Candidate text, HostTask, and final result checked separately |
+| maxOutputBytes | 1048576 | Canonical candidate text, HostTask, and final result checked separately |
 | maxDepth | 64 | JSON root container at depth 0 |
 | maxConcurrentParses | 8 | Active Native/host recognition and unfinished underlying calls per Intent |
 | maxValidationChecks | 256 | Business validation calls per recognition; host correction does not reset the budget |
 
 Exceeding a limit produces RESOURCE_LIMIT without silent truncation. A budget is not session expiry. Cancellation may return before an uncooperative executor ends; its slot remains occupied until it actually settles. The library cannot guarantee termination of arbitrary caller code or a model-cost refund.
+
+For OpenAI strict output, maxResponseBytes bounds the visible HTTP envelope before decoding. The adapter also bounds wire JSON depth from its compiled Schema and rejects duplicate keys before normalization. Generation variants are checked against provider size/depth limits after refinement. Core maxOutputBytes/maxDepth apply to the canonical candidate returned by the adapter, and then to the final result; whitespace and registered quote:null omissions on the wire are not the canonical candidate byte count. Current-input sources use a whole-input pointer without a local quotation. These are separate checks, without silent truncation or reply repair.
 
 <span id="其他公开配置" aria-hidden="true"></span>
 

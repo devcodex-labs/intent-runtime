@@ -2,6 +2,8 @@
 
 # Model APIs and gateways
 
+The built-in OpenAI strict format distinguishes field issues (`category: data` and a field target) from semantic issues (no field target). The shared core still checks the real field owner, rule and references. It combines proof-backed redundant formal diagnoses while retaining semantic field problems and their clarification data. Custom executors, xAI, text mode and MCP host submissions use the shared candidate contract and the same core rules; they do not adopt OpenAI-only key or quote conventions.
+
 Connect the model service you already use. First identify its protocol. JavaScript and TypeScript share the runtime API; the [quick start](/guide/quick-start) gives a complete first call.
 
 | Your service | Recommended connection | Custom executor? |
@@ -50,6 +52,10 @@ Replace the hostname, credentials, and model with your service's values. For a R
 
 JSON Schema structured output is the default. If the service only supports text output, set format='text' explicitly; it must still return candidate JSON matching the task for core validation. format does not switch protocols or automatically retry another format.
 
+For provider='openai' and format='json_schema', both protocols send strict=true with an internal projection of the candidate Schema. Gateways must support OpenAI's strict subset; an unsupported gateway fails explicitly without automatic text fallback. xAI and explicit text mode keep their existing behavior.
+
+The projection preserves required fields and rejects unsupported Schema shapes before any request with CONFIG_INVALID. Its private generation contract also constrains object identity, reference kinds and change states; the core still checks actual membership and semantic consistency. Registered SourceRef.quote fields are required on the wire. Current-input sources require the whole-input pointer and quote:null, restored to an omitted optional quote; this API path does not generate local input quotations. For other sources, null means omission, while an exact empty string or the string "null" remains a string. The reply is checked before this mapping; business nulls and JSON-encoded values are preserved. Duplicate JSON keys, missing fields, and unknown fields are rejected, without automatic repair. The unchanged core then checks sources, semantics, business rules, and the final result. Strict structure does not guarantee correct understanding. MCP host and custom executors retain their original source-quotation contract.
+
 <span id="模型参数" aria-hidden="true"></span>
 
 ## Model parameters
@@ -88,6 +94,8 @@ Return {outcome:'complete', text:'model-generated candidate JSON'} on success, o
 
 The following complete example adapts real Chat Completions with an application header and maps choices[0].message.content into ModelReply. Prefer the built-in adapter for the standard protocol; for another protocol, change the request and text extraction.
 
+This custom executor demonstrates protocol adaptation and uses non-strict generation. It does not include the built-in adapter's private Schema projection or codec. Its caller must obtain conforming candidate JSON; do not turn strict on with the unchanged outputSchema. For standard OpenAI structured output, use createApiExecutor.
+
 <details>
 <summary>Complete TypeScript: custom headers and reply mapping</summary>
 
@@ -96,8 +104,12 @@ The following complete example adapts real Chat Completions with an application 
 import {Intent, IntentError} from '@devcodex/intent-runtime';
 import type {ModelExecutor, ModelReply} from '@devcodex/intent-runtime';
 
-// Example: adapt a real Chat Completions endpoint with an application header.
-// For the standard protocol without custom headers, prefer createApiExecutor.
+/**
+ * Adapt Chat Completions with an application header using non-strict generation.
+ * The caller must obtain conforming candidate JSON; this example does not include
+ * the built-in OpenAI Schema projection/codec. Prefer createApiExecutor for the
+ * standard protocol. Do not enable strict with the unchanged core outputSchema.
+ */
 export function createGatewayExecutor(url: string, model: string, apiKey: string): ModelExecutor {
   return {
     id: 'application-chat-gateway',

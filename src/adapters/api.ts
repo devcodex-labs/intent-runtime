@@ -1,6 +1,7 @@
 import type { ModelExecutor, ModelReply, ModelRequest } from '../contracts/public.js';
 import { IntentError } from '../contracts/errors.js';
 import { plain, cloneJson } from '../internal/json.js';
+import { compileOpenAiOutput, OPENAI_WIRE_INSTRUCTIONS, type OpenAiOutput } from './openai-schema.js';
 
 export type ApiExecutorConfig = {
   provider: 'openai' | 'xai'; model: string; apiKey: string; baseURL?: string;
@@ -36,17 +37,21 @@ export function createApiExecutor(config: ApiExecutorConfig): ModelExecutor {
     const cancel = () => owner.abort(request.signal.reason);
     request.signal.addEventListener('abort', cancel, {once: true});
     let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+    let output: OpenAiOutput | undefined;
     try {
       if (request.signal.aborted) throw new IntentError('REQUEST_ABORTED');
+      if (provider === 'openai' && format === 'json_schema') output = compileOpenAiOutput(request.outputSchema);
+      const instructions = request.instructions + (output ? OPENAI_WIRE_INSTRUCTIONS : '');
+      const schema = output?.schema ?? request.outputSchema;
       const response = await fetch(url, {method: 'POST', redirect: 'error', signal: owner.signal,
         headers: {'content-type': 'application/json', authorization: 'Bearer ' + apiKey},
         body: JSON.stringify(protocol === 'chat-completions' ? {
-          model, messages: [{role: 'system', content: request.instructions}, {role: 'user', content: JSON.stringify(request.input)}],
+          model, messages: [{role: 'system', content: instructions}, {role: 'user', content: JSON.stringify(request.input)}],
           store: false, stream: false, max_completion_tokens: maxOutputTokens,
-          ...(format === 'json_schema' ? {response_format: {type: 'json_schema', json_schema: {name: 'intent_candidate', strict: false, schema: cloneJson(request.outputSchema)}}} : {}),
-        } : {model, instructions: request.instructions, input: [{role: 'user', content: [{type: 'input_text', text: JSON.stringify(request.input)}]}],
+          ...(format === 'json_schema' ? {response_format: {type: 'json_schema', json_schema: {name: 'intent_candidate', strict: !!output, schema: cloneJson(schema)}}} : {}),
+        } : {model, instructions, input: [{role: 'user', content: [{type: 'input_text', text: JSON.stringify(request.input)}]}],
           tools: [], store: false, stream: false, max_output_tokens: maxOutputTokens,
-          ...(format === 'json_schema' ? {text: {format: {type: 'json_schema', name: 'intent_candidate', strict: false, schema: cloneJson(request.outputSchema)}}} : {text: {format: {type: 'text'}}})})});
+          ...(format === 'json_schema' ? {text: {format: {type: 'json_schema', name: 'intent_candidate', strict: !!output, schema: cloneJson(schema)}}} : {text: {format: {type: 'text'}}})})});
       // Status is retained even for no-body authentication responses. All
       // status classes use the same bounded reader before error classification.
       const status = response.status, chunks: Uint8Array[] = [];
@@ -79,12 +84,20 @@ export function createApiExecutor(config: ApiExecutorConfig): ModelExecutor {
       if (slab) body.set(slab.subarray(0, offset), at);
       let envelope: unknown;
       try {envelope = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(body));} catch {throw new IntentError('MODEL_REQUEST_FAILED');}
-      return protocol === 'responses' ? responseReply(envelope) : chatReply(envelope);
+      const reply = protocol === 'responses' ? responseReply(envelope) : chatReply(envelope);
+      if (output && reply.outcome === 'complete') {
+        if (request.signal.aborted) throw new IntentError('REQUEST_ABORTED');
+        const text = output.decode(reply.text);
+        if (request.signal.aborted) throw new IntentError('REQUEST_ABORTED');
+        return {outcome: 'complete', text};
+      }
+      return reply;
     } catch (cause) {
       if (cause instanceof IntentError) throw cause;
       if (request.signal.aborted) throw new IntentError('REQUEST_ABORTED');
       throw new IntentError('MODEL_REQUEST_FAILED');
     } finally {
+      output?.close();
       request.signal.removeEventListener('abort', cancel);
       if (reader) {await reader.cancel().catch(() => {}); reader.releaseLock();}
     }

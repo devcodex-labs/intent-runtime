@@ -2,6 +2,12 @@
 
 ## 2.0.1
 
+- Coalesce redundant formal field diagnoses only against an independent core proof for the same owner, container and field path. Preserve semantic field problems, sources, clarification options and suggestion references; reject contradictory formal claims. Correlate field targets, categories and codes in the private OpenAI strict format. Reject inference targets at business containers and their descendants, including nested-child paths, while retaining semantic inference, field evidence and deltas. Public result fields, configuration, dependencies and single-request behavior are unchanged.
+
+- Use a shared internal strict-output Schema projection for OpenAI Responses and Chat Completions. Resolve local definitions, flatten supported union wrappers, require nullable source quotes on the wire, and restore only their registered omissions before the unchanged core validation. Preserve duplicate-key rejection, response limits, cancellation, and single-request behavior. xAI and explicit text mode retain their existing behavior.
+- Report bounded candidate JSON Pointer paths for structure errors across Native, API and MCP. Document strict-capable gateway requirements and distinguish custom executor examples from the built-in OpenAI codec.
+- Constrain OpenAI generation by object identity, reference kind and change state; use pointer-only current-input sources and keep other exact source quotes. Clarify snapshot delta paths and formal field invalidation. Locate invalid related keys, delta paths and existing-object add operations precisely, while retaining the shared candidate/result contract and single-request behavior.
+
 - Name MCP tools `intent_runtime_prepare`, `intent_runtime_accept`, `intent_runtime_cancel` (host) and `intent_runtime_parse` (executor) by default across embedded adapters, stdio, HTTP and Codex. Optional `toolPrefix` adds to the complete name; multiple instances still share one tool set. Update the Codex Skill, diagnostics, examples and documentation. Tool parameters and result schemas are unchanged.
 - MCP callers using the 2.0.0 tool names must update their explicit calls; old tool-name aliases are not registered. Codex users should rerun `setup` with their existing configuration and registration name to refresh the managed Skill, then reload the client.
 - Clarify how to add tools to an existing MCP server, preserve other tools and reject duplicate names. Complete the user documentation and response examples, preserve existing MCP section links, and validate both LF and CRLF documentation.

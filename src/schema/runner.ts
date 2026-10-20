@@ -10,7 +10,7 @@ export interface ValidationTask {
 }
 export interface ValidationReply {
   values: import('../model/candidate.js').CheckedField[];
-  issues: Array<{ownerKey: string | null; issue: import('../contracts/public.js').IntentIssue}>;
+  issues: import('../model/candidate.js').CheckedIssue[];
   used: number;
   expressions: Array<{key: string; value: import('../contracts/public.js').StructuredExpression}>;
   inputPaths: string[];

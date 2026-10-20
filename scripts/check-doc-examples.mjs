@@ -192,23 +192,25 @@ globalThis.fetch=async function(url,options){
  if(process.env.INTENT_DOC_FAILURE==='auth')return new Response('',{status:401});
  const body=JSON.parse(options.body), materials=JSON.parse(body.input[0].content[0].text), request=materials.request;
  const selected=request.fields==='all'?Object.keys(materials.schema.properties):request.fields;
- const c=structuredClone(seed), src={root:'input',pointer:''}; c.normalizedInput=request.input;
+ const c=structuredClone(seed), src={root:'input',pointer:'',quote:null}, key=request.baseline?'p1':'n1'; c.normalizedInput=request.input;
+ c.nodes[0].key=key;c.relatedKeys=[key];c.changes[0].targetKey=key;
+ c.nodes[0].sources=[src];c.changes=c.changes.map(change=>({...change,sources:[src]}));
  const en=/^(Look up|Set VIP|Change)/.test(request.input);
  Object.assign(c.nodes[0],{domain:en?'orders':'订单',action:en?'LOOK_UP':'查询',target:en?'order 000123':'订单000123',goal:en?'Look up order 000123':'查询订单000123'});
  c.observations=[];
- const observation=(field,value)=>({ownerKey:'order',container:'inputs',field,presence:'known',withdrawn:false,valueJson:JSON.stringify(value),rawText:null,sources:[src],semantic:null});
+ const observation=(field,value)=>({ownerKey:key,container:'inputs',field,presence:'known',withdrawn:false,valueJson:JSON.stringify(value),rawText:null,sources:[src],semantic:null});
  if(/不(?:要)?取消订单|Do not cancel the order/.test(request.input)){
-  c.constraints=[{key:'no-cancel',priorRef:null,ownerKey:'order',scope:'intent',referenceKey:null,kind:'prohibition',text:request.input.startsWith('Look up')?'Do not cancel the order':'不取消订单',expressionJson:null,sources:[src]}];
-  c.changes.push({operation:'add',effect:'applied',targetKind:'constraint',targetKey:'no-cancel',conditionKey:null,description:'保留禁止取消约束',sources:[src],deltaHints:[]});
+  c.constraints=[{key:'c1',priorRef:null,ownerKey:key,scope:'intent',referenceKey:null,kind:'prohibition',text:request.input.startsWith('Look up')?'Do not cancel the order':'不取消订单',expressionJson:null,sources:[src]}];
+  c.changes.push({operation:'add',effect:'applied',targetKind:'constraint',targetKey:'c1',conditionKey:null,description:'保留禁止取消约束',sources:[src],deltaHints:[]});
  }
  if(selected.includes('orderId')){
   const o=observation('orderId','000123');
-  if(materials.schema.properties.orderId.description)o.semantic={status:'valid',explanation:'用户明确提供字符串编号000123，保留前导零',sources:[src,{root:'schema',pointer:'/properties/orderId/description'}],dependencies:[]};
+  if(materials.schema.properties.orderId.description)o.semantic={status:'valid',explanation:'用户明确提供字符串编号000123，保留前导零',sources:[src,{root:'schema',pointer:'/properties/orderId/description',quote:null}],dependencies:[]};
   c.observations.push(o);
  }
  if(selected.includes('isVip')||selected.includes('discount')){
   Object.assign(c.nodes[0],{action:'设置',goal:'设置订单000123的VIP状态和优惠'});
-  if(request.baseline){c.kind='amendment';c.usedHistory=true;c.nodes[0].priorRef={root:'baseline',pointer:'/intents/0'};c.changes[0].operation='modify';}
+  if(request.baseline){c.kind='amendment';c.usedHistory=true;c.nodes[0].priorRef={root:'baseline',pointer:'/intents/0',quote:null};c.changes[0].operation='modify';}
   if(request.input.includes('VIP=true'))c.observations.push(observation('isVip',true),observation('discount',15));
   else if(request.input.includes('非VIP')||request.input.includes('non-VIP'))c.observations.push(observation('isVip',false));
   else c.observations.push(observation('discount',5));

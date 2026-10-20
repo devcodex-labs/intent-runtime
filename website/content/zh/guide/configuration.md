@@ -78,12 +78,14 @@
 | maxBaselineBytes | 1048576 | baseline JSON |
 | maxSchemaBytes | 262144 | 每份业务/扩展Schema |
 | maxRequestBytes | 3145728 | 静态材料与完整逻辑请求，不能仅分别检查各部分 |
-| maxOutputBytes | 1048576 | 候选文本、HostTask、最终结果各自检查 |
+| maxOutputBytes | 1048576 | 规范候选文本、HostTask、最终结果各自检查 |
 | maxDepth | 64 | JSON根容器深度0 |
 | maxConcurrentParses | 8 | 单个Intent的Native/host活动识别和未结束底层调用 |
 | maxValidationChecks | 256 | 单次识别业务校验调用数；host纠正不重置 |
 
 超限报RESOURCE_LIMIT，不静默截断。预算不等于会话过期。取消不配合的外部执行器可先返回，但名额在其实际结束后才释放。库不保证终止调用方任意代码或退还模型费用。
+
+OpenAI 严格输出先由 maxResponseBytes 限制可见 HTTP 信封；适配器按编译后的 Schema 限制传输 JSON 深度，并在归一化前拒绝重复键。生成分支细化后会重新检查供应商大小/深度限制。核心 maxOutputBytes/maxDepth 作用于适配器返回的规范候选，再检查最终结果；传输格式中的空白和已登记 quote:null 的缺省映射不计入规范候选字节数。当前输入来源使用整个输入指针，不生成局部引文。这些边界分别检查，不静默截断或修补回复。
 
 ## 其他公开配置
 

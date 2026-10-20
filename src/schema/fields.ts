@@ -1,16 +1,18 @@
-import type { IntentIssue, JsonObject, JsonValue, SourceRef } from '../contracts/public.js';
+import type { JsonObject, JsonValue, SourceRef } from '../contracts/public.js';
 import { IntentError, violation } from '../contracts/errors.js';
-import type { CandidateDraft, CheckedField, Observation, NodeDraft } from '../model/candidate.js';
+import type { CandidateDraft, CheckedField, CheckedIssue, Observation, NodeDraft } from '../model/candidate.js';
 import { cloneJson, decodeJson, equalJson, measure, plain } from '../internal/json.js';
 import { tokens, escapeToken } from '../internal/pointer.js';
 import { sourceValue } from '../internal/source.js';
 import { Definition } from './compile.js';
 import { ABSENT, BusinessValidator, classify, ValidationBudget, type Verdict } from './validate.js';
 
-export function checkFields(draft: CandidateDraft, materials: Record<string, unknown>, schema: Definition | undefined, extension: Definition | undefined, selection: string[], outputExtensions: boolean, validator: BusinessValidator, budget: ValidationBudget, maxBytes: number, maxDepth: number): {values: CheckedField[]; issues: Array<{ownerKey: string | null; issue: IntentIssue}>} {
+export function checkFields(draft: CandidateDraft, materials: Record<string, unknown>, schema: Definition | undefined, extension: Definition | undefined, selection: string[], outputExtensions: boolean, validator: BusinessValidator, budget: ValidationBudget, maxBytes: number, maxDepth: number): {values: CheckedField[]; issues: CheckedIssue[]} {
   const messages = draft.messages;
   if (Object.values(messages).some(v => !v.trim())) violation('/messages', 'STRUCTURE');
-  const values: CheckedField[] = [], issues: Array<{ownerKey: string | null; issue: IntentIssue}> = [];
+  const values: CheckedField[] = [], issues: CheckedIssue[] = [];
+  const formalCodes = new Set(['FIELD_VALUE_INVALID', 'FIELD_DEPENDENCY_MISSING', 'FIELD_REQUIRED_MISSING', 'FIELD_VALIDATION_UNDETERMINED']);
+  const mergedClaims = new Set<CandidateDraft['issues'][number]>();
   for (const [i, o] of draft.observations.entries()) {
     const spec = o.container === 'extensions' ? extension : schema;
     const owner = draft.nodes.find(n => n.key === o.ownerKey);
@@ -82,10 +84,16 @@ export function checkFields(draft: CandidateDraft, materials: Record<string, unk
       const historySources = (refs: SourceRef[]): boolean => refs.some(ref => ['context', 'baseline'].includes(ref.root));
       let status: CheckedField['status'], code: string | undefined, explanation: string | undefined, value: JsonValue | undefined, verdict: Verdict | undefined;
       const trigger = selected ? 'selection' : 'invalidation';
-      const semanticIssue = draft.issues.find(q => q.ownerKey === key && q.fieldTarget?.container === container && q.fieldTarget.field === field);
+      const modelIssues = draft.issues.filter(q => q.ownerKey === key && q.fieldTarget?.container === container && q.fieldTarget.field === field);
       const semantic = observation?.semantic;
       const unavailableDependency = semantic?.dependencies.some(d => !Object.hasOwn(known, d.field) && !(d.requires === 'presence' && ['present_unknown', 'absent'].includes(current.get(d.field)?.presence ?? '')));
       const requiresSemantic = scope.spec?.needsSemantics(field) ?? false;
+      // Prose, cardinality and applicability remain model evidence. Formal-only
+      // claims must agree with a separately computed proof, including its path.
+      const formalIssues = requiresSemantic ? [] : modelIssues.filter(q => formalCodes.has(q.code));
+      const semanticIssues = modelIssues.filter(q => !formalIssues.includes(q));
+      const semanticIssue = semanticIssues.find(q => q.code === 'FIELD_CARDINALITY_MISMATCH')
+        ?? semanticIssues.find(q => q.code === 'FIELD_VALUE_INVALID') ?? semanticIssues[0];
       if (observation?.withdrawn) {
         status = 'removed'; explanation = messages.changed;
       } else if (!selected && changed.has(field)) {
@@ -126,6 +134,14 @@ export function checkFields(draft: CandidateDraft, materials: Record<string, unk
         else if (verdict.status === 'invalid') { status = selected ? 'invalid' : 'invalidated'; code = selected ? 'FIELD_VALUE_INVALID' : 'FIELD_INVALIDATED'; explanation = messages.invalid; }
         else { status = 'unknown'; code = verdict.reason === 'open' ? 'FIELD_VALIDATION_UNDETERMINED' : 'FIELD_DEPENDENCY_MISSING'; explanation = verdict.reason === 'open' ? messages.open : messages.mixed; }
       }
+      const formalCode = code, formalExplanation = explanation;
+      const nested = [...new Set((verdict?.errors ?? []).map(e => e.path).filter(p => p.startsWith(path + '/')))];
+      for (const claim of formalIssues) {
+        const index = draft.issues.indexOf(claim);
+        if (claim.code !== formalCode && !(claim.code === 'FIELD_VALUE_INVALID' && formalCode === 'FIELD_INVALIDATED')) violation('/issues/' + index + '/code', 'SEMANTIC_INVARIANT');
+        if (claim.fieldTarget!.path !== path && !nested.includes(claim.fieldTarget!.path)) violation('/issues/' + index + '/fieldTarget/path', 'SEMANTIC_INVARIANT');
+        mergedClaims.add(claim);
+      }
       if (!observation?.withdrawn && semanticIssue && ['FIELD_CARDINALITY_MISMATCH', 'FIELD_APPLICABILITY_UNKNOWN'].includes(semanticIssue.code)) {
         status = semanticIssue.code === 'FIELD_CARDINALITY_MISMATCH' ? selected ? 'invalid' : 'invalidated' : 'unknown';
         code = semanticIssue.code; value = undefined; explanation = semanticIssue.message;
@@ -143,22 +159,29 @@ export function checkFields(draft: CandidateDraft, materials: Record<string, unk
         // declaration using a contradictory ungrounded field issue.
         violation('/issues', 'SEMANTIC_INVARIANT');
       }
-      // A complete finite-world proof has an exact missing-information cause.
-      // A model cannot recast it as a limitation of the local strategy. Prose
-      // and genuinely open proof strategies retain their separate meanings.
-      if (!requiresSemantic && verdict?.reason === 'mixed' && semanticIssue?.code === 'FIELD_VALIDATION_UNDETERMINED') violation('/issues/' + draft.issues.indexOf(semanticIssue) + '/code', 'SEMANTIC_INVARIANT');
       const report: CheckedField = {ownerKey: key, container, field, path, status, trigger, sources, ...(usedProvidedMaterials ? {usedProvidedMaterials: true} : {}), ...(value !== undefined ? {value} : {}), ...(explanation ? {explanation} : {}), ...(observation?.rawText !== null && observation?.rawText !== undefined ? {rawText: observation.rawText} : {})};
       values.push(report);
-      const nested = [...new Set((verdict?.errors ?? []).map(e => e.path).filter(p => p.startsWith(path + '/')))];
-      if (code && !(semanticIssue?.code === code && semanticIssue.fieldTarget?.path === path)) {
-        const paths = nested.length ? nested : [path];
-        for (const nestedPath of paths) {
-          if (nestedPath !== path) values.push({...report, path: nestedPath});
-          if (semanticIssue?.code === code && semanticIssue.fieldTarget?.path === nestedPath) continue;
-          issues.push({ownerKey: key, issue: {id: `field-${issues.length}`, code, category: 'data', message: explanation!, container, field, path: nestedPath, ...(sources.length ? {sourceRefs: cloneJson(sources)} : {})}});
-        }
+      const reported = new Set([path]);
+      const emit = (issueCode: string, message: string, issuePath: string, modelKeys: string[] = []): void => {
+        if (!reported.has(issuePath)) {values.push({...report, path: issuePath}); reported.add(issuePath);}
+        issues.push({ownerKey: key, issue: {id: `field-${issues.length}`, code: issueCode, category: 'data', message, container, field, path: issuePath, ...(sources.length ? {sourceRefs: cloneJson(sources)} : {})}, ...(modelKeys.length ? {modelKeys} : {})});
+      };
+      const paths = nested.length ? nested : [path];
+      if (formalIssues.length) {
+        const proofPaths = [...new Set([...paths, ...formalIssues.map(q => q.fieldTarget!.path)])];
+        for (const proofPath of proofPaths) emit(formalCode!, formalExplanation!, proofPath, formalIssues.filter(q => q.fieldTarget!.path === proofPath).map(q => q.key));
+      }
+      if (code && !(formalIssues.length && code === formalCode)) for (const issuePath of paths) {
+        if (semanticIssues.some(q => q.code === code && q.fieldTarget?.path === issuePath)) continue;
+        emit(code, explanation!, issuePath);
       }
     }
+  }
+  // Do not accept formal claims for unselected/unexamined values. In particular,
+  // collecting aliases must never turn a missing proof into an extra check.
+  for (const [index, claim] of draft.issues.entries()) if (claim.fieldTarget && formalCodes.has(claim.code)) {
+    const spec = claim.fieldTarget.container === 'extensions' ? extension : schema;
+    if (!spec?.needsSemantics(claim.fieldTarget.field) && !mergedClaims.has(claim)) violation('/issues/' + index + '/code', 'SEMANTIC_INVARIANT');
   }
   return {values, issues};
 }

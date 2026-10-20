@@ -4,9 +4,9 @@ import { IntentError, violation, isTechnicalErrorCode } from '../contracts/error
 import { cloneJson, decodeJson, measure, equalJson } from '../internal/json.js';
 import { resolve, tokens } from '../internal/pointer.js';
 import { sourceValue } from '../internal/source.js';
-import type { CandidateDraft, CheckedField, Locator } from '../model/candidate.js';
+import type { CandidateDraft, CheckedField, CheckedIssue, Locator } from '../model/candidate.js';
 
-export function assemble(draft: CandidateDraft, materials: Record<string, unknown>, fields: CheckedField[], fieldIssues: Array<{ownerKey: string | null; issue: IntentResult['issues'][number] }>, flags: Required<import('../contracts/public.js').IntentOutputOptions>, options: {expressions: Map<string, StructuredExpression>; inputPaths: Set<string>; maxBytes: number; maxDepth: number}): IntentResult {
+export function assemble(draft: CandidateDraft, materials: Record<string, unknown>, fields: CheckedField[], fieldIssues: CheckedIssue[], flags: Required<import('../contracts/public.js').IntentOutputOptions>, options: {expressions: Map<string, StructuredExpression>; inputPaths: Set<string>; maxBytes: number; maxDepth: number}): IntentResult {
   // Safe candidate locations, without source contents. Run at the assembly
   // boundary so all business checks already used still count for correction.
   let usedProvidedMaterials = false;
@@ -116,7 +116,7 @@ export function assemble(draft: CandidateDraft, materials: Record<string, unknow
     source(r.sources); if (r.kind === 'conditional' && !r.condition) violation('/relations', 'STRUCTURE');
     const value: IntentRelation = {id: id('relation', r.key), fromId: id('intent', r.fromKey), toId: id('intent', r.toKey), kind: r.kind, ...(r.kind === 'conditional' ? {condition: r.condition!} : {})}; objects.set('relation:' + r.key, value); return value;
   });
-  const result: IntentResult = {schemaVersion: '2.0-draft.6', input: materials.input as string, status: 'complete', turn: {kind: draft.kind, normalizedInput: draft.normalizedInput, intentIds: [...new Set(draft.relatedKeys.map(k => id('intent', k)))], changes: [], facts: {}}, effective: {schemaVersion: '2.0-draft.6', coverage: draft.historyCoverage, scope: draft.usedHistory ? 'provided_materials' : 'current_request', intents: roots, constraints, relations, unresolved: []}, fieldResults: [], issues: [], inferences: []};
+  const result: IntentResult = {schemaVersion: '2.0-draft.6', input: materials.input as string, status: 'complete', turn: {kind: draft.kind, normalizedInput: draft.normalizedInput, intentIds: [...new Set(draft.relatedKeys.map((k, i) => id('intent', k, '/relatedKeys/' + i)))], changes: [], facts: {}}, effective: {schemaVersion: '2.0-draft.6', coverage: draft.historyCoverage, scope: draft.usedHistory ? 'provided_materials' : 'current_request', intents: roots, constraints, relations, unresolved: []}, fieldResults: [], issues: [], inferences: []};
   const admit = () => measure(result, {maxBytes: options.maxBytes, maxDepth: options.maxDepth, limit: 'maxOutputBytes', stage: 'output'});
   for (const f of fields) {
     const owner = f.ownerKey === null ? null : nodes.get(f.ownerKey) ?? violation('', 'FIELD_OWNERSHIP');
@@ -141,7 +141,8 @@ export function assemble(draft: CandidateDraft, materials: Record<string, unknow
     result.turn.changes.push(change);
     if (change.effect === 'applied' && c.deltaHints.length) {
       const deltas: IntentDelta[] = []; change.deltas = deltas;
-      for (const h of c.deltaHints) {
+      for (const [hintIndex, h] of c.deltaHints.entries()) {
+      const hintPath = path + '/deltaHints/' + hintIndex + '/path';
       const previous = old.get(c.targetKind + ':' + c.targetKey), next = objects.get(c.targetKind + ':' + c.targetKey);
       const before = previous ? resolve(previous, h.path) : {found: false};
       let delta: IntentDelta;
@@ -159,11 +160,11 @@ export function assemble(draft: CandidateDraft, materials: Record<string, unknow
           const previousId = before.found && before.value && typeof before.value === 'object' && !Array.isArray(before.value) ? (before.value as {id?: unknown}).id : undefined;
           const typedRemoval = semanticCollection && typeof previousId === 'string' && newArray && !newArray.some(value => value && typeof value === 'object' && value.id === previousId);
           const literalRemoval = oldArray && newArray && position >= 0 && position < oldArray.length && equalJson(newArray, [...oldArray.slice(0, position), ...oldArray.slice(position + 1)]);
-          if (!typedRemoval && !literalRemoval) violation('/changes', 'SEMANTIC_INVARIANT');
+          if (!typedRemoval && !literalRemoval) violation(hintPath, 'SEMANTIC_INVARIANT');
         }
         delta = {path: h.path, operation: 'remove', ...(before.found ? {before: before.value as JsonValue} : {})};
       } else {
-        const after = resolve(next, h.path); if (!after.found) violation('/changes', 'REFERENCE_NOT_FOUND');
+        const after = resolve(next, h.path); if (!after.found) violation(hintPath, 'REFERENCE_NOT_FOUND');
         delta = {path: h.path, operation: 'set', after: after.value as JsonValue, ...(before.found ? {before: before.value as JsonValue} : {})};
       }
       // Measure shared references by expanded JSON cost BEFORE cloning them.
@@ -176,16 +177,43 @@ export function assemble(draft: CandidateDraft, materials: Record<string, unknow
   const locations = new Map<string, string>();
   const locate = (nodes: StructuredIntent[], path: string): void => nodes.forEach((n, i) => { const p = path + '/' + i; locations.set('intent:' + n.id, p); n.constraints.forEach((c, j) => locations.set('constraint:' + c.id, p + '/constraints/' + j)); locate(n.children, p + '/children'); });
   locate(roots, '/effective/intents'); constraints.forEach((c, i) => locations.set('constraint:' + c.id, '/effective/constraints/' + i)); relations.forEach((r, i) => locations.set('relation:' + r.id, '/effective/relations/' + i));
+  const businessBags = new Set([...locations].filter(([key]) => key.startsWith('intent:')).flatMap(([, path]) => [path + '/inputs', path + '/extensions']));
   const locator = (l: Locator, candidatePath = ''): string => {
     try {tokens(l.path);} catch {return violation(candidatePath + '/path', 'STRUCTURE');}
     const base = l.kind === 'fact' ? '/turn/facts' : locations.get(l.kind + ':' + id(l.kind, l.key, candidatePath + '/key'));
     if (base === undefined) violation(candidatePath + '/key', 'REFERENCE_NOT_FOUND'); const path = base + l.path; if (!resolve(result, path).found) violation(candidatePath + '/path', 'REFERENCE_NOT_FOUND'); return path;
   };
-  for (const q of draft.issues) result.issues.push({id: 'issue-' + q.key, code: q.code, category: q.category, message: q.message, ...(q.fieldTarget ? q.fieldTarget : {}), ...(q.ownerKey ? {intentId: id('intent', q.ownerKey)} : {}), ...(q.sources.length ? {sourceRefs: source(q.sources)} : {}), ...(q.candidates.length ? {candidates: q.candidates.map(c => ({id: c.key, description: c.description, sourceRefs: source(c.sources), ...(c.intentKey ? {intentId: id('intent', c.intentKey)} : {})}))} : {}), ...(q.questions.length ? {questions: q.questions.map(x => ({question: x.question, ...(x.optionKeys.length ? {optionIds: x.optionKeys} : {})}))} : {})});
+  const issueIds = new Map<string, string>(), aliases = new Map<string, string>();
+  for (const f of fieldIssues) for (const key of f.modelKeys ?? []) {
+    if (aliases.has(key)) violation('/issues', 'DUPLICATE_ID'); aliases.set(key, f.issue.id);
+  }
+  const modelIssues = new Map<string, IntentResult['issues'][number]>();
+  for (const [index, q] of draft.issues.entries()) {
+    if (issueIds.has(q.key)) violation('/issues/' + index + '/key', 'DUPLICATE_ID');
+    const mergedId = aliases.get(q.key), optionIds = new Map<string, string>();
+    for (const [candidateIndex, candidate] of q.candidates.entries()) {
+      if (optionIds.has(candidate.key)) violation('/issues/' + index + '/candidates/' + candidateIndex + '/key', 'DUPLICATE_ID');
+      // Candidate keys are local to their original issue. Namespace them when
+      // combining issues so overlapping keys cannot change a question's options.
+      optionIds.set(candidate.key, mergedId ? 'candidate-' + randomUUID() : candidate.key);
+    }
+    const issue: IntentResult['issues'][number] = {id: mergedId ?? 'issue-' + q.key, code: q.code, category: q.category, message: q.message, ...(q.fieldTarget ? q.fieldTarget : {}), ...(q.ownerKey ? {intentId: id('intent', q.ownerKey)} : {}), ...(q.sources.length ? {sourceRefs: source(q.sources)} : {}), ...(q.candidates.length ? {candidates: q.candidates.map(c => ({id: optionIds.get(c.key)!, description: c.description, sourceRefs: source(c.sources), ...(c.intentKey ? {intentId: id('intent', c.intentKey)} : {})}))} : {}), ...(q.questions.length ? {questions: q.questions.map((x, questionIndex) => ({question: x.question, ...(x.optionKeys.length ? {optionIds: x.optionKeys.map((key, optionIndex) => optionIds.get(key) ?? violation('/issues/' + index + '/questions/' + questionIndex + '/optionKeys/' + optionIndex, 'REFERENCE_NOT_FOUND'))} : {})}))} : {})};
+    issueIds.set(q.key, issue.id); modelIssues.set(q.key, issue);
+    if (!mergedId) result.issues.push(issue);
+  }
   for (const [index, change] of result.turn.changes.entries()) if (change.effect === 'unresolved' && !result.issues.some(issue => issue.category !== 'data' && (issue.message === change.description || change.target.kind === 'intent' && issue.intentId === change.target.id && ['ambiguity', 'missing', 'conflict'].includes(issue.category)))) {
     result.issues.push({id: 'unresolved-change-' + index, code: 'AMBIGUOUS_REFERENCE', category: 'ambiguity', message: change.description, sourceRefs: cloneJson(change.sourceRefs), ...(change.target.kind === 'intent' && nodes.has(draft.changes[index]!.targetKey!) ? {intentId: change.target.id} : {})});
   }
-  for (const f of fieldIssues) result.issues.push({...f.issue, ...(f.ownerKey ? {intentId: id('intent', f.ownerKey)} : {})});
+  for (const f of fieldIssues) {
+    const issue = {...f.issue, ...(f.ownerKey ? {intentId: id('intent', f.ownerKey)} : {})};
+    for (const key of f.modelKeys ?? []) {
+      const model = modelIssues.get(key) ?? violation('/issues', 'REFERENCE_NOT_FOUND');
+      if (model.sourceRefs?.length) issue.sourceRefs = [...issue.sourceRefs ?? [], ...model.sourceRefs];
+      if (model.candidates?.length) issue.candidates = [...issue.candidates ?? [], ...model.candidates];
+      if (model.questions?.length) issue.questions = [...issue.questions ?? [], ...model.questions];
+    }
+    result.issues.push(issue);
+  }
   const beforeEdges = relations.filter(r => r.kind === 'before');
   const reaches = (from: string, target: string, seen = new Set<string>()): boolean => {
     if (seen.has(from)) return false; seen.add(from);
@@ -203,9 +231,12 @@ export function assemble(draft: CandidateDraft, materials: Record<string, unknow
   for (const [index, inference] of draft.inferences.entries()) {
     const target = locator(inference.target, '/inferences/' + index + '/target');
     const parts = tokens(inference.target.path);
-    // Inputs, facts and extensions are authoritative extracted values. An
-    // explicitly unconfirmed candidate belongs in inference metadata instead.
-    if (inference.target.kind === 'fact' && parts.length || inference.target.kind === 'intent' && ['inputs', 'extensions'].includes(parts[0] ?? '') && parts.length > 1) violation('/inferences/' + index + '/target/path', 'SEMANTIC_INVARIANT');
+    let inBusinessBag = false;
+    for (let path = target; path; path = path.slice(0, path.lastIndexOf('/'))) if (businessBags.has(path)) {inBusinessBag = true; break;}
+    // Compare resolved locations, not just the first relative token: a parent
+    // can otherwise reach a child's business bag through /children/0/inputs.
+    // Containers themselves are authoritative too; fact-root metadata remains.
+    if (inference.target.kind === 'fact' && parts.length || inBusinessBag) violation('/inferences/' + index + '/target/path', 'SEMANTIC_INVARIANT');
     let candidate;
     if (inference.candidateJson !== null) {
       try {candidate = decodeJson(inference.candidateJson, options.maxDepth);}
@@ -216,7 +247,6 @@ export function assemble(draft: CandidateDraft, materials: Record<string, unknow
   }
   const evidence = draft.evidence.map((e, i) => ({target: locator(e.target, '/evidence/' + i + '/target'), sourceRefs: source(e.sources)}));
   if (flags.evidence) result.evidence = evidence;
-  const issueIds = new Map(draft.issues.map(issue => [issue.key, 'issue-' + issue.key]));
   const suggestionIdentity = (key: string): string => {
     const candidates = new Set<string>();
     const intentKey = key.startsWith('intent:') ? key.slice(7) : key;

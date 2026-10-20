@@ -1,5 +1,7 @@
 # 错误与失败恢复
 
+与核心证明相符的冗余正式字段诊断会归并到保留的问题，同时维护来源、候选、澄清问题和建议引用。与正式证明矛盾的声明仍返回 `MODEL_OUTPUT_INVALID`，并在可定位时提供候选路径。推断定位到 `inputs`、`extensions` 容器或其后代也属于非法候选，应使用真实语义位置表达未确认假设。普通业务值非法仍通过正常字段结果和 data 问题返回。
+
 技术失败抛出 IntentError，不把截断候选或设施异常返回为正常成功。字段问题保存在正常结果 issues。
 
 没有结果时先看是否抛错；有结果但缺订单号时先看fieldResults与issues。超时、认证失败和缺少用户信息需要不同的恢复动作；不要统一重试。Codex没有工具或无法启动先查[登记与启动](/zh/operations/codex)，随后再排查识别本身。
@@ -11,6 +13,10 @@
 | 只有 VIP 改为 false，旧优惠15超出非VIP规则 | 正常结果，discount invalidated | 不消费旧值，下一轮选择 discount 并提供合法值 |
 
 完整恢复过程是“确认 code/问题类别 → 修复对应输入或配置 → 显式新调用 → 检查新结果”，不是默认重试所有失败。MCP 外层错误形式见[信封](/zh/api/mcp#成功与错误信封)。
+
+结构失败使用 MODEL_OUTPUT_INVALID、stage='validation'，在 details.violations 返回有限长度的 JSON Pointer，例如 /relations、/nodes/0/action、/observations/0/path。OpenAI 完整回复中的坏传输候选属于候选失败，不是认证或网络错误。未支持的本地投影形状在请求前报 CONFIG_INVALID 并提供 outputSchema 路径。严格输出不会补造业务数据，也不会绕过来源与语义检查。
+
+规范候选诊断会将坏节点引用定位到 `/relatedKeys/1`，错误快照变化路径定位到 `/changes/0/deltaHints/0/path`，对已有意图执行的 applied `add` 定位到 `/changes/0/operation`（`SEMANTIC_INVARIANT`）。OpenAI 传输层可能更早以 `STRUCTURE` 拒绝这些组合；调用方应读取实际 rule/path，不假设固定发生在同一校验阶段。
 
 | 技术码 | 含义 |
 |---|---|
