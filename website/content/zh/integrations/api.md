@@ -59,7 +59,7 @@ provider='openai' 且 format='json_schema' 时，两协议都使用内部候选 
 | protocol | responses或chat-completions / 否 | responses | 决定端点、请求和响应结构，不自动探测 |
 | model | 非空string / 是 | 无 | 供应商接受的模型名 |
 | apiKey | 非空string / 是 | 无 | 不进入模型材料/诊断 |
-| baseURL | string / 否 | OpenAI：`https://api.openai.com/v1`；xAI：`https://api.x.ai/v1` | API根地址；绝对HTTP(S)，无用户凭据/query/fragment；非TLS仅本地/私网 |
+| baseURL | string / 否 | OpenAI：`https://api.openai.com/v1`；xAI：`https://api.x.ai/v1` | API根地址；绝对HTTP(S)，无用户凭据/query/fragment；非TLS（http）仅限 localhost/`*.localhost`、回环（127.0.0.0/8、::1、IPv4 映射 ::ffff:127.0.0.0/104）、私网（10/8、172.16/12、192.168/16、fc00::/7）与共享地址 100.64/10；链路本地 169.254/16 与 fe80::/10 一律拒绝 |
 | maxOutputTokens | 正安全整数 / 否 | 8192 | 本次生成上限 |
 | maxResponseBytes | 正安全整数 / 否 | 8388608 | 每次HTTP响应可见body字节；与候选限制分别检查 |
 | format | json_schema或text / 否 | json_schema | 显式选择，不自动降级 |

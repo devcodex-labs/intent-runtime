@@ -1,31 +1,25 @@
 {
   "schemaVersion": "2.0-draft.6",
-  "input": "采用第三个提案，提案列表未提供；不要修改配置。",
+  "input": "采用第三个方案，但方案列表未提供；先不修改代码",
   "status": "partial",
   "turn": {
     "kind": "request",
-    "normalizedInput": "请求采用第三个提案，但提案列表未提供，无法确定具体提案；要求不要修改配置。",
+    "normalizedInput": "采用第三个方案，但方案列表未提供；先不修改代码",
     "intentIds": [
-      "intent-1"
+      "intent-10"
     ],
     "changes": [
       {
         "operation": "add",
         "target": {
           "kind": "intent",
-          "id": "intent-1"
+          "id": "intent-10"
         },
-        "description": "新增采用第三个提案的请求；所指提案仍未解析，不表明此前已有选择。",
+        "description": "新增本轮明确请求",
         "sourceRefs": [
           {
             "root": "input",
-            "pointer": "",
-            "quote": "采用第三个提案"
-          },
-          {
-            "root": "input",
-            "pointer": "",
-            "quote": "提案列表未提供"
+            "pointer": ""
           }
         ],
         "effect": "applied"
@@ -34,14 +28,13 @@
         "operation": "add",
         "target": {
           "kind": "constraint",
-          "id": "constraint-1"
+          "id": "constraint-9"
         },
-        "description": "添加不要修改配置的禁止要求。",
+        "description": "新增本轮明确请求",
         "sourceRefs": [
           {
             "root": "input",
-            "pointer": "",
-            "quote": "不要修改配置"
+            "pointer": ""
           }
         ],
         "effect": "applied"
@@ -55,45 +48,38 @@
     "scope": "current_request",
     "intents": [
       {
-        "id": "intent-1",
+        "id": "intent-10",
         "domain": null,
         "action": "采用",
-        "target": null,
-        "goal": "采用第三个提案",
+        "target": "第三个方案",
+        "goal": "采用第三个方案",
         "understanding": "ambiguous",
         "constraints": [],
         "inputs": {},
         "references": [
           {
             "id": "reference-1",
-            "kind": "source",
+            "kind": "entity",
             "ref": null,
             "resolved": false,
-            "description": "第三个提案所对应的提案列表未提供，具体提案无法确定。",
+            "description": "未提供列表中的第三个方案",
             "sourceRefs": [
               {
                 "root": "input",
-                "pointer": "",
-                "quote": "采用第三个提案"
-              },
-              {
-                "root": "input",
-                "pointer": "",
-                "quote": "提案列表未提供"
+                "pointer": ""
               }
             ]
           }
         ],
         "children": [],
-        "extensions": {},
-        "optional": false
+        "extensions": {}
       }
     ],
     "constraints": [
       {
-        "id": "constraint-1",
+        "id": "constraint-9",
         "kind": "prohibition",
-        "text": "不要修改配置。",
+        "text": "先不修改代码",
         "scope": {
           "type": "global"
         }
@@ -101,81 +87,29 @@
     ],
     "relations": [],
     "unresolved": [
-      "缺少提案列表，无法解析“第三个提案”所指的具体提案。",
-      "当前请求引用的提案列表明确未提供，材料不足以确定所选提案。"
+      "未提供方案列表，不能确定第三个方案。"
     ]
   },
   "fieldResults": [],
   "issues": [
     {
-      "id": "issue-1",
+      "id": "issue-proposal",
       "code": "AMBIGUOUS_REFERENCE",
       "category": "ambiguity",
-      "message": "缺少提案列表，无法解析“第三个提案”所指的具体提案。",
-      "intentId": "intent-1",
+      "message": "未提供方案列表，不能确定第三个方案。",
+      "intentId": "intent-10",
       "sourceRefs": [
         {
           "root": "input",
-          "pointer": "",
-          "quote": "采用第三个提案"
-        },
-        {
-          "root": "input",
-          "pointer": "",
-          "quote": "提案列表未提供"
+          "pointer": ""
         }
       ],
       "questions": [
         {
-          "question": "请提供按顺序排列的提案列表或第三个提案的内容。"
-        }
-      ]
-    },
-    {
-      "id": "issue-2",
-      "code": "CONTEXT_INCOMPLETE",
-      "category": "context",
-      "message": "当前请求引用的提案列表明确未提供，材料不足以确定所选提案。",
-      "intentId": "intent-1",
-      "sourceRefs": [
-        {
-          "root": "input",
-          "pointer": "",
-          "quote": "提案列表未提供"
+          "question": "请提供第三个方案的内容。"
         }
       ]
     }
   ],
-  "inferences": [],
-  "evidence": [
-    {
-      "target": "/effective/intents/0",
-      "sourceRefs": [
-        {
-          "root": "input",
-          "pointer": "",
-          "quote": "采用第三个提案"
-        },
-        {
-          "root": "input",
-          "pointer": "",
-          "quote": "提案列表未提供"
-        }
-      ]
-    },
-    {
-      "target": "/effective/constraints/0",
-      "sourceRefs": [
-        {
-          "root": "input",
-          "pointer": "",
-          "quote": "不要修改配置"
-        }
-      ]
-    }
-  ],
-  "diagnostics": {
-    "durationMs": 31622.39843,
-    "modelCallCount": 0
-  }
+  "inferences": []
 }

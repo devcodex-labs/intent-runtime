@@ -56,12 +56,11 @@ for (const example of cases) outputs.set(example.slug + '-example.json', example
 const native = cases.find(c => c.slug === 'native');
 outputs.set('native-request.json', {config: native.config, request: native.request});
 outputs.set('native-result.json', native.result);
-if (locale === 'en') {
-  const clarification = cases.find(c => c.slug === 'ambiguity');
-  for (const [stem, example] of [['order', native], ['clarification', clarification]]) {
-    outputs.set(stem + '-request.json', {config: {mode: 'host', instances: {main: example.config}}, request: example.request});
-    outputs.set(stem + '-result.json', example.result);
-  }
+// Both locales derive the host examples from the same scenarios so zh/en stay aligned.
+const clarification = cases.find(c => c.slug === 'ambiguity');
+for (const [stem, example] of [['order', native], ['clarification', clarification]]) {
+  outputs.set(stem + '-request.json', {config: {mode: 'host', instances: {main: example.config}}, request: example.request});
+  outputs.set(stem + '-result.json', example.result);
 }
 const outputDirectory = path.join(repo, 'website/content/public/examples', locale === 'en' ? 'en' : '');
 if (mode === '--write') await mkdir(outputDirectory, {recursive: true});

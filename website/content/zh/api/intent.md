@@ -7,7 +7,7 @@
 | 初始化与可信配置 | [Intent](#intent)、[配置参考](/zh/guide/configuration) | 构造同步抛错 |
 | 输入、Context、baseline、字段与取消 | [parse 参数](#parse参数) | Promise reject；正常 issues 不等于 reject |
 | 关闭与再次调用 | [Intent](#intent) | dispose 幂等；关闭后 parse 拒绝 |
-| 序列化错误 | [IntentError](#intenterror) | 默认安全摘要，可显式选择已有 partialResult |
+| 序列化错误 | [IntentError](#intenterror) | 默认安全摘要；当前版本不设置 partialResult |
 | 自有模型 | [ModelExecutor](#modelexecutor) | 生成候选，不直接生成最终结果 |
 
 ## Intent
@@ -53,9 +53,9 @@ class IntentError extends Error {
 }
 ```
 
-code决定通用英文消息；未知code抛TypeError。options可指定stage/details/cause。toJSON等价于默认serialize；`serialize({includePartialResult:true})`仅在错误确有partialResult时附加，默认不附加。cause不枚举也不进入标准摘要。
+code决定通用英文消息；未知code抛TypeError。options可指定stage/details/cause。toJSON等价于默认serialize；`serialize({includePartialResult:true})`仅在错误确有partialResult时附加，默认不附加；当前版本的IntentError从不设置partialResult，因此该选项目前不会附加任何内容。cause不枚举也不进入标准摘要。
 
-partialResult并非每次错误都有，可能包含原始材料；不是正常成功结果。MCP技术错误不返回partialResult。不要把diagnostics当作允许打印全部错误原文的开关。错误码和恢复见[错误参考](/zh/api/errors)。
+当前版本不返回partialResult：该字段仅为类型兼容保留，任何错误都不会带有它；若将来版本设置，它也可能包含原始材料，且不是正常成功结果。MCP技术错误不返回partialResult。不要把diagnostics当作允许打印全部错误原文的开关。错误码和恢复见[错误参考](/zh/api/errors)。
 
 ## INTENT_RESULT_SCHEMA
 

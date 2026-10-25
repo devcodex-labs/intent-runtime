@@ -11,7 +11,9 @@ on:
 
 concurrency:
   group: documentation-pages
-  cancel-in-progress: true
+  # Queue rather than cancel: let an in-progress (release) deployment finish,
+  # as in GitHub's official Pages starter workflow.
+  cancel-in-progress: false
 
 permissions:
   contents: read

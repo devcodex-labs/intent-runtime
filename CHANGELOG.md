@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.3
+
+- Reject a withdrawn or otherwise non-current intent key in `relatedKeys` as `MODEL_OUTPUT_INVALID` at `/relatedKeys/<n>` (`REFERENCE_NOT_FOUND`) instead of failing with `INTERNAL_PROCESSING_FAILED`. MCP host requests stay open for a corrected submission. Add shared-core and MCP host regressions.
+- Make plaintext `http` `baseURL` acceptance symmetric across IPv4 and IPv6: additionally allow shared CGNAT `100.64.0.0/10` and IPv4-mapped loopback, and reject IPv6 link-local `fe80::/10` like IPv4 `169.254.0.0/16`. Document the exact ranges in English and Chinese and test the full matrix.
+- Document truthfully that the current version never sets `IntentError.partialResult` and never produces `PROCESSING_INCOMPLETE`. The type field is retained; public types are unchanged.
+- Generate and verify the Chinese MCP host order and clarification examples from the same scenarios as English, and align the Chinese description.
+- Queue rather than cancel an in-progress documentation deployment so a release deployment always completes.
+- Use 1200×630 PNG Open Graph images rendered from the existing SVG cards.
+- Make the host lease-release acceptance test cancel with valid arguments and assert the result under a single admission slot.
+
 ## 2.0.2
 
 - Apply the semantic evidence gate to descriptions inside schema-valued dependencies, including local references and nested instances. Preserve known inactive dependencies, conservative unknown presence, and present values such as `false`, `0` and `null`. Use the same applicability knowledge for selected values and unselected field diagnoses.

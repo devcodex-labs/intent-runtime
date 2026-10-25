@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Intent, type IntentResult } from '../src/index.js';
 import { createIntentMcpAdapter, type HostTask, type IntentMcpSession, type IntentMcpToolResult } from '../src/mcp/index.js';
-import { draft, observation, controlled } from './helpers.js';
+import { draft, observation, controlled, src } from './helpers.js';
 import { ContractValidator } from '../src/internal/contracts.js';
 
 const payload = <T>(r: IntentMcpToolResult | undefined): T => {assert(r); assert.equal(r.isError, false, r.content[0]?.text); assert.deepEqual(r.structuredContent, JSON.parse(r.content[0]!.text)); return r.structuredContent as unknown as T;};
@@ -40,6 +40,19 @@ test('Host correction preserves token, materials, capacity and does not call an 
     assert.equal(errorCode(await s.callTool('intent_runtime_accept', submit(task, '{'))), 'MODEL_OUTPUT_INVALID');
     const result = payload<IntentResult>(await s.callTool('intent_runtime_accept', submit(task))); assert.equal(result.input, 'query order 000123');
     const next = await prepare(s); assert.notEqual(next.requestId, task.requestId);
+  } finally {await a.close(); await intent.dispose();}
+});
+
+test('Host keeps the request correctable when a withdrawn prior intent is listed in relatedKeys', async () => {
+  const intent = new Intent({limits: {maxConcurrentParses: 1}}), a = createIntentMcpAdapter({mode: 'host', instances: {main: intent}}), s = a.connect({protocolVersion: '2025-11-25'});
+  try {
+    const first = payload<IntentResult>(await s.callTool('intent_runtime_accept', submit(await prepare(s))));
+    const task = await prepare(s, {input: 'cancel that order query', baseline: first.effective});
+    const d = draft(['old']); d.kind = 'withdrawal'; d.usedHistory = true; d.nodes = [];
+    d.priorTargets = [{kind: 'intent', key: 'old', priorRef: {root: 'baseline', pointer: '/intents/0'}}];
+    d.changes = [{operation: 'withdraw', effect: 'applied', targetKind: 'intent', targetKey: 'old', conditionKey: null, description: 'Withdraw the prior intent', sources: [src], deltaHints: []}];
+    assert.equal(errorCode(await s.callTool('intent_runtime_accept', submit(task, JSON.stringify(d)))), 'MODEL_OUTPUT_INVALID');
+    d.relatedKeys = []; const fixed = payload<IntentResult>(await s.callTool('intent_runtime_accept', submit(task, JSON.stringify(d)))); assert.equal(fixed.effective.intents.length, 0);
   } finally {await a.close(); await intent.dispose();}
 });
 

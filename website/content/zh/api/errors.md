@@ -63,7 +63,7 @@
 | HOST_REQUEST_NOT_FOUND | session是否关闭、进程是否重启、终态记录是否回收 | 用完整材料重新prepare，再用新requestId/token提交候选 |
 | HOST_SUBMISSION_CONFLICT | 是否混用请求、token或同一请求的不同候选 | 保持原交接身份；需要新识别时重新prepare，不覆盖另一次提交 |
 | REQUEST_ABORTED / MODEL_TIMEOUT | 调用方signal或显式timeoutMs | 保留上次状态；需要继续时发起新识别，默认timeoutMs=0无需增加期限 |
-| INSTANCE_DISPOSED / INTERNAL_PROCESSING_FAILED | 实例是否释放；code/stage与部署版本 | 已释放则新建实例；内部失败保留安全摘要并反馈，不把partialResult直接当成功 |
+| INSTANCE_DISPOSED / INTERNAL_PROCESSING_FAILED | 实例是否释放；code/stage与部署版本 | 已释放则新建实例；内部失败保留安全摘要并反馈（当前版本不返回partialResult） |
 
 这些恢复动作属于调用方流程，不会由Runtime自动执行。host的格式纠正仅针对明确反馈；与知识缺失、字段unknown或业务授权分开。
 
@@ -83,4 +83,4 @@ async function parseWithErrorSummary(intent, request, signal) {
 
 应用保存此前结果与原始消息；失败不会替应用清空状态。技术重试由调用方显式决定。新旧请求乱序由应用 revision 控制。字段未知不触发模型自动补事实。
 
-上例是调用方辅助函数，不是SDK新增方法；Intent生命周期仍由调用方管理。PROCESSING_INCOMPLETE仅出现在技术失败已核实的partialResult中，不表示一份被截断的文本可当作正常结果。默认toJSON不附partialResult，完整结果可能含原始材料；明确需要时再用serialize选项，见[IntentError](/zh/api/intent#intenterror)。
+上例是调用方辅助函数，不是SDK新增方法；Intent生命周期仍由调用方管理。当前版本不会产生PROCESSING_INCOMPLETE，IntentError也不设置partialResult；被截断的文本不能当作正常结果。默认toJSON不附partialResult，完整结果可能含原始材料；明确需要时再用serialize选项，见[IntentError](/zh/api/intent#intenterror)。

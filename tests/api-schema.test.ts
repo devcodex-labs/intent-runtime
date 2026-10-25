@@ -5,7 +5,7 @@ import { createApiExecutor } from '../src/adapters/api.js';
 import { CANDIDATE_SCHEMA } from '../src/contracts/generated.js';
 import { Intent, IntentError, type ModelRequest } from '../src/index.js';
 import { ContractValidator } from '../src/internal/contracts.js';
-import { draft } from './helpers.js';
+import { draft, src } from './helpers.js';
 
 const source = {type: 'object', properties: {root: {type: 'string', enum: ['input', 'context']}, pointer: {type: 'string'}, quote: {type: 'string'}}, required: ['root', 'pointer'], additionalProperties: false};
 const object = (properties: Record<string, object>) => ({type: 'object', properties, required: Object.keys(properties), additionalProperties: false});
@@ -280,6 +280,24 @@ for (const [name, mutate, expected] of [
   const intent = new Intent({schema: {type: 'object', properties: {recordId: {type: 'string'}}}, executor: {id: 'canonical-negative', async generate() {return {outcome: 'complete', text: JSON.stringify(d)};}}});
   try {await assert.rejects(intent.parse({input: 'Show record A12 without deleting it', fields: ['recordId']}), (e: unknown) => invalid('MODEL_OUTPUT_INVALID')(e) && (e as IntentError).details?.violations?.[0]?.path === expected);}
   finally {await intent.dispose();}
+});
+
+const withdrawnRelated = (): ReturnType<typeof draft> => {
+  const d = draft(['old']);d.kind = 'withdrawal';d.usedHistory = true;d.nodes = [];
+  d.priorTargets = [{kind: 'intent', key: 'old', priorRef: {root: 'baseline', pointer: '/intents/0'}}];
+  d.changes = [{operation: 'withdraw', effect: 'applied', targetKind: 'intent', targetKey: 'old', conditionKey: null, description: 'Withdraw the prior intent', sources: [src], deltaHints: []}];
+  return d;
+};
+test('canonical core rejects a withdrawn prior intent listed in relatedKeys as correctable model output', async () => {
+  let d = draft(['a']);
+  const intent = new Intent({executor: {id: 'withdrawn-related-key', async generate() {return {outcome: 'complete', text: JSON.stringify(d)};}}});
+  try {
+    const first = await intent.parse({input: 'Show record'});
+    d = withdrawnRelated();
+    await assert.rejects(intent.parse({input: 'Cancel that', baseline: first.effective}), (e: unknown) => invalid('MODEL_OUTPUT_INVALID')(e) && (e as IntentError).details?.violations?.[0]?.path === '/relatedKeys/0' && (e as IntentError).details?.violations?.[0]?.rule === 'REFERENCE_NOT_FOUND');
+    d.relatedKeys = [];
+    const fixed = await intent.parse({input: 'Cancel that', baseline: first.effective});assert.equal(fixed.effective.intents.length, 0);
+  } finally {await intent.dispose();}
 });
 
 test('canonical existing-object add diagnoses the operation rather than a missing aggregate change', async () => {

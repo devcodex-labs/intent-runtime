@@ -2,14 +2,14 @@
   "config": {
     "mode": "host",
     "instances": {
-      "target": {
+      "main": {
         "language": "zh-CN",
         "schema": {
           "type": "object",
           "properties": {
             "orderId": {
               "type": "string",
-              "pattern": "^0[0-9]+$"
+              "pattern": "^[0-9]+$"
             }
           }
         }
@@ -17,11 +17,7 @@
     }
   },
   "request": {
-    "input": "查询订单000741，不要把编号转成数字。",
-    "output": {
-      "evidence": true,
-      "diagnostics": true
-    },
+    "input": "查询订单000123，不要取消订单",
     "fields": [
       "orderId"
     ]

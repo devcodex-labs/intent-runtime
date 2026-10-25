@@ -124,7 +124,7 @@ export default defineConfig({
     route => ["meta", {property: "og:locale", content: route.lang === "zh" ? "zh_CN" : "en_US"}],
     route => ["meta", {property: "og:title", content: route.lang === "zh" ? "intent-runtime · 中文文档" : "intent-runtime · Documentation"}],
     route => ["meta", {property: "og:description", content: route.lang === "zh" ? "识别当前请求、保留约束并按 Schema 提取业务字段。" : "Goals, constraints and changes in one structured result for your application."}],
-    route => ["meta", {property: "og:image", content: `${siteUrl}/og-card${route.lang === "zh" ? "-zh" : ""}.svg`}],
+    route => ["meta", {property: "og:image", content: `${siteUrl}/og-card${route.lang === "zh" ? "-zh" : ""}.png`}],
     ["meta", { name: "twitter:card", content: "summary_large_image" }],
   ],
   themeConfig: {

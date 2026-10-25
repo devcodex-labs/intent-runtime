@@ -50,9 +50,10 @@ test('SC-26 default final Result measures inherited material at the real output 
 });
 
 test('SC-26 actual HostTask admits the default output size and releases the failed next-byte lease', async () => {
-  const intent = new Intent({}), adapter = createIntentMcpAdapter({mode: 'host', instances: {main: intent}}), session = adapter.connect({protocolVersion: '2025-11-25'});
+  // One admission slot makes every following prepare depend on the previous lease being released.
+  const intent = new Intent({limits: {maxConcurrentParses: 1}}), adapter = createIntentMcpAdapter({mode: 'host', instances: {main: intent}}), session = adapter.connect({protocolVersion: '2025-11-25'});
   const prepare = (padding: string) => session.callTool('intent_runtime_prepare', {input: 'query A', context: {padding}});
-  const cancel = (task: HostTask) => session.callTool('intent_runtime_cancel', {requestId: task.requestId, submissionToken: task.submissionToken});
+  const cancel = async (task: HostTask) => {const r = await session.callTool('intent_runtime_cancel', {requestId: task.requestId}); assert.equal(r!.isError, false, r!.content[0]?.text); assert.deepEqual(r!.structuredContent, {requestId: task.requestId, status: 'cancelled'});};
   try {
     const sample = await prepare(''); assert.equal(sample!.isError, false);
     const task = sample!.structuredContent as unknown as HostTask; await cancel(task);

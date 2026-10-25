@@ -7,7 +7,7 @@ The root exports Intent, IntentError, readonly INTENT_RESULT_SCHEMA, and public 
 | Initialization and trusted configuration | [Intent](#intent), [Configuration](/guide/configuration) | Synchronous construction error |
 | Input, context, baseline, fields, cancellation | [parse parameters](#parse-parameters) | Promise rejection; normal issues do not reject |
 | Shutdown and subsequent calls | [Intent](#intent) | Idempotent disposal; parsing after disposal rejects |
-| Error serialization | [IntentError](#intenterror) | Safe summary by default; optional existing partialResult |
+| Error serialization | [IntentError](#intenterror) | Safe summary by default; the current version never sets partialResult |
 | Your own model | [ModelExecutor](#modelexecutor) | Candidate generation, not the final result |
 
 ## Intent
@@ -55,9 +55,9 @@ class IntentError extends Error {
 }
 ```
 
-code selects a generic English message; unknown codes throw TypeError. Options can specify stage/details/cause. toJSON equals default serialize. serialize({includePartialResult:true}) includes a partialResult only if it exists. cause is non-enumerable and excluded from the standard summary.
+code selects a generic English message; unknown codes throw TypeError. Options can specify stage/details/cause. toJSON equals default serialize. serialize({includePartialResult:true}) includes a partialResult only if it exists; the current version never sets partialResult on IntentError, so this option currently adds nothing. cause is non-enumerable and excluded from the standard summary.
 
-Not every error has a partialResult. It may contain original material and is not an ordinary successful result. MCP technical errors omit partialResult. diagnostics does not authorize logging every raw error. See [Errors and recovery](/api/errors).
+The current version never returns partialResult: the field is kept only for type compatibility and no error carries it. If a future version sets it, it may contain original material and is not an ordinary successful result. MCP technical errors omit partialResult. diagnostics does not authorize logging every raw error. See [Errors and recovery](/api/errors).
 
 ## INTENT_RESULT_SCHEMA
 

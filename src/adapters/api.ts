@@ -106,9 +106,12 @@ export function createApiExecutor(config: ApiExecutorConfig): ModelExecutor {
 
 function localAddress(host: string): boolean {
   if (host === 'localhost' || host === '[::1]' || host.endsWith('.localhost')) return true;
-  if (/^\[f[cd][0-9a-f]{2}:/.test(host) || /^\[fe[89ab][0-9a-f]:/.test(host)) return true;
+  // Plaintext is limited to loopback and private networks, symmetric across IPv4/IPv6:
+  // IPv6 unique-local fc00::/7 and IPv4-mapped loopback (URL-normalised ::ffff:7fxx:xxxx).
+  // Link-local (169.254/16, fe80::/10) stays rejected because it hosts cloud metadata services.
+  if (/^\[f[cd][0-9a-f]{2}:/.test(host) || /^\[::ffff:7f[0-9a-f]{2}:[0-9a-f]{1,4}\]$/.test(host)) return true;
   const parts = host.split('.').map(Number);
-  return parts.length === 4 && parts.every(n => Number.isInteger(n) && n >= 0 && n <= 255) && (parts[0] === 127 || parts[0] === 10 || parts[0] === 192 && parts[1] === 168 || parts[0] === 172 && parts[1]! >= 16 && parts[1]! <= 31);
+  return parts.length === 4 && parts.every(n => Number.isInteger(n) && n >= 0 && n <= 255) && (parts[0] === 127 || parts[0] === 10 || parts[0] === 192 && parts[1] === 168 || parts[0] === 172 && parts[1]! >= 16 && parts[1]! <= 31 || parts[0] === 100 && parts[1]! >= 64 && parts[1]! <= 127);
 }
 function responseReply(value: unknown): ModelReply {
   const failed = (): never => {throw new IntentError('MODEL_REQUEST_FAILED');};

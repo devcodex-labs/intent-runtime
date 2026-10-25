@@ -67,7 +67,7 @@ Ambiguity, missing fields, and invalid values are usually normal interpretation 
 | HOST_REQUEST_NOT_FOUND | Closed session, restart, reclaimed terminal record | Prepare again with complete material and use new requestId/token |
 | HOST_SUBMISSION_CONFLICT | Mixed identities/tokens or different candidates | Keep the original handoff identity; prepare a new request instead of overwriting another submission |
 | REQUEST_ABORTED / MODEL_TIMEOUT | Caller signal or explicit timeoutMs | Preserve previous state; a new recognition is explicit; default timeoutMs=0 adds no deadline |
-| INSTANCE_DISPOSED / INTERNAL_PROCESSING_FAILED | Instance lifetime, code/stage, deployment version | Recreate disposed instances; retain a safe failure summary; do not treat partialResult as success |
+| INSTANCE_DISPOSED / INTERNAL_PROCESSING_FAILED | Instance lifetime, code/stage, deployment version | Recreate disposed instances; retain a safe failure summary (the current version returns no partialResult) |
 
 Runtime does not perform these recovery actions for you. Host format correction is based on explicit feedback; missing knowledge, unknown fields, and business authorization are separate.
 
@@ -87,4 +87,4 @@ Serialization includes name/code/message/stage and safe details; cause is non-en
 
 Preserve prior results and original messages. Failure does not clear application state. The caller decides technical retry and handles out-of-order requests with its own revision. Unknown fields do not trigger automatic fact generation.
 
-This is a caller helper, not an SDK method; the caller owns Intent lifetime. PROCESSING_INCOMPLETE appears only in an established technical failure's partialResult; truncated text is not a normal result. toJSON omits partialResult by default, since complete results can contain original material. Use serialize options explicitly when needed; see [IntentError](/api/intent#intenterror).
+This is a caller helper, not an SDK method; the caller owns Intent lifetime. The current version never produces PROCESSING_INCOMPLETE and never sets partialResult on IntentError; truncated text is not a normal result. toJSON omits partialResult by default, since complete results can contain original material. Use serialize options explicitly when needed; see [IntentError](/api/intent#intenterror).

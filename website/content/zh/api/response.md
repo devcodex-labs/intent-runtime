@@ -667,7 +667,7 @@ JSON Pointer：空串指根，`/meta/` 指空属性名，`~0` 表示波浪号，
 
 <a href="/intent-runtime/examples/executor-request.json" download target="_blank" rel="noopener noreferrer">executor 标准请求</a> · <a href="/intent-runtime/examples/executor-result.json" download target="_blank" rel="noopener noreferrer">executor 完整工具回复</a>
 
-下面保留两组 Host 示例。文件中的 config 是独立 MCP 配置，request 是 prepare 参数；启用了 evidence 与 diagnostics，因此与上面的默认 Native 示例不同。耗时是该次样例记录，不是时延承诺。
+下面是两组 Host 示例。文件中的 config 是独立 MCP 配置，request 是 prepare 参数；它们与对应结构场景使用相同的默认输出策略。任何耗时都不是时延承诺。
 
 <a href="/intent-runtime/examples/order-request.json" download target="_blank" rel="noopener noreferrer">Host 订单配置与请求</a> · <a href="/intent-runtime/examples/order-result.json" download target="_blank" rel="noopener noreferrer">Host 订单完整结果</a>
 

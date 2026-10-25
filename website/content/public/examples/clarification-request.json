@@ -2,16 +2,12 @@
   "config": {
     "mode": "host",
     "instances": {
-      "target": {
+      "main": {
         "language": "zh-CN"
       }
     }
   },
   "request": {
-    "input": "采用第三个提案，提案列表未提供；不要修改配置。",
-    "output": {
-      "evidence": true,
-      "diagnostics": true
-    }
+    "input": "采用第三个方案，但方案列表未提供；先不修改代码"
   }
 }

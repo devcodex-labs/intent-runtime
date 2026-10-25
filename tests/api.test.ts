@@ -165,6 +165,17 @@ test('SC-31 cancellation at EOF cannot publish a previously buffered valid API r
   } finally {globalThis.fetch = originalFetch;}
 });
 
+for (const [baseURL, allowed] of [
+  ['http://127.0.0.1:8080/v1', true], ['http://localhost/v1', true], ['http://models.localhost/v1', true], ['http://[::1]/v1', true], ['http://[::ffff:127.0.0.1]/v1', true],
+  ['http://10.0.0.1/v1', true], ['http://172.16.0.1/v1', true], ['http://172.31.255.255/v1', true], ['http://192.168.1.1/v1', true], ['http://[fc00::1]/v1', true], ['http://[fd12:3456::1]/v1', true],
+  ['http://100.64.0.1/v1', true], ['http://100.127.255.255/v1', true],
+  ['http://169.254.1.1/v1', false], ['http://169.254.169.254/v1', false], ['http://[fe80::1]/v1', false], ['http://[febf::1]/v1', false], ['http://100.63.255.255/v1', false], ['http://100.128.0.1/v1', false],
+  ['http://172.32.0.1/v1', false], ['http://8.8.8.8/v1', false], ['http://[2001:db8::1]/v1', false], ['http://[::ffff:8.8.8.8]/v1', false], ['http://api.example.com/v1', false],
+] as Array<[string, boolean]>) test('Plaintext baseURL ' + baseURL + (allowed ? ' is accepted as local/private' : ' is rejected'), () => {
+  const create = () => createApiExecutor({provider: 'openai', model: 'test', apiKey: 'test', baseURL});
+  if (allowed) assert.equal(typeof create().generate, 'function'); else assert.throws(create, {code: 'CONFIG_INVALID'});
+});
+
 for (const config of [{provider: 'unknown'}, {baseURL: 'http://api.example.com'}, {baseURL: 'https://user:password@example.com'}, {baseURL: 'https://example.com?q=1'}, {maxResponseBytes: 0}, {format: 'fallback'}]) test('Responses rejects unsafe or unknown configuration ' + JSON.stringify(config), () => {
   assert.throws(() => createApiExecutor({provider: 'openai', model: 'test', apiKey: 'test', ...config} as any), {code: 'CONFIG_INVALID'});
 });

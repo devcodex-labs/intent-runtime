@@ -66,7 +66,7 @@ The projection preserves required fields and rejects unsupported Schema shapes b
 | protocol | responses or chat-completions / no | responses | Selects endpoint and request/reply structure; no autodetection |
 | model | nonempty string / yes | none | Provider-supported model name |
 | apiKey | nonempty string / yes | none | Excluded from model material and diagnostics |
-| baseURL | string / no | OpenAI: https://api.openai.com/v1; xAI: https://api.x.ai/v1 | Absolute HTTP(S) API root; no credentials/query/fragment; plaintext only for local/private addresses |
+| baseURL | string / no | OpenAI: https://api.openai.com/v1; xAI: https://api.x.ai/v1 | Absolute HTTP(S) API root; no credentials/query/fragment; plaintext http only for localhost/`*.localhost`, loopback (127.0.0.0/8, ::1, IPv4-mapped ::ffff:127.0.0.0/104), private (10/8, 172.16/12, 192.168/16, fc00::/7) and shared CGNAT 100.64/10 addresses; link-local 169.254/16 and fe80::/10 are rejected |
 | maxOutputTokens | positive safe integer / no | 8192 | Generation limit |
 | maxResponseBytes | positive safe integer / no | 8388608 | Visible HTTP response-body bytes; separate from candidate limits |
 | format | json_schema or text / no | json_schema | Explicit choice without automatic fallback |
