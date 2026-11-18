@@ -56,6 +56,8 @@ For provider='openai' and format='json_schema', both protocols send strict=true 
 
 The projection preserves required fields and rejects unsupported Schema shapes before any request with CONFIG_INVALID. Its private generation contract also constrains object identity, reference kinds and change states; the core still checks actual membership and semantic consistency. Registered SourceRef.quote fields are required on the wire. Current-input sources require the whole-input pointer and quote:null, restored to an omitted optional quote; this API path does not generate local input quotations. For other sources, null means omission, while an exact empty string or the string "null" remains a string. The reply is checked before this mapping; business nulls and JSON-encoded values are preserved. Duplicate JSON keys, missing fields, and unknown fields are rejected, without automatic repair. The unchanged core then checks sources, semantics, business rules, and the final result. Strict structure does not guarantee correct understanding. MCP host and custom executors retain their original source-quotation contract.
 
+When a request has no declared or inherited business fields, the built-in OpenAI adapter can preserve a new, input-sourced constraint as text if its optional structured expression cannot be validated. Grounded expressions are retained. The constraint and its sources still undergo core validation.
+
 <span id="模型参数" aria-hidden="true"></span>
 
 ## Model parameters

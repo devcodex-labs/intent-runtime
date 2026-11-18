@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.4
+
+- Scope the OpenAI strict-output format to the supplied materials. When there are no declared or inherited business fields, prevent invented field observations and keep evidence on the actual result objects.
+- Preserve new, input-sourced constraints as text when their optional structured expression cannot be validated in that scope. Keep grounded expressions and continue checking the full candidate, including its sources.
+- Skip reference resolution for disabled advisory suggestions. Requests that enable suggestions still validate their references.
+
 ## 2.0.3
 
 - Reject a withdrawn or otherwise non-current intent key in `relatedKeys` as `MODEL_OUTPUT_INVALID` at `/relatedKeys/<n>` (`REFERENCE_NOT_FOUND`) instead of failing with `INTERNAL_PROCESSING_FAILED`. MCP host requests stay open for a corrected submission. Add shared-core and MCP host regressions.

@@ -32,6 +32,62 @@ test('Actual private issue variants retain nullable-quote registration and opaqu
   } finally {codec.close();}
 });
 
+test('Intent-only scoped wire excludes invented fields and disabled suggestions without blocking prior field amendments', () => {
+  const input = {request: {context: {target: 'stock', flag: true}, output: {suggestions: false}}};
+  const value = wireDiagnostic(); value.issues = [];
+  const codec = compileOpenAiOutput(CANDIDATE_SCHEMA, input);
+  try {
+    assert.throws(() => codec.decode(JSON.stringify(value)), invalid('MODEL_OUTPUT_INVALID'));
+    value.observations = [];
+    value.suggestions = [{kind: 'clarification', text: 'Clarify', relatesTo: ['missing']}];
+    assert.throws(() => codec.decode(JSON.stringify(value)), invalid('MODEL_OUTPUT_INVALID'));
+    value.suggestions = [];
+    value.evidence = [{target: {kind:'intent', key:'n1', path:'/inputs/emergency'}, sources: [{root:'input', pointer:'', quote:null}]}];
+    assert.throws(() => codec.decode(JSON.stringify(value)), invalid('MODEL_OUTPUT_INVALID'));
+    value.evidence[0].target.path = '';
+    const decoded = JSON.parse(codec.decode(JSON.stringify(value)));
+    assert.deepEqual(decoded.observations, []);
+    assert.equal(decoded.evidence[0].target.path, '');
+  } finally {codec.close();}
+  const prior = compileOpenAiOutput(CANDIDATE_SCHEMA, {request: {
+    baseline: {intents: [{inputs: {recordId: 'A12'}}]}, output: {suggestions: true},
+  }});
+  try {
+    const amended = wireDiagnostic(); amended.issues = [];
+    amended.suggestions = [{kind: 'clarification', text: 'Clarify', relatesTo: ['intent:n1']}];
+    assert.equal(JSON.parse(prior.decode(JSON.stringify(amended))).observations[0].field, 'recordId');
+    assert.equal(JSON.parse(prior.decode(JSON.stringify(amended))).suggestions[0].relatesTo[0], 'intent:n1');
+  } finally {prior.close();}
+});
+
+test('Scoped wire retains an input-sourced rule when its optional operand is ungrounded', async () => {
+  const value = wireDiagnostic(); value.issues = []; value.observations = [];
+  value.constraints[0].text = 'If the runtime flag is true, take the manual route only.';
+  const comparison = (left: object) => JSON.stringify({type: 'comparison', left, operator: 'eq', right: {type: 'literal', value: true}});
+  const invented = comparison({type: 'input', intentId: 'n1', path: '/runtimeFlag'});
+  const grounded = comparison({type: 'source', ref: {root: 'context', pointer: '/recordedFlag'}});
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({status: 'completed', output: [{type: 'message', role: 'assistant',
+    content: [{type: 'output_text', text: JSON.stringify(value)}]}]}));
+  const intent = new Intent({executor: createApiExecutor({provider: 'openai', model: 'controlled-fixture', apiKey: 'synthetic'})});
+  const input = {input: value.constraints[0].text, context: {recordedFlag: true}};
+  try {
+    for (const expressionJson of [invented, '{"unsupported":true}']) {
+      value.constraints[0].expressionJson = expressionJson;
+      const [constraint] = (await intent.parse(input)).effective.intents[0]!.constraints;
+      assert.equal(constraint!.text, input.input);
+      assert.equal(constraint!.expression, undefined);
+    }
+    value.constraints[0].expressionJson = grounded;
+    value.usedHistory = true;
+    const result = await intent.parse(input);
+    assert.deepEqual(result.effective.intents[0]!.constraints[0]!.expression, JSON.parse(grounded));
+    value.constraints[0].expressionJson = invented;
+    value.constraints[0].sources = [{root: 'context', pointer: '/recordedFlag', quote: null}];
+    await assert.rejects(intent.parse(input), invalid('MODEL_OUTPUT_INVALID'));
+  } finally {globalThis.fetch = originalFetch; await intent.dispose();}
+});
+
 for (const bad of ['category', 'code', 'missing-target']) test('Private issue branch rejects correlated field error: ' + bad, () => {
   const value = wireDiagnostic();
   if (bad === 'category') value.issues[0].category = 'conflict';

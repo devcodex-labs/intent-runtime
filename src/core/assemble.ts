@@ -262,8 +262,8 @@ export function assemble(draft: CandidateDraft, materials: Record<string, unknow
     if (candidates.size !== 1) violation('/suggestions', 'REFERENCE_NOT_FOUND');
     return [...candidates][0]!;
   };
-  const suggestions = draft.suggestions.map(suggestion => ({...suggestion, relatesTo: suggestion.relatesTo.map(suggestionIdentity)}));
-  if (flags.suggestions) result.suggestions = suggestions;
+  if (flags.suggestions) result.suggestions = draft.suggestions.map(suggestion =>
+    ({...suggestion, relatesTo: suggestion.relatesTo.map(suggestionIdentity)}));
   const semantic = result.issues.filter(q => q.category !== 'data');
   const currentProblems = semantic.filter(q => q.code !== 'CONTEXT_INCOMPLETE');
   if (draft.kind === 'unclear' || currentProblems.length || draft.changes.some(c => c.effect === 'unresolved') || draft.relatedKeys.some(k => nodes.get(k)!.understanding !== 'clear')) result.status = 'partial';

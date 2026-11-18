@@ -1,7 +1,7 @@
 import type { ModelExecutor, ModelReply, ModelRequest } from '../contracts/public.js';
 import { IntentError } from '../contracts/errors.js';
 import { plain, cloneJson } from '../internal/json.js';
-import { compileOpenAiOutput, OPENAI_WIRE_INSTRUCTIONS, type OpenAiOutput } from './openai-schema.js';
+import { compileOpenAiOutput, type OpenAiOutput } from './openai-schema.js';
 
 export type ApiExecutorConfig = {
   provider: 'openai' | 'xai'; model: string; apiKey: string; baseURL?: string;
@@ -40,8 +40,8 @@ export function createApiExecutor(config: ApiExecutorConfig): ModelExecutor {
     let output: OpenAiOutput | undefined;
     try {
       if (request.signal.aborted) throw new IntentError('REQUEST_ABORTED');
-      if (provider === 'openai' && format === 'json_schema') output = compileOpenAiOutput(request.outputSchema);
-      const instructions = request.instructions + (output ? OPENAI_WIRE_INSTRUCTIONS : '');
+      if (provider === 'openai' && format === 'json_schema') output = compileOpenAiOutput(request.outputSchema, request.input);
+      const instructions = request.instructions + (output?.instructions ?? '');
       const schema = output?.schema ?? request.outputSchema;
       const response = await fetch(url, {method: 'POST', redirect: 'error', signal: owner.signal,
         headers: {'content-type': 'application/json', authorization: 'Bearer ' + apiKey},

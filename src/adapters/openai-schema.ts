@@ -2,10 +2,13 @@ import { IntentError, fail, violation } from '../contracts/errors.js';
 import { ContractValidator } from '../internal/contracts.js';
 import { decodeJson, plain, snapshot } from '../internal/json.js';
 import { escapeToken, resolve } from '../internal/pointer.js';
+import type { CandidateDraft } from '../model/candidate.js';
+import { checkExpressions } from '../schema/expressions.js';
 
 type Schema = Record<string, unknown>;
 export interface OpenAiOutput {
   schema: object;
+  instructions: string;
   decode(text: string): string;
   close(): void;
 }
@@ -42,6 +45,7 @@ Every messages slot MUST contain a nonempty generic explanation in the configure
 Retain the core ownership and change invariants: observations belong to the actual node key; every new node needs an applied add change targeting that same key with an input source. Preserve explicit prohibitions as constraints. When a selected scalar field belongs separately to distinct user targets, keep their nodes and observations separate; never substitute an array for a declared scalar value.
 Use n1/n2 for NEW nodes with priorRef=null, p1/p2 for EXISTING nodes with nonnull priorRef. Constraints use c1/pc1 and relations r1/pr1 for new/existing objects. An existing node's current modification uses modify, never add; unchanged confirmation, rejection and actual withdrawal retain their own operations. In a baseline amendment preserve identity with priorRef={"root":"baseline","pointer":"/intents/0","quote":null}; never copy long baseline IDs into keys. observations.ownerKey is the exact current n/p node key for inputs/extensions, never null. Inherit unchanged baseline values through the core, rather than resubmitting them as new observations.
 relatedKeys contains ONLY active CURRENT node keys that occur in nodes, for example ["n1"]. It NEVER contains constraint/reference/relation keys such as c1. A constraint may have its own add change without appearing in relatedKeys.
+Suggestions are optional advice. When enabled, relatesTo contains only explicit intent:<key> or issue:<key> references to entries in this response. Never use a public UUID, a retired key, a constraint key, or a hypothetical issue. If there is no resolvable target, omit the suggestion.
 Do NOT also list a node's priorRef in priorTargets: priorTargets is only for prior objects NOT represented in the current node/constraint/relation arrays. A retained current node with priorRef needs no priorTargets entry. Each observation tuple (ownerKey, container, field) occurs at most once. The core owns formal type/range/condition/required/dependency checks and inherited invalidation; do not duplicate these as issues or copy obsolete issues into a corrected turn. Keep genuine scalar cardinality, uncertain applicability and prose-rule field diagnostics. Field issues use category=data, a nonnull fieldTarget and one of the six allowed FIELD_* codes; semantic ambiguities/conflicts use fieldTarget=null. A fieldTarget.path is a business pointer such as /discount, never /inputs/discount.
 deltaHints use a DIFFERENT coordinate system: a complete target snapshot. An intent's input field is /inputs/fieldName, not /fieldName; a goal is /goal, and reference removal may be /references/0. Hints are optional actual snapshot changes, not placeholders. A resolved change must name a real object; do not add a constraint change saying "none" with a null or invented target.
 Formal invalidation of an inherited value is not an unconfirmed inference or an intent conflict. Report the explicit current value and let the core invalidate the old dependent value. Never target an inputs/extensions container or any descendant with an inference, including through a parent children path and including values the core removes. A real semantic assumption may target /target or /goal on the actual node, a valid nested semantic slot, or the fact root. Field evidence and real deltaHints use their own existing location rules. Preserve actual user-stated contradictions, unconfirmed objects and their genuine issues instead of suppressing all issues/inferences.
@@ -53,8 +57,27 @@ NON-FACTUAL AMENDMENT EXAMPLE: suppose a supplied delivery baseline has recordId
 ${JSON.stringify(protocolAmendExample)}
 The example's record, identifier, field and language are NOT facts about the actual request. Use only the actual input/materials, declared fields and configured language. Empty arrays are appropriate when no references, evidence or suggestions are needed; do not invent them just to fill the structure.`;
 
+/** Prior field bags may still need invalidation even without a current schema. */
+function hasPriorFieldBags(context: unknown, baseline: unknown): boolean {
+  const pending: unknown[] = [context, baseline];
+  const seen = new WeakSet<object>();
+  let inspected = 0;
+  while (pending.length) {
+    const entry = pending.pop();
+    if (!entry || typeof entry !== 'object' || seen.has(entry)) continue;
+    seen.add(entry);
+    if (++inspected > 4096) return true;
+    if (plain(entry) && ['inputs', 'facts', 'extensions'].some(key => {
+      const bag = entry[key];
+      return plain(bag) && Object.keys(bag).length > 0;
+    })) return true;
+    for (const value of Object.values(entry)) if (value && typeof value === 'object') pending.push(value);
+  }
+  return false;
+}
+
 /** Compile the bounded candidate dialect without changing the shared core contract. */
-export function compileOpenAiOutput(input: object): OpenAiOutput {
+export function compileOpenAiOutput(input: object, materials?: object): OpenAiOutput {
   const invalid = (path: string): never => fail('CONFIG_INVALID', 'config', '/outputSchema' + path);
   let original: Schema;
   try {original = snapshot(input, {maxBytes: 1048576, maxDepth: 64, limit: 'outputSchema', stage: 'config', invalid: 'CONFIG_INVALID'}) as Schema;}
@@ -146,6 +169,8 @@ export function compileOpenAiOutput(input: object): OpenAiOutput {
   // Schema-local guidance keeps the model protocol next to the generated fields.
   // Provider-only refinements never change the shared candidate contract.
   const isCandidate = plain(original.properties) && plain(original.properties.version) && original.properties.version.const === 'candidate-2' && ['nodes', 'constraints', 'relations', 'changes', 'observations', 'relatedKeys', 'priorTargets', 'inferences', 'evidence', 'issues', 'references'].every(k => Object.hasOwn(original.properties as object, k));
+  const scope: string[] = [];
+  let expressionMaterials: Record<string, unknown> | undefined;
   if (isCandidate) {
     const explain = (properties: Record<string, Schema>, key: string, description: string): void => {if (properties[key]) properties[key]!.description = description;};
     function describe(node: Schema): void {
@@ -178,7 +203,23 @@ export function compileOpenAiOutput(input: object): OpenAiOutput {
       for (const value of Object.values(node)) if (Array.isArray(value)) {for (const child of value) if (plain(child)) describe(child);} else if (plain(value)) describe(value);
     }
     describe(schema);
-    refineCandidate(schema, nullableQuotes, dereference);
+    const request = plain(materials) && plain(materials.request) ? materials.request : undefined;
+    const intentOnly = !!request && !Object.hasOwn(materials!, 'schema') && !Object.hasOwn(materials!, 'extensionSchema') &&
+      !hasPriorFieldBags(request.context, request.baseline);
+    refineCandidate(schema, nullableQuotes, dereference, intentOnly);
+    if (request) {
+      const root = schema.properties as Record<string, Schema>;
+      if (intentOnly) {
+        root.observations!.maxItems = 0;
+        root.observations!.description = 'No declared schema or inherited business fields exist in this request. Return [].';
+        expressionMaterials = {...materials, ...request};
+        scope.push('This request is intent-only. Return observations=[]. Cite evidence on existing intent, constraint, relation or fact roots with target.path="". Keep the full requirement in constraint.text. Use expressionJson=null for future workflow flags, thresholds and approvals unless an actual supplied material contains the operand. Do not use input operands without declared or inherited inputs.');
+      }
+      if (plain(request.output) && request.output.suggestions === false && root.suggestions) {
+        root.suggestions.maxItems = 0;
+        scope.push('Advisory suggestions were disabled for this request. Return suggestions=[]. Preserve real ambiguities in issues.');
+      }
+    }
   }
   // Count the serialized derived schema as well, including duplicated variants.
   propertyCount = enumCount = stringCount = 0;
@@ -218,16 +259,32 @@ export function compileOpenAiOutput(input: object): OpenAiOutput {
       for (const [key, child] of Object.entries(node.properties as Schema)) if (Object.hasOwn(object, key)) normalize(child as Schema, object[key]);
     } else if (node.type === 'array') for (const item of value as unknown[]) normalize(node.items as Schema, item);
   }
-  return {schema, decode(text) {
+  return {schema, instructions: [OPENAI_WIRE_INSTRUCTIONS, ...scope].join('\n'), decode(text) {
     let value: unknown;
     try {value = decodeJson(text, maxDepth);} catch (cause) {if (cause instanceof IntentError) throw cause; if (cause instanceof SyntaxError) return violation(); throw cause;}
     validator.candidate(schema, value); normalize(schema, value);
+    if (expressionMaterials) {
+      const draft = value as CandidateDraft;
+      for (const constraint of draft.constraints) {
+        if (constraint.expressionJson === null || constraint.priorRef !== null || !constraint.text.trim() ||
+          !constraint.sources.some(ref => ref.root === 'input')) continue;
+        try {
+          checkExpressions({...draft, constraints: [constraint]}, expressionMaterials, undefined, validator, 1048576, 64);
+        } catch (error) {
+          // The scoped adapter can omit an unsupported optional encoding of a new
+          // text constraint. The unchanged candidate still goes through core validation.
+          if (!(error instanceof IntentError) || error.code !== 'MODEL_OUTPUT_INVALID' ||
+            !error.details?.violations?.some(item => /^\/constraints\/0\/expressionJson(?:\/|$)/.test(item.path))) throw error;
+          constraint.expressionJson = null;
+        }
+      }
+    }
     return JSON.stringify(value);
   }, close() {validator.close();}};
 }
 
-/** Restrict generation combinations; invalid replies are rejected, never repaired. */
-function refineCandidate(schema: Schema, nullableQuotes: WeakSet<object>, dereference: (node: Schema) => Schema): void {
+/** Restrict field and identity combinations during generation. */
+function refineCandidate(schema: Schema, nullableQuotes: WeakSet<object>, dereference: (node: Schema) => Schema, intentOnly: boolean): void {
   const actual = (node: Schema): Schema => node.$ref ? actual(dereference(node)) : node;
   const properties = (node: Schema): Record<string, Schema> => actual(node).properties as Record<string, Schema>;
   const root = properties(schema);
@@ -295,9 +352,10 @@ function refineCandidate(schema: Schema, nullableQuotes: WeakSet<object>, derefe
     const variants = ['intent', 'constraint', 'relation'].map(kind => {
       let path = snapshotPath(kind);
       if (inference && kind === 'intent') path = {type: 'string', pattern: '^(?:$|/(?:' + snapshotRoots.intent!.filter(k => !['inputs', 'extensions'].includes(k)).join('|') + ')(?:/.*)?)$', description: 'Unconfirmed semantic assumption about an existing slot. Never target an inputs/extensions container or descendant; the core also checks resolved nested-child locations.'};
+      if (!inference && intentOnly) path = constant('');
       return variant(base, {kind: constant(kind), key: keyed(prefixes[kind]!), path});
     });
-    variants.push(variant(base, {kind: constant('fact'), key: nil(), path: inference ? {type: 'string', const: ''} : properties(base).path!}));
+    variants.push(variant(base, {kind: constant('fact'), key: nil(), path: inference || intentOnly ? constant('') : properties(base).path!}));
     return {anyOf: variants};
   }
   for (const [name, inference] of [['inferences', true], ['evidence', false]] as const) {

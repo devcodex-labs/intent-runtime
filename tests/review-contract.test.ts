@@ -136,6 +136,16 @@ test('R3 rejects suggestions that refer to nonexistent intents or issues', async
   try {await assert.rejects(intent.parse({input: '查询订单', output: {suggestions: true}}), {code: 'MODEL_OUTPUT_INVALID'});} finally {await intent.dispose();}
 });
 
+test('Unrequested advisory references do not block authoritative intent assembly', async () => {
+  const d = draft(); d.suggestions = [{kind: 'clarification', text: 'Clarify', relatesTo: ['missing']}];
+  const intent = new Intent({executor: controlled(() => d)});
+  try {
+    const result = await intent.parse({input: '查询订单', output: {suggestions: false}});
+    assert.equal(result.effective.intents.length, 1);
+    assert.equal(result.suggestions, undefined);
+  } finally {await intent.dispose();}
+});
+
 test('R3 unresolved changes require their corresponding semantic issue', async () => {
   const d = draft([]); d.kind = 'withdrawal'; d.changes = [{operation: 'withdraw', effect: 'unresolved', targetKind: 'unresolved', targetKey: null, conditionKey: null, description: '取消哪个对象不清楚', sources: [src], deltaHints: []}];
   const intent = new Intent({executor: controlled(() => d)});
